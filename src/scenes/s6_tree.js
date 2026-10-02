@@ -47,11 +47,43 @@
 // every season keeps ONE dominant sky for ~3 s (spring: pink dawn -> bright day -> rose dusk; summer: bright blue; autumn: gold; winter: pale
 // blue-white; then the final dusk). The nights between two days are a quick, violet "dip" (the sky never goes darker than dusk-violet until
 // the very last dusk), so the light changes slowly instead of strobing.
-const TODT = [[122, 1.235], [131.0, 1.235], [134.0, 1.275], [136.0, 1.33], [138.3, 1.45], [140.0, 1.62], [140.7, 1.72], [141.1, 1.77],
-  [141.95, 2.235], [143.1, 2.5], [144.6, 2.745],
-  [145.35, 3.235], [146.4, 3.5], [148.0, 3.745],
-  [148.65, 4.235], [149.45, 4.5], [150.7, 4.75], [152.6, 5.0], [160, 5.0]];
-const todAt = (T) => u.keys(TODT, T, 'spline');
+const TODT = [[122, 1.235], [131.0, 1.235], [134.0, 1.275], [136.0, 1.33], [138.3, 1.45], [139.2, 1.575], [140.0, 1.68],
+  [141.15, 1.80], [141.45, 2.20], [142.6, 2.30], [143.5, 2.70],                    // dusk (slow) -> night (fast) -> dawn (slow) -> racing day
+  [144.65, 2.80], [144.95, 3.20], [146.1, 3.30], [147.0, 3.70],
+  [148.15, 3.80], [148.45, 4.20], [149.6, 4.30], [150.0, 4.52], [150.35, 4.72], [150.9, 4.82], [151.5, 4.90], [152.0, 4.954], [152.6, 5.0], [160, 5.0]];
+// monotone (PCHIP) interpolation: the clock never runs backwards and the dusk / dawn passages keep their slow rate
+const TODM = (() => {
+  const n = TODT.length, d = [], m = [];
+  for (let i = 0; i < n - 1; i++) d.push((TODT[i + 1][1] - TODT[i][1]) / (TODT[i + 1][0] - TODT[i][0]));
+  m[0] = d[0]; m[n - 1] = d[n - 2];
+  for (let i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (2 * d[i - 1] * d[i]) / (d[i - 1] + d[i]);
+  return m;
+})();
+const todAt = (T) => {
+  const n = TODT.length;
+  if (T <= TODT[0][0]) return TODT[0][1];
+  if (T >= TODT[n - 1][0]) return TODT[n - 1][1];
+  let i = 0; while (T > TODT[i + 1][0]) i++;
+  const t0 = TODT[i][0], t1 = TODT[i + 1][0], h = t1 - t0, s = (T - t0) / h, s2 = s * s, s3 = s2 * s;
+  return (2 * s3 - 3 * s2 + 1) * TODT[i][1] + (s3 - 2 * s2 + s) * h * TODM[i] + (-2 * s3 + 3 * s2) * TODT[i + 1][1] + (s3 - s2) * h * TODM[i + 1];
+};
+// the light of the day, low-passed (9 taps, +-0.6 s, triangular): [sun elevation elT, light elevation el] - a pure function of T
+const ELENV = [[149.3, 0.8], [149.6, 0.35], [149.9, 0.10], [150.25, -0.04], [151.4, -0.20], [152.1, -0.45], [152.4, -0.95], [152.5, -1], [160, -1]];
+const _lt = [0, 0];
+function lightAt(T) {
+  let a = 0, b = 0, ws = 0;
+  for (let k = -4; k <= 4; k++) {
+    const t = T + k * 0.15, w = 5 - abs(k);
+    const s = sin(TAU * (todAt(t) - 0.25)), nd = ss(149.5, 152.5, t);
+    let el = lerp(max(s, -0.1), s, nd);
+    { // the last dusk: the light drains out over ~1.9 s (an afterglow, independent of how fast the sun itself sets)
+      el = lerp(el, u.keys(ELENV, t, 'spline'), ss(149.2, 149.7, t));
+    }
+    a += w * s; b += w * el; ws += w;
+  }
+  _lt[0] = a / ws; _lt[1] = b / ws;
+  return _lt;
+}
 
 /* ------------------------------------------------------------------ colour tables */
   // sky by sun elevation (-1..1): night, twilight, dawn/dusk, low sun, day
@@ -276,6 +308,37 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     const BL = { n: nbl, x: new Float32Array(nbl), y: new Float32Array(nbl), b: new Float32Array(nbl), sz: new Float32Array(nbl), r: new Float32Array(nbl), r2: new Float32Array(nbl), r3: new Float32Array(nbl) };
     const r4 = u.rng(4141);
     BV.forEach((v, i) => { BL.x[i] = v.x; BL.y[i] = v.y; BL.b[i] = v.b; BL.sz[i] = v.sz; BL.r[i] = v.r; BL.r2[i] = r4(); BL.r3[i] = r4(); });
+    // early crown: while the branches are still young, clusters sit on the first limbs of BOTH sides of the trunk (the sapling's
+    // blades hand over to them; they thin out again once the real crown has closed). Own rng + own arrays: nothing else changes.
+    const EL = [], EB = [];
+    {
+      const re = u.rng(31337), rr = (a, b) => a + (b - a) * re();
+      const cand = [];
+      for (const b of BR) { if (b.depth < 1) continue; for (let j = 1; j < b.x.length; j++) cand.push({ x: b.x[j], y: b.y[j], t: b.t[j] / tmax }); }
+      const NE = Math.round(16 * Math.sqrt(areaK));
+      for (const side of [-1, 1]) {
+        const cs = cand.filter((c) => c.x * side > 0.025 && c.y > 0.1).sort((a, b) => a.t - b.t);
+        if (!cs.length) continue;
+        const pick = (b0) => {
+          const pool = cs.filter((c) => c.t <= b0 && c.t > b0 - 0.16);
+          let best = null, bs = -1e9;
+          for (let q = 0; q < 3; q++) {
+            const c = pool.length ? pool[floor(re() * pool.length)] : cs[min(cs.length - 1, floor(re() * 3))];
+            const sc = c.y + 0.6 * abs(c.x) + re() * 0.05;
+            if (sc > bs) { bs = sc; best = c; }
+          }
+          return best;
+        };
+        for (let k = 0; k < NE; k++) {
+          const b0 = 0.44 + 0.30 * (k + re() * 0.9) / NE, a = pick(b0), bb = max(b0, a.t + 0.006), z = re() * 0.9;
+          EL.push({ x: a.x + rr(-0.014, 0.014), y: a.y + rr(-0.01, 0.016), b: bb, sz: rr(0.074, 0.098), r: re(), r2: re(), r3: re(), z: z < 0.34 ? 0 : z < 0.72 ? 1 : 2 });
+        }
+        for (let k = 0; k < Math.round(NE * 0.8); k++) {
+          const b0 = 0.45 + 0.29 * (k + re() * 0.9) / (NE * 0.8), a = pick(b0), bb = max(b0, a.t + 0.01);
+          EB.push({ x: a.x + rr(-0.014, 0.014), y: a.y + rr(-0.008, 0.018), b: bb, sz: rr(0.05, 0.068), r: re(), r2: re() });
+        }
+      }
+    }
     // order back->front by layer (z), keep deterministic
     LV.sort((a, b) => a.z - b.z);
     const nl = LV.length;
@@ -295,7 +358,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     for (let i = 0; i < nl; i++) { if (L.z[i] === 0) c0 = i + 1; if (L.z[i] <= 1) c1 = i + 1; }
     L.zs = [0, c0, c1, nl];
 
-    return { hT, crown, P, L, BL, APH, APX, Htot, np, nl, trunkLen, nb: BR.length, WS };
+    return { hT, crown, P, L, BL, EL, EB, APH, APX, Htot, np, nl, trunkLen, nb: BR.length, WS };
   }
   // growth clock for an apex height (units): first gamma whose apex height reaches h
   function invApex(h) {
@@ -529,6 +592,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     return CAM.gf + (1 - CAM.gf) * (1 - pow(1 - s, CAM.p));
   }
 
+  const _skyB = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
   const NIGHT_B6 = [0.04, 0.046, 0.13], NIGHT_LAPSE = [0.3, 0.36, 0.62];
   const F = {
     T: 0, G: 0, k: 1, ks: 1, cx: 0, gam: 0, apexH: 0, apexX: 0, tipX: 0, tipY: 0, sv: 0, tod: 0, el: 0, A: 1, nd: 0, warm: 0, hy: 0,
@@ -552,13 +616,14 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     // day clock
     const tod = todAt(T); F.tod = tod % 1;
     const phi = TAU * (tod - 0.25);
-    F.elT = sin(phi);
     F.nd = ss(149.5, 152.5, T);
-    // light / sky use an elevation that dips no lower than dusk-violet while the days race (true night only at the very end)
-    F.el = lerp(max(F.elT, -0.12), F.elT, F.nd);
+    // light / sky use an elevation that dips no lower than dusk-violet while the days race (true night only at the very end);
+    // it is low-passed so that every dusk -> night -> dawn swing is a slow fade, never a cut
+    const lt = lightAt(T);
+    F.elT = lt[0]; F.el = lt[1];
     const el = F.el;
     const floorA = lerp(0.42, 0.02, F.nd);
-    F.A = lerp(floorA, 1, ss(-0.12, 0.32, el));
+    F.A = lerp(floorA, 1, lerp(ss(-0.12, 0.32, el), 1 - (0.7 * clamp((T - 149.9) / 2.2) + 0.3 * ss(149.9, 152.1, T)), ss(149.2, 149.9, T)));
     F.warm = (1 - ss(0.0, 0.5, el)) * ss(-0.25, 0.02, el);
     const nm = mixc(NIGHT_LAPSE, NIGHT_B6, F.nd);
     const dm = mixc([1, 1, 1], [1.14, 0.9, 0.72], F.warm);
@@ -568,7 +633,11 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     { const wind = (1 + 0.7 * SW[2] + 0.7 * SW[3]) * (0.4 + 0.6 * ss(133, 138, T)), osc = sin(T * 0.8) + 0.55 * sin(T * 1.9 + 1.0), c = ss(CACHE_T - 1.1, CACHE_T, T);
       F.swA = 0.0085 * osc * wind * (1 - c); F.swX = 0.0016 * osc * wind * c; }
     // sky
-    lerpTab(F.tod < 0.5 ? SKY_RISE : SKY_SET, el, F.sky);
+    { // morning palette (tod 0..0.5) <-> evening palette (0.5..1): cross-faded around noon and midnight, never switched
+      const wS = ss(0.35, -0.35, sin(TAU * tod));
+      lerpTab(SKY_RISE, el, F.sky);
+      if (wS > 0.002) { lerpTab(SKY_SET, el, _skyB); for (let c = 0; c < 3; c++) F.sky[c] = mixc(F.sky[c], _skyB[c], wS); }
+    }
     const nightness = ss(-0.05, -0.38, el) * (1 - F.nd);
     for (let c = 0; c < 3; c++) F.sky[c] = mixc(F.sky[c], SKY_LAPSE_NIGHT[c], nightness * 0.9);
     const day = ss(-0.1, 0.4, el);
@@ -591,7 +660,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     // sun / moon on their arcs
     const R = (F.hy - 0.13 * H) * (0.8 + 0.2 * SW[1] - 0.1 * SW[3]);
     F.sunX = W * (0.5 - 0.47 * cos(phi)); F.sunY = F.hy - sin(phi) * R;
-    F.sunA = ss(-0.12, 0.05, F.elT);
+    F.sunA = ss(-0.24, 0.1, F.elT);
     const phm = phi + PI;
     F.moonX = W * (0.5 - 0.42 * cos(phm)); F.moonY = F.hy - sin(phm) * R * 0.95;
     F.moonA = 0; // no moon: the nights of the time-lapse are short violet dips; the last night belongs to the stars
@@ -725,7 +794,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       const Dd = todAt(F.T) - 1.2;
       const wDay = ss(0.28, 0.8, F.A) * (1 - 0.7 * F.warm), wDusk = F.warm * ss(0.3, 0.8, F.A) * 1.0 + F.warm * (1 - ss(0.3, 0.8, F.A)) * 0.6, wNight = 1 - ss(0.2, 0.7, F.A);
       const ws = [wDay, wDusk, wNight];
-      const cwMin = Math.min(wDay, wDusk, wNight) < 0.9 * Math.max(wDay, wDusk, wNight) ? ws.slice().sort((p, q) => p - q)[1] - 1e-6 : 0;
+      const cwMin = 0;   // all three tints are blended (a hard 'two strongest only' cut made the clouds flip colour at dusk / dawn)
       for (const c of PART.clouds) {
         const wdt = W * 0.3 * c.s * (W / H > 1.2 ? 1 : 1.5);
         const hgt = wdt * 140 / 320;
@@ -1243,7 +1312,8 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       const r = L.r[i], r2 = L.r2[i];
       let alive, pcv;
       if (L.juv[i]) {
-        alive = 1 - ss(140.8 + r * 1.4, 142.4 + r * 1.4, T);   // the young blades stay until the crown has closed (no bare-tree gap)
+        const yn = clamp(L.y[i] / TR.Htot / 0.3);
+        alive = 1 - ss(138.5 + 0.9 * yn + r * 0.25, 139.5 + 1.0 * yn + r * 0.25, T);   // the sapling's blades thin out from the bottom up as the branches sprout (gone by ~140.5)
         if (alive < 0.02) continue;
         const y = L.y[i], sg = L.juv[i];
         const x = L.x[i] + swayX(y);
@@ -1283,7 +1353,33 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     g.imageSmoothingEnabled = true;
   }
 
+  // early symmetric crown clusters (see buildTree): pass 0 = behind the branches, pass 1 = in front
+  function drawEarlyLeaves(g, env, pass) {
+    const T = F.T, gam = F.gam;
+    if (T < 138.2 || T > 143.9) return;
+    const E = TR.EL, ks = F.ks, G = F.G, cx = F.cx, lvF = F.lvF;
+    const ea = 1 - ss(0.74, 0.88, gam), spring1 = 0.72 + 0.28 * ss(136, 142, T);
+    if (ea < 0.02) return;
+    g.imageSmoothingEnabled = true;
+    for (let i = 0; i < E.length; i++) {
+      const e = E[i];
+      if ((pass === 0) !== (e.z === 0) || gam < e.b) continue;
+      const grow = ss(e.b, e.b + 0.06, gam);
+      const sz = e.sz * (0.35 + 0.65 * grow) * ea * spring1 * ks;
+      if (sz < 2) continue;
+      const y = e.y, x = e.x + swayX(y) + sin(T * 2.1 + e.r * TAU) * 0.002;
+      const px = cx + x * ks, py = G - y * ks;
+      const o = (e.r2 - 0.5) * 3.0, pcv = ss(139.6 + o, 141.6 + o, T);
+      const ci = clamp(Math.round((pcv * (NC - 1)) / 4), 0, NC - 1);
+      let sd = e.z; if (e.r3 > 0.82) sd = min(2, sd + 1); else if (e.r3 < 0.16) sd = max(0, sd - 1);
+      const lv = min(NLV, floor(lvF + e.r3));
+      const dx = Math.round(px - sz * 0.5), dy = Math.round(py - sz * 0.5), dsz = Math.round(sz);
+      if (e.r2 > 0.5) g.drawImage(SPR.leaf[lv][ci][sd], dx, dy, dsz, dsz);
+      else g.drawImage(SPR.leaf[lv][ci][sd], dx + dsz, dy, -dsz, dsz);
+    }
+  }
   // blossoms (drawn with their own light: they keep a glow at night)
+  function blossomEnvR(r, T) { return ss(137.9 + r * 1.2, 139.4 + r * 1.2, T) * (1 - ss(141.6 + r * 1.6, 143.0 + r * 1.6, T)); }
   function blossomEnv(i, T) {
     const r = TR.BL.r[i];
     const b1 = ss(137.9 + r * 1.2, 139.4 + r * 1.2, T) * (1 - ss(141.6 + r * 1.6, 143.0 + r * 1.6, T));
@@ -1313,6 +1409,24 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       const sm = abs(sz / cs - 1) > 0.12;
       if (sm !== smoothB) { smoothB = sm; g.imageSmoothingEnabled = sm; }
       g.drawImage(SPR.blos[v][floor(r2 * 3) % 3][ci], Math.round(px - cs * 0.5), Math.round(py - cs * 0.5), cs, cs);
+    }
+    { // early symmetric blossoms
+      const E = TR.EB, ea = 1 - ss(0.74, 0.88, gam);
+      for (let i = 0; i < E.length && ea > 0.02; i++) {
+        const q = E[i];
+        if (gam < q.b) continue;
+        const e = blossomEnvR(q.r, T) * ea;
+        if (e < 0.02) continue;
+        const y = q.y, x = q.x + swayX(y) + sin(T * 2.3 + q.r * TAU) * 0.002;
+        const sz = q.sz * (0.4 + 0.6 * e) * ks * ss(q.b, q.b + 0.06, gam);
+        if (sz < 2) continue;
+        const v = F.A > 0.58 + 0.28 * q.r2 ? 0 : 1;
+        g.globalAlpha = min(1, e * 1.2);
+        let ci = Math.round(Math.log(sz / 28) / 0.1157); ci = ci < 0 ? 0 : ci > 13 ? 13 : ci;
+        const cs = BCLS[ci], sm = abs(sz / cs - 1) > 0.12;
+        if (sm !== smoothB) { smoothB = sm; g.imageSmoothingEnabled = sm; }
+        g.drawImage(SPR.blos[v][floor(q.r * 3) % 3][ci], Math.round(x * ks + cx - cs * 0.5), Math.round(G - y * ks - cs * 0.5), cs, cs);
+      }
     }
     g.imageSmoothingEnabled = true;
     g.globalAlpha = 1;
@@ -1349,6 +1463,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     g.fillStyle = grd; g.fillRect(cx - shadowR, G + 0.012 * S - shadowR, shadowR * 2, shadowR * 2);
     g.restore();
     drawLeaves(g, env, 0, 1);
+    drawEarlyLeaves(g, env, 0);
     if ((T >= CACHE_T || F.gam >= 0.985) && SK) {
       // cached skeleton (the last 1.5 % of the growth is invisible), leaned by the wind (shear) / shifted; light = blend of the neighbouring variants
       const lum = F.lum;
@@ -1369,6 +1484,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       strokeBranches(g, { gam: F.gam, ks, bx: cx, by: G, swA: F.swA, swX: F.swX, LM: F.LM, snowOnly: false, snow: F.snow, sunSide: F.sunX < F.cx ? -1 : 1, fh });
     }
     drawLeaves(g, env, 1, 3);
+    drawEarlyLeaves(g, env, 1);
   }
 
   /* ================================================================== particles (all analytic) */

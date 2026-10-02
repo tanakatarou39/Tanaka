@@ -255,9 +255,13 @@
 
   /* ------------------------------------------------------------------ fog / lightning (matches s4 at B4) */
   function flashAmt(T) {
-    if (T < 98.5 || T > 101) return 0;
-    const pl = (t0, w) => (T < t0 ? exp(-pow((T - t0) / 0.035, 2)) : exp(-(T - t0) / w));
-    return min(1, 0.5 * pl(98.93, 0.09) + 0.7 * pl(99.27, 0.2) + 0.12 * pl(99.27, 0.8));
+    // identical to s4_sky.js flashAmt (B4 window): ONE smooth flash, ~0.25 s up / ~0.5 s down, long soft afterglow
+    if (T < 98.65 || T > 101.7) return 0;
+    const t0 = 98.7, tp = 99.35;
+    let v;
+    if (T < tp) { const q = (T - t0) / (tp - t0); v = q <= 0 ? 0 : q * q * (3 - 2 * q); }
+    else { const dt = T - tp; v = 0.58 * exp(-pow(dt / 0.5, 1.7)) + 0.42 * exp(-pow(dt / 1.2, 1.4)); }
+    return 0.45 * v * (1 - ss(100.9, 101.7, T));
   }
   const YE = [[101.8, 1.7], [103.0, 1.38], [103.8, 1.08], [104.7, 0.82], [105.6, 0.6], [106.7, 0.4], [107.9, 0.27], [109.2, 0.15], [111.0, -0.05], [112.6, -0.5]];
   const fogEdge = (T) => KS(YE, T);
@@ -274,6 +278,8 @@
     const open = ss(102.4, 103.7, T);
     // large slow billows: visible fbm contrast (+-6 %) that ramps in from 98 and rises ~0.02 S/s, plus two darker lobes drifting up beside the drop
     const bamp = ss(98.0, 101.0, T) * 0.26, hxn = (hx / W) * asp, up = T * 0.02;
+    // B4 (98-102): the fog field is s4's own (same billows, same flash response); it hands over to the lobed look as the cloud opens
+    const k4 = ss(101.2, 103.4, T), drift2 = T * 0.05, drift4 = T * 0.026, bil4 = ss(95.5, 98.2, T);
     const lobe1y = u.wrap(0.78 - (T - 98) * 0.024, -0.35, 1.25), lobe2y = u.wrap(1.12 - (T - 98) * 0.017, -0.35, 1.25);
     for (let j = 0; j < h; j++) {
       const ny = j / (h - 1);
@@ -282,7 +288,7 @@
         const v = u.fbm2(nx * 1.6 + 3.1 + T * 0.006, ny * 1.6 + drift, 2);
         const v2 = u.noise2(nx * 0.9 + 11 - T * 0.004, ny * 0.9 + drift * 0.7);
         const o = (j * w + i) * 4;
-        let a = 1, under = 0;
+        let a = 1, under = 0, fS4 = 0;
         if (open > 0) {
           const edge = Ye - 0.26 * (xr - 0.5) * open + (0.36 * (v - 0.5) + 0.14 * (v2 - 0.5)) * open;
           const dist = edge - ny;
@@ -295,6 +301,13 @@
           const vb = u.fbm2(nx * 1.7 + 21, (ny + up) * 1.7 + 4, 3);
           const l1x = nx - (hxn - 0.34 * asp * 0.7), l1y = (ny - lobe1y) * 1.3, l2x = nx - (hxn + 0.42 * asp * 0.7), l2y = (ny - lobe2y) * 1.3;
           lum += bamp * ((vb - 0.5) * 0.9 - 0.2 * exp(-(l1x * l1x + l1y * l1y) * 7) - 0.16 * exp(-(l2x * l2x + l2y * l2y) * 6));
+        }
+        if (k4 < 1) {
+          const v4 = u.fbm2(nx * 1.6 + 3.1 + T * 0.006, ny * 1.6 + drift4, 2), v24 = u.noise2(nx * 0.9 + 11 - T * 0.004, ny * 0.9 + drift4 * 0.7);
+          const bm = ss(0.4, 0.72, u.fbm2(nx * 0.8 + 5.2, ny * 0.8 + drift2, 3));
+          const lum4 = 0.86 + 0.28 * v4 + 0.1 * (v24 - 0.5) + bil4 * 0.36 * (0.2 - bm);
+          lum = lum4 + (lum - lum4) * k4;
+          if (fl > 0.002) fS4 = fl * (0.3 + 1.2 * v4 * v4 + 0.4 * bm);
         }
         if (open > 0) lum *= 1 + open * 0.5 * (v - 0.5);
         let r = lerp(FOG_TOP[0], FOG_BOT[0], ny) * lum, gg = lerp(FOG_TOP[1], FOG_BOT[1], ny) * lum, b = lerp(FOG_TOP[2], FOG_BOT[2], ny) * lum;
@@ -309,8 +322,9 @@
         }
         if (fl > 0.002) {
           const dx = nx - fxn, dy = (ny - fyn) / asp * 1.2;
-          const f = fl * exp(-(dx * dx + dy * dy) * 2.6) * (0.12 + 1.7 * v * v * v);
-          r += 62 * f; gg += 70 * f; b += 104 * f;
+          const g4 = exp(-(dx * dx + dy * dy) * 2.4);
+          const f = g4 * (fS4 * (1 - k4) + k4 * fl * (0.12 + 1.7 * v * v * v));
+          r += 40 * f * (1 - k4) + 62 * f * k4; gg += 46 * f * (1 - k4) + 70 * f * k4; b += 84 * f * (1 - k4) + 104 * f * k4;
         }
         d[o] = r > 255 ? 255 : r; d[o + 1] = gg > 255 ? 255 : gg; d[o + 2] = b > 255 ? 255 : b; d[o + 3] = a * 255;
       }
@@ -324,9 +338,11 @@
     g.imageSmoothingEnabled = false;
     g.drawImage(FOG.m, 0, 0, FOG.mw, rowsMax * FOG.mh / h, 0, 0, W, rowsMax * H / h);
     if (fl > 0.01) {
-      const fx = hx + S * 0.2, fy = hy - S * 0.16, R = S * 0.8;
+      // same flash bloom as s4 (B4 window)
+      const fx = hx + S * 0.22, fy = hy - S * 0.2, R = S * 1.05;
       const gr = g.createRadialGradient(fx, fy, 0, fx, fy, R);
-      gr.addColorStop(0, `rgba(205,215,255,${0.30 * fl})`); gr.addColorStop(0.35, `rgba(170,185,240,${0.14 * fl})`); gr.addColorStop(1, 'rgba(150,170,230,0)');
+      gr.addColorStop(0, `rgba(215,225,255,${0.4 * fl})`); gr.addColorStop(0.4, `rgba(175,192,245,${0.22 * fl})`); gr.addColorStop(1, 'rgba(150,170,230,0)');
+      g.globalCompositeOperation = 'lighter';
       g.fillStyle = gr; g.fillRect(fx - R, fy - R, R * 2, R * 2);
     }
     g.restore();
@@ -498,38 +514,55 @@
     const x = cv.getContext('2d'), w = cv.width, h = cv.height;
     const img = x.getImageData(0, 0, w, h), d = img.data;
     const con = o.contrast == null ? 1 : o.contrast;
-    const M2 = 2.15;
-    let gx0 = 1e9, gx1 = -1e9, gy0 = 1e9, gy1 = -1e9;
-    for (const [cx, cy] of [[0, 0], [w, 0], [0, h], [w, h]]) {
-      const cs = o.cs(cy), gx = (cx * 0.88 - cy * 0.48) / cs + 11.3, gy = (cx * 0.48 + cy * 0.88) / cs + 5.7;
-      gx0 = min(gx0, gx); gx1 = max(gx1, gx); gy0 = min(gy0, gy); gy1 = max(gy1, gy);
-    }
-    gx0 -= 1.2; gy0 -= 1.2; gx1 += 1.2; gy1 += 1.2;
+    const M2 = 2.15, M3 = 0.42;
+    // the grid is rotated by a slowly varying angle and scaled by a slowly varying factor (both low-frequency noise of the position),
+    // so no two parts of the hill share the same cell size / orientation; a third, coarse octave of crowns (tree clumps) and a
+    // low-frequency brightness/hue field then break up whatever repetition is left.  Bounds below allow for the worst-case warp.
+    const csMin = o.cs(0), ext = (w + h) / csMin + 4.5;
+    const gx0 = 11.3 - ext, gx1 = 11.3 + ext, gy0 = 5.7 - ext, gy1 = 5.7 + ext;
     const ox = floor(gx0) - 2, oy = floor(gy0) - 2, nx = floor(gx1) - ox + 4, ny = floor(gy1) - oy + 4;
     const t1 = wlTable(ox, oy, nx, ny, 0);
     const ox2 = floor(gx0 * M2) - 2, oy2 = floor(gy0 * M2) - 2, nx2 = floor(gx1 * M2) - ox2 + 4, ny2 = floor(gy1 * M2) - oy2 + 4;
     const t2 = wlTable(ox2, oy2, nx2, ny2, 5000);
+    const ox3 = floor(gx0 * M3) - 2, oy3 = floor(gy0 * M3) - 2, nx3 = floor(gx1 * M3) - ox3 + 4, ny3 = floor(gy1 * M3) - oy3 + 4;
+    const t3 = wlTable(ox3, oy3, nx3, ny3, 9000);
     const R = 0.9, iR = 1 / R, Lx = 0.988, Ly = -0.18;
+    const nsc = 1 / o.sk; // canvas px per S unit: all the low-frequency fields below are in S units
     for (let y = 0; y < h; y++) {
-      const cs = o.cs(y), col = o.cols(y);
+      const cs0 = o.cs(y), col = o.cols(y);
       const dr = col[0], dg = col[1], db = col[2], lr = col[3], lg = col[4], lb = col[5];
       for (let px = 0; px < w; px++) {
         const o4 = (y * w + px) * 4;
         if (d[o4 + 3] === 0) continue;
-        let gx = (px * 0.88 - y * 0.48) / cs + 11.3, gy = (px * 0.48 + y * 0.88) / cs + 5.7;
-        gx += 0.55 * (u.noise2(gx * 0.55 + 3, gy * 0.55 + 1) - 0.5); gy += 0.55 * (u.noise2(gx * 0.55 + 9, gy * 0.55 + 6) - 0.5);
+        const qx = px * nsc, qy = y * nsc;
+        const mA = u.noise2(qx * 2.2 + 2.1, qy * 2.2 + 7.4), mB = u.noise2(qx * 1.9 + 41.3, qy * 1.9 + 3.9);
+        let gx = (px * 0.88 - y * 0.48) / cs0 + 11.3, gy = (px * 0.48 + y * 0.88) / cs0 + 5.7;
+        gx += 0.7 * (u.noise2(gx * 0.55 + 3, gy * 0.55 + 1) - 0.5) + 1.5 * (u.noise2(gx * 0.09 + 13, gy * 0.09 + 5) - 0.5);
+        gy += 0.7 * (u.noise2(gx * 0.55 + 9, gy * 0.55 + 6) - 0.5) + 1.5 * (u.noise2(gx * 0.09 + 27, gy * 0.09 + 19) - 0.5);
         wl(t1, gx - ox, gy - oy);
         let r1 = sqrt(WL_d1) * iR, hgt = r1 < 1 ? 1 - r1 * r1 : 0;
         let lit = (WL_vx * Lx + WL_vy * Ly) * iR, edge = clamp((sqrt(WL_d2) - sqrt(WL_d1)) * 5, 0, 1), bb = WL_bb;
-        const sh1 = (0.26 + 0.44 * hgt + 0.3 * lit * (0.3 + r1) + bb * 0.22) * (0.62 + 0.38 * edge);
+        // crease darkening varies across the hill (less where the light is flat) so the cell borders never read as a net
+        const ek = 0.2 + 0.26 * mA; // mA: low-frequency noise, also varies the crease strength
+        const sh1 = (0.26 + 0.44 * hgt + 0.3 * lit * (0.3 + r1) + bb * 0.22) * ((1 - ek) + ek * edge);
         wl(t2, gx * M2 - ox2, gy * M2 - oy2);
         r1 = sqrt(WL_d1) * iR; hgt = r1 < 1 ? 1 - r1 * r1 : 0;
         lit = (WL_vx * Lx + WL_vy * Ly) * iR;
         const sh2 = (0.3 + 0.4 * hgt + 0.3 * lit * (0.3 + r1) + WL_bb * 0.3) * (0.7 + 0.3 * clamp((sqrt(WL_d2) - sqrt(WL_d1)) * 5, 0, 1));
-        let sh = (sh1 * 0.66 + sh2 * 0.34 - 0.5) * con + 0.5;
+        wl(t3, gx * M3 - ox3, gy * M3 - oy3);
+        r1 = sqrt(WL_d1) * iR * 0.8; hgt = r1 < 1 ? 1 - r1 * r1 : 0;
+        lit = (WL_vx * Lx + WL_vy * Ly) * iR;
+        const sh3 = 0.34 + 0.34 * hgt + 0.22 * lit * (0.3 + r1) + WL_bb * 0.5;
+        // tree clumps (coarse crowns) + a broad light/shade field
+        const lf = u.fbm2(qx * 2.6 + 5.5, qy * 2.6 + 1.7, 3) - 0.5;
+        // where mB is high the fine crowns dominate, where it is low the coarse clumps do: the apparent cell size drifts across the hill
+        const wk = (mB - 0.5) * 0.5;
+        let sh = ((sh1 * (0.5 + wk * 0.6) + sh2 * (0.27 + wk * 0.4) + sh3 * (0.23 - wk)) - 0.5) * con + 0.5 + lf * 0.5;
         sh += (RT[((px * 7 + y * 13) & 65535) * 3] - 0.5) * 0.06;
         sh = sh < 0 ? 0 : sh > 1 ? 1 : sh;
-        d[o4] = dr + (lr - dr) * sh; d[o4 + 1] = dg + (lg - dg) * sh; d[o4 + 2] = db + (lb - db) * sh;
+        // hue drift across the hill: yellower where lf is high (sunlit meadow patches), bluer where it is low
+        const hk = lf * 0.34;
+        d[o4] = (dr + (lr - dr) * sh) * (1 + hk * 0.55); d[o4 + 1] = (dg + (lg - dg) * sh) * (1 + hk * 0.18); d[o4 + 2] = (db + (lb - db) * sh) * (1 - hk * 0.45);
       }
     }
     x.putImageData(img, 0, 0);
@@ -779,6 +812,7 @@
         return [a[0], a[1], a[2], b[0], b[1], b[2]];
       },
       contrast: 0.85,
+      sk: S * sxk,
     });
     x.setTransform(sxk, 0, 0, syk, 0, 0);
     // everything well below the band becomes solid deep green
@@ -1212,7 +1246,7 @@
 
       if (fogEdge(T) > -0.45) drawFog(g, T, env, hx, hy);
 
-      const aRainIn = lerp(0.1, 1, u.smootherstep(100.8, 105.0, T));
+      const aRainIn = lerp(0.1, 1, u.smootherstep(100.8, 105.0, T)) * (0.22 + 0.78 * ss(98.4, 103.2, T)); // starts as faint as s4's first streaks (B4), unchanged from 103.2
       drawRainLayer(g, T, env, 1, aRainIn * (1 - ss(116.4, 118.4, T)));
 
       // the big near leaves sweep by behind the drop (it is the one thing that must never be hidden)

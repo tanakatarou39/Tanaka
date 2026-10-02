@@ -8,7 +8,7 @@
  * 173–175.5 the camera tips down: the horizon leaves the top, the ellipses open into circles, the light sinks under the water.
  * 175.4–178 the camera dives with the drop: a silver, shimmering sheet closes overhead and retreats upward; the water goes
  *          from deep blue to black; the drop shrinks.
- * 178.4–180 only the single point of light at (.5,.5) (r .0048 S, hue 190 = the first frame of s1) — the film loops.
+ * 178.4–180 only the single point of light at (.5,.5) (r .0066 S, hue 190 = the first frame of s1) — the film loops.
  *
  * Pure function of T. Static art (sky/sea base, Milky Way, star lists) is built in init()/resize().
  */
@@ -27,6 +27,7 @@
   /* ------------------------------------------------------------------ timing */
   const FALL0 = 169.8;       // the star lets go
   const IMPACT = 171.0;      // it touches the water
+  const glintEnv = (T) => ss(-0.14, 0.012, T - IMPACT) * exp(-pow(max(0, T - IMPACT) / 0.27, 1.4));   // the impact glint: rises into the touch, gone by ~171.6
   const LYF = 0.885;         // impact level (fraction of H) on the mirror sea
   const HZF = 0.78;          // horizon (fraction of H) — matches s7
   const RT = [171.0, 171.62, 172.3, 173.05]; // ring start times
@@ -102,6 +103,43 @@
       gBlue: u.glowSprite(214, 90, 62, 'soft'), coreWhite: u.glowSprite(220, 40, 92, 'core'),
       gCyan: u.glowSprite(195, 75, 70, 'soft'), gSilver: u.glowSprite(205, 45, 80, 'soft'), coreCyan: u.glowSprite(200, 60, 90, 'core'),
     };
+    // the impact flare: a feathered 4-point glint (radial falloff, no hard edge) — cool white at the heart, blue at the tips; peak 0.85
+    SP.flare = spr('flare', 256, 256, (c, w, h) => {
+      const im = c.createImageData(w, h), d = im.data;
+      for (let j = 0; j < h; j++) {
+        for (let i = 0; i < w; i++) {
+          const x = (i + 0.5) / w * 2 - 1, y = (j + 0.5) / h * 2 - 1;
+          const r = hypot(x, y), ax = abs(x), ay = abs(y);
+          const win = (1 - ss(0.6, 1, r));                           // feather every arm out before the sprite edge
+          const core = 0.5 * exp(-pow(r / 0.085, 1.5)) + 0.22 * exp(-r / 0.22);
+          const armH = 0.5 * exp(-ax / 0.3) * exp(-pow(y / (0.022 + 0.04 * ax), 2));
+          const armV = 0.42 * exp(-ay / 0.17) * exp(-pow(x / (0.02 + 0.034 * ay), 2));
+          const dh = abs(x - y) * 0.7071, dv = abs(x + y) * 0.7071;   // faint diagonals
+          const diag = 0.1 * (exp(-hypot(x, y) / 0.1) * (exp(-pow(dh / 0.02, 2)) + exp(-pow(dv / 0.02, 2))));
+          let I = (core + armH + armV + diag) * win + (u.hash2(i, j) - 0.5) * 0.004;
+          I = clamp(I * 0.85, 0, 0.85);
+          const k = pow(I / 0.85, 1.6);                               // hot (white) heart -> blue edges
+          const q = (j * w + i) * 4;
+          d[q] = lerp(120, 238, k); d[q + 1] = lerp(168, 246, k); d[q + 2] = 255; d[q + 3] = I * 255;
+        }
+      }
+      c.putImageData(im, 0, 0);
+    });
+    // a longer, fainter horizontal lens streak
+    SP.lens = spr('lens', 512, 32, (c, w, h) => {
+      const im = c.createImageData(w, h), d = im.data;
+      for (let j = 0; j < h; j++) {
+        for (let i = 0; i < w; i++) {
+          const x = (i + 0.5) / w * 2 - 1, y = (j + 0.5) / h * 2 - 1;
+          const ax = abs(x);
+          let I = exp(-ax / 0.22) * (1 - ss(0.5, 1, ax)) * exp(-pow(y / (0.16 + 0.1 * ax), 2)) + (u.hash2(i, j) - 0.5) * 0.004;
+          I = clamp(I * 0.8, 0, 0.8);
+          const q = (j * w + i) * 4;
+          d[q] = lerp(110, 215, I); d[q + 1] = lerp(160, 232, I); d[q + 2] = 255; d[q + 3] = I * 255;
+        }
+      }
+      c.putImageData(im, 0, 0);
+    });
     SP.petal = spr('petal', 32, 18, (c) => {
       c.translate(16, 9);
       const gr = c.createRadialGradient(-3, -1, 1, 0, 0, 14);
@@ -501,10 +539,11 @@
       const al = ss(FALL0 + 0.25, FALL0 + 0.9, T) * (0.55 + 0.45 * near);
       if (yr < H + 0.3 * S) {
         const len = S * 0.22 * (0.6 + 0.8 * near);
-        g.globalAlpha = 0.75 * al;
+        const dim = 1 - 0.95 * glintEnv(T);   // the glint carries the heart of the moment
+        g.globalAlpha = 0.5 * al * dim;
         g.drawImage(SP.streak, _sp[0] - S * 0.03, yr - len / 2, S * 0.06, len);
-        gl(g, SP.gCold, _sp[0], yr, S * 0.07, 0.5 * al);
-        gl(g, SP.coreWhite, _sp[0], yr, S * 0.022, 0.8 * al * near);
+        gl(g, SP.gCold, _sp[0], yr, S * 0.07, 0.4 * al * dim);
+        gl(g, SP.coreWhite, _sp[0], yr, S * 0.022, 0.5 * al * near * dim);
       }
     }
     g.restore();
@@ -606,7 +645,7 @@
     const tx = X[NT], ty = Y[NT];
     if (hypot(hx - tx, hy - ty) > 3) {
       const gr = g.createLinearGradient(hx, hy, tx, ty);
-      const a0 = 0.95 * speed;
+      const a0 = 0.95 * speed * (1 - 0.95 * glintEnv(T));
       gr.addColorStop(0, `rgba(235,244,255,${a0})`); gr.addColorStop(0.18, `rgba(170,205,255,${a0 * 0.55})`);
       gr.addColorStop(0.6, `rgba(100,150,240,${a0 * 0.18})`); gr.addColorStop(1, 'rgba(70,110,230,0)');
       g.strokeStyle = gr;
@@ -620,7 +659,7 @@
       // dust of light along the tail
       for (let j = 1; j < NT; j += 1) {
         const f = j / NT;
-        const al = (1 - f) * (1 - f) * 0.5 * speed;
+        const al = (1 - f) * (1 - f) * 0.5 * speed * (1 - 0.95 * glintEnv(T));
         gl(g, SP.gCold, X[j], Y[j], S * (0.03 - 0.018 * f), al);
       }
       // sparkling motes shed behind the star
@@ -671,13 +710,22 @@
     // --- flash + flat splash light on the water
     const fl = exp(-a / 0.28) * ss(-0.02, 0.02, a);
     if (fl > 0.04) {
-      gl(g, SP.gCold, cx, cy, S * 0.34 * z, 0.62 * fl);
-      gl(g, SP.coreWhite, cx, cy, S * 0.1 * z, 0.8 * fl);
+      gl(g, SP.gCold, cx, cy, S * 0.34 * z, 0.26 * fl);
+      gl(g, SP.coreWhite, cx, cy, S * 0.1 * z, 0.03 * fl);
       g.save();
       g.translate(cx, cy); g.scale(1, 0.14 * (eps / 0.2 > 1.5 ? 1.5 : 1));
-      g.globalAlpha = min(1, 0.9 * fl);
+      g.globalAlpha = min(1, 0.2 * fl);
       g.drawImage(SP.gSilver, -S * 0.9, -S * 0.9, S * 1.8, S * 1.8);
       g.restore();
+    }
+    // --- the glint: a feathered 4-point flare (a longer, fainter lens streak across it), brief, light not a polygon
+    const gt = glintEnv(T);
+    if (gt > 0.01) {
+      const gs = S * z * (0.36 + 0.07 * (1 - exp(-max(0, a) / 0.12)));
+      g.globalAlpha = 0.58 * gt;
+      g.drawImage(SP.flare, cx - gs, cy - gs, gs * 2, gs * 2);
+      g.globalAlpha = 0.17 * gt;
+      g.drawImage(SP.lens, cx - S * 0.52 * z, cy - S * 0.03 * z, S * 1.04 * z, S * 0.06 * z);
     }
     // --- spire of light rising from the surface
     if (a > 0 && a < 1.8) {
@@ -685,7 +733,7 @@
       const w = S * (0.026 * exp(-a * 1.2) + 0.006);
       const al = exp(-a / 0.5) * ss(0, 0.05, a);
       if (al > 0.01 && h > 2) {
-        g.globalAlpha = min(1, 0.95 * al);
+        g.globalAlpha = min(1, 0.95 * al * (1 - 0.75 * glintEnv(T)));
         g.drawImage(SP.beam, cx - w / 2, cy - h, w, h);
         gl(g, SP.gCold, cx, cy - h * 0.2, S * 0.05, 0.4 * al);
       }
@@ -702,7 +750,7 @@
       const gx = cx + hx * S * z, gy = cy + hz * S * z * eps;
       if (t < tl) {
         const Y = gy - hgt * S * z;
-        const al = ss(0, 0.06, t) * (0.7 + 0.3 * sin(T * 7 + i));
+        const al = ss(0, 0.06, t) * (0.7 + 0.3 * sin(T * 7 + i)) * (0.4 + 0.6 * ss(0, 0.3, t)) * (1 - 0.6 * glintEnv(T));   // they leave the glint one by one, not as one white clump
         // short trail
         for (let q = 1; q <= 3; q++) {
           const tq = t - q * 0.035; if (tq < 0) break;
@@ -762,8 +810,9 @@
   }
   function drawHero(g, T) {
     const h = heroState(T);
+    const gA = 1 - 0.9 * glintEnv(T);
     if (T < IMPACT) {
-      hero.draw(g, h.x, h.y, h.r, { hue: h.hue, form: h.form, a: h.a, pulse: h.pulse, glow: h.glow, flare: h.flare });
+      hero.draw(g, h.x, h.y, h.r, { hue: h.hue, form: h.form, a: h.a * gA, pulse: h.pulse, glow: h.glow, flare: h.flare });
       return;
     }
     // surface-bound: a flattened halo shows the drop lying in the water (fades as the camera tips down)
@@ -776,7 +825,8 @@
       g.drawImage(SP.gCyan, -R.S * 0.2, -R.S * 0.2, R.S * 0.4, R.S * 0.4);
       g.restore();
     }
-    hero.draw(g, h.x, h.y, h.r, { hue: h.hue, form: 'orb', a: h.a, pulse: h.pulse, glow: h.glow, flare: 0 });
+    // while the glint is up the drop's own white-hot core steps back so the heart of the flare is light, not a clipped disc
+    hero.draw(g, h.x, h.y, h.r, { hue: h.hue, form: 'orb', a: h.a * gA, pulse: h.pulse, glow: h.glow, flare: 0 });
   }
 
   /* ================================================================== the dive */

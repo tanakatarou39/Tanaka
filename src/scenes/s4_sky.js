@@ -1066,11 +1066,15 @@
     let s = (T - keys[i][0]) / (keys[i + 1][0] - keys[i][0]);
     return mixc(keys[i][1], keys[i + 1][1], s); // linear: no plateau at the keys, the darkening is one even ramp
   }
-  // silent lightning inside the cloud: a flicker, a double pulse, the big flash with a long afterglow, a late weak one
+  // silent lightning inside the cloud: ONE smooth flash (~0.25 s up, ~0.5 s down) with a long soft afterglow, no flicker.
+  // NOTE: s5_rain.js carries a numerically identical copy (the B4 window contains it) - keep them in sync.
   function flashAmt(T) {
-    if (T < 98.2 || T > 101.6) return 0;
-    const pl = (t0, w) => (T < t0 ? exp(-pow((T - t0) / 0.035, 2)) : exp(-(T - t0) / w));
-    return min(1, 0.4 * pl(98.4, 0.07) + 0.55 * pl(98.72, 0.1) + 1.0 * pl(99.05, 0.2) + 0.2 * pl(99.05, 0.9) + 0.4 * pl(100.5, 0.16));
+    if (T < 98.65 || T > 101.7) return 0;
+    const t0 = 98.7, tp = 99.35; // start / peak
+    let v;
+    if (T < tp) { const q = (T - t0) / (tp - t0); v = q <= 0 ? 0 : q * q * (3 - 2 * q); }
+    else { const dt = T - tp; v = 0.58 * exp(-pow(dt / 0.5, 1.7)) + 0.42 * exp(-pow(dt / 1.2, 1.4)); }
+    return 0.45 * v * (1 - ss(100.9, 101.7, T));
   }
   function drawFog(g, T, env, hx, hy) {
     const { W, H, S } = env;
@@ -1116,8 +1120,8 @@
         const t = tendrils[i];
         const ty = u.wrap(t.y - T * 0.045 * t.v * S / H, -0.4, 1.4);
         const tx = hx + (t.x * 0.55 + sin(T * 0.25 + t.ph) * 0.04) * S + (t.x > 0 ? 0.05 : -0.05) * S;
-        const tw = S * t.w, th = S * t.h;
-        g.globalAlpha = te * t.a * (0.8 + 0.2 * sin(T * 0.5 + t.ph));
+        const tw = S * t.w * 1.9, th = S * t.h;
+        g.globalAlpha = 0.5 * te * t.a * (0.8 + 0.2 * sin(T * 0.5 + t.ph));
         g.drawImage(ts, tx - tw / 2, ty * H - th / 2, tw, th);
       }
       g.globalAlpha = 1;
@@ -1136,13 +1140,13 @@
   const tendrilSprite = () => u.sprite('s4_tendril', 48, 160, (c, w, h) => {
     c.save(); c.translate(w / 2, h / 2); c.scale(w / h, 1);
     const g = c.createRadialGradient(0, 0, 0, 0, 0, h / 2);
-    g.addColorStop(0, 'rgba(26,40,66,0.9)'); g.addColorStop(0.45, 'rgba(30,44,70,0.4)'); g.addColorStop(1, 'rgba(30,44,70,0)');
+    g.addColorStop(0, 'rgba(26,40,66,0.8)'); g.addColorStop(0.3, 'rgba(28,42,68,0.5)'); g.addColorStop(0.65, 'rgba(30,44,70,0.17)'); g.addColorStop(1, 'rgba(30,44,70,0)');
     c.fillStyle = g; c.fillRect(-h / 2, -h / 2, h, h); c.restore();
   });
 
   /* ------------------------------------------------------------------ rain */
   function drawRain(g, T, W, H, S) {
-    const e = 0.03 * ss(95.5, 98, T) + 0.1 * ss(98, 102, T);
+    const e = 0.012 * ss(95.5, 98, T) + 0.085 * ss(98, 101.5, T); // faint start of the rain: fades in over ~3 s from 98
     if (e < 0.004) return;
     g.save();
     g.fillStyle = '#d6e2f2';
@@ -1155,7 +1159,7 @@
       const y = u.wrap(r.y + T * r.sp * 0.55 * S / H, -0.15, 1.1);
       const l = r.l * S * r.z;
       g.globalAlpha = e * r.z * vis;
-      g.fillRect(r.x * W, y * H, max(1, S * 0.0016 * r.z), l);
+      g.fillRect(r.x * W, y * H, max(1.6, S * 0.0022 * r.z), l);
     }
     g.restore();
   }
