@@ -2051,7 +2051,9 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       }
       const tweak = T > 149 ? 1 : 0;
       const rr = T >= 150.5 ? PIN_OUT.r * S : r;
-      hero.draw(g, hp.x, hp.y, rr, { hue: T >= 150.5 ? PIN_OUT.hue : h2, form: 'orb', pulse, a: ramp, glow: 1 + 0.35 * ss(139, 148, T) * (1 - ss(149, 151.6, T)) });
+      // the seed's heartbeat (echo of the opening; the score's lub is at 127.344 + 2.4k, dub +0.432 s)
+      const bt = hero.beat(T - 127.2, 2.4) * ss(127.8, 129.2, T) * (1 - ss(139.0, 141.7, T));
+      hero.draw(g, hp.x, hp.y, rr, { hue: T >= 150.5 ? PIN_OUT.hue : h2, form: 'orb', pulse: pulse * (1 + 0.5 * bt), a: ramp, glow: 1 + 0.35 * ss(139, 148, T) * (1 - ss(149, 151.6, T)) + 0.9 * bt });
     }
   }
 

@@ -74,6 +74,7 @@
     run(); // warm up (lazy sprites, JIT)
     const cost = run();
     G.__calibration = { cost, scale: E.scale };
+    if (Anim.audio) Anim.audio.lite = cost > 14;   // slow device: the score drops its optional layers
     if (cost > 19 && E.scale > 0.5) {
       const s = Math.max(0.5, E.scale * Math.sqrt(15 / cost));
       E.setSize(E.cssW, E.cssH, E.dpr, s);
@@ -99,6 +100,14 @@
       const dt = Math.min(0.1, (now - clock.last) / 1000);
       clock.last = now;
       clock.T += dt;
+      if (Anim.audio.supported && Anim.audio.time) {   // keep picture and sound together (output latency, throttled tabs)
+        const at = Anim.audio.time();
+        if (at != null) {
+          const d = at - clock.T;
+          if (Math.abs(d) > 1.0 && Math.abs(d) < 5) clock.T = at;
+          else if (Math.abs(d) > 0.02 && Math.abs(d) <= 1.0) clock.T += d * 0.1;
+        }
+      }
       if (clock.T >= Anim.DURATION) {
         clock.T = 0;
         if (Anim.audio.supported && !muted) Anim.audio.seek(0);

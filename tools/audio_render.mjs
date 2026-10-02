@@ -1,6 +1,10 @@
 // Offline render of the generative score (src/audio.js) in headless Chromium -> 44.1 kHz stereo 16-bit WAV,
 // plus per-block (default 10 s) level / spectral / pitch statistics and an optional spectrogram PNG.
-//   node tools/audio_render.mjs --out $SCRATCH/audio/film.wav [--from 0 --to 180] [--spec spec.png] [--chroma]
+//   node tools/audio_render.mjs --out $SCRATCH/audio/film.wav [--from 0 --to 180] [--spec spec.png] [--lite]
+//        [--bands 0:20:2]   per-window band energy table (dBFS: <150 / 150-500 / 0.5-2k / 2-6k / >6k Hz) for from:to:step seconds
+//        [--beats]          heartbeat transients (sub 30-110 Hz and mid 150-1500 Hz envelope peaks) vs the picture's lub at 2.3+2.4k
+//        [--arc]            3-s RMS arc, plateau (60-95 s) vs climax (158-166 s), opening >150 Hz and rain-band levels, click scan
+//        [--src path]       render another copy of audio.js (A/B comparisons); --lite renders with Anim.audio.lite = true
 // Film time t maps to sample index (t - from) * 44100.
 import fs from 'fs';
 import path from 'path';
@@ -13,6 +17,7 @@ const to = args.to != null ? parseFloat(args.to) : 180;
 const out = args.out || path.join(ROOT, 'film.wav');
 const SR = 44100;
 const KINDS = args.kinds ? String(args.kinds).split(',') : undefined; // diagnostic: only these event kinds
+const LITE = !!args.lite;
 const BLK = args.block ? parseFloat(args.block) : 10; // stats block length in seconds
 fs.mkdirSync(path.dirname(path.resolve(out)), { recursive: true });
 
@@ -22,10 +27,11 @@ const logs = [];
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') logs.push(`[${m.type()}] ${m.text()}`); });
 page.on('pageerror', (e) => logs.push('[pageerror] ' + e.message));
 await page.goto('about:blank');
-await page.addScriptTag({ path: path.join(ROOT, 'src/audio.js') });
+await page.addScriptTag({ path: args.src ? path.resolve(String(args.src)) : path.join(ROOT, 'src/audio.js') });
 
 const t0 = Date.now();
-const info = await page.evaluate(async ({ from, to, SR, BLK, KINDS }) => {
+const info = await page.evaluate(async ({ from, to, SR, BLK, KINDS, LITE }) => {
+  Anim.audio.lite = LITE;
   const len = Math.ceil((to - from) * SR);
   const ctx = new OfflineAudioContext(2, len, SR);
   const t1 = performance.now();
@@ -70,7 +76,7 @@ const info = await page.evaluate(async ({ from, to, SR, BLK, KINDS }) => {
   for (let s = 0; s + SR <= len; s += SR) { let ss = 0; for (let i = s; i < s + SR; i++) ss += L[i] * L[i] + R[i] * R[i]; sec.push(Math.sqrt(ss / (2 * SR))); }
   let tot = 0; for (let i = 0; i < len; i++) tot += L[i] * L[i] + R[i] * R[i];
   return { len, nan, peak, dcL: sumL / len, dcR: sumR / len, blocks, sec, rmsAll: Math.sqrt(tot / (2 * len)), tb, stats: Anim.audio.stats() };
-}, { from, to, SR, BLK, KINDS });
+}, { from, to, SR, BLK, KINDS, LITE });
 const renderMs = Date.now() - t0;
 
 // pull PCM in chunks (int16, interleaved)
@@ -168,6 +174,70 @@ info.blocks.forEach((b) => {
   console.log('quiet (<-75 dB) runs: ' + (runs.length ? runs.map((r) => `${r[0]}-${r[1]}s`).join(', ') : 'none'));
 }
 if (logs.length) console.log('page logs:\n' + logs.join('\n'));
+
+/* ---------------- verification reports (--bands / --beats / --arc) ---------------- */
+{
+  const dBs = (ms) => 10 * Math.log10(ms + 1e-14);
+  const sIdx = (t) => Math.max(0, Math.min(len, Math.round((t - from) * SR)));
+  const rmsDb = (t0, t1) => { const a = sIdx(t0), b = sIdx(t1); let ss = 0; for (let i = a; i < b; i++) ss += mono[i] * mono[i]; return dBs(ss / Math.max(1, b - a)); };
+  const peakIn = (t0, t1) => { let p = 0; for (let i = sIdx(t0); i < sIdx(t1); i++) p = Math.max(p, Math.abs(pcm[2 * i]), Math.abs(pcm[2 * i + 1])); return p / 32768; };
+  const BANDS = [['<150', 0, 150], ['150-500', 150, 500], ['.5-2k', 500, 2000], ['2-6k', 2000, 6000], ['>6k', 6000, 22050]];
+  /** mean-square per band (dBFS, RMS-equivalent) over [t0,t1) from the 125 ms-hop STFT */
+  const bandDb = (t0, t1) => {
+    const f0 = Math.max(0, Math.floor(((t0 - from) * SR) / HOP)), f1 = Math.min(frames, Math.floor(((t1 - from) * SR) / HOP));
+    const acc = new Float64Array(BANDS.length);
+    for (let f = f0; f < f1; f++) for (let k = 1; k < NB; k++) { const hz = k * binHz; for (let b = 0; b < BANDS.length; b++) if (hz >= BANDS[b][1] && hz < BANDS[b][2]) { acc[b] += mags[f][k]; break; } }
+    return Array.from(acc).map((x) => dBs((0.5 * x) / Math.max(1, f1 - f0)));
+  };
+  if (args.bands) {
+    const [a, b, st] = (args.bands === true ? '0:20:2' : String(args.bands)).split(':').map(Number);
+    console.log(`\nband RMS (dBFS) ${a}-${b} s in ${st} s windows:  <150 | 150-500 | .5-2k | 2-6k | >6k Hz | total | peak`);
+    for (let t = a; t < b - 1e-6; t += st) {
+      if (t < from || t + st > to + 1e-6) continue;
+      console.log(`${String(t).padStart(6)}  ` + bandDb(t, t + st).map((x) => x.toFixed(1).padStart(7)).join(' ') + `  ${rmsDb(t, t + st).toFixed(1).padStart(7)}  ${peakIn(t, t + st).toFixed(3)}`);
+    }
+  }
+  if (args.beats) {
+    // short-time band envelope (1024-pt frames, 64-sample hop) around each expected lub (2.3 + 2.4k, the picture's BEAT_T0) and its dub (+0.432)
+    const NFS = 1024, hopS = 64, w = new Float64Array(NFS); for (let i = 0; i < NFS; i++) w[i] = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (NFS - 1));
+    const env = (t0, t1, lo, hi) => {
+      const out = [], re = new Float64Array(NFS), im = new Float64Array(NFS), k0 = Math.floor(lo / (SR / NFS)), k1 = Math.ceil(hi / (SR / NFS));
+      for (let s0 = sIdx(t0); s0 + NFS < sIdx(t1); s0 += hopS) {
+        for (let i = 0; i < NFS; i++) { re[i] = mono[s0 + i] * w[i]; im[i] = 0; }
+        fft(re, im);
+        let e = 0; for (let k = k0; k <= k1; k++) e += re[k] * re[k] + im[k] * im[k];
+        out.push([from + (s0 + NFS / 2) / SR, e]);
+      }
+      return out;
+    };
+    const pick = (c, lo, hi) => { const e = env(c - 0.2, c + 0.2, lo, hi); let b = e[0]; e.forEach((x) => { if (x[1] > b[1]) b = x; }); return b; };
+    console.log('\nheartbeat transients vs the picture (lub at 2.3 + 2.4k, dub +0.432 s): envelope peak time of the sub (30-110 Hz) and mid (150-1500 Hz) bands');
+    for (let k = 0; k < 6; k++) {
+      const tk = 2.3 + 2.4 * k;
+      if (tk > 13.6 || tk - 0.3 < from || tk + 0.8 > to) continue; // the picture's rings (and the beat) stop at 13.6 s
+      const sl = pick(tk, 30, 110), ml = pick(tk, 150, 1500), sd = pick(tk + 0.432, 30, 110), md = pick(tk + 0.432, 150, 1500);
+      const ms = (x, c) => `${x >= c ? '+' : ''}${Math.round((x - c) * 1000)}ms`;
+      console.log(`k=${k} lub ${tk.toFixed(2)}: sub ${sl[0].toFixed(3)} (${ms(sl[0], tk)}) mid ${ml[0].toFixed(3)} (${ms(ml[0], tk)}) | dub ${(tk + 0.432).toFixed(3)}: sub ${sd[0].toFixed(3)} (${ms(sd[0], tk + 0.432)}) mid ${md[0].toFixed(3)} (${ms(md[0], tk + 0.432)}) | level sub ${dBs(sl[1]).toFixed(0)} mid ${dBs(ml[1]).toFixed(0)} dB`);
+    }
+  }
+  if (args.arc) {
+    console.log('\n3-s RMS arc (dBFS, film time):');
+    for (let t = Math.ceil(from / 3) * 3, line = ''; t < to - 1; t += 3) { line += `${String(Math.round(t)).padStart(3)}:${rmsDb(t, t + 3).toFixed(1).padStart(6)}  `; if ((t / 3) % 8 === 7 || t + 3 >= to - 1) { console.log(line); line = ''; } }
+    const win = (a, b) => { let ss = 0, c = 0; for (let t = a; t < b - 1e-6; t += 1) { const r = Math.pow(10, rmsDb(t, t + 1) / 10); ss += r; c++; } return dBs(ss / c); };
+    if (from <= 60 && to >= 166) { const pl = win(60, 95), cl = win(158, 166); console.log(`plateau 60-95 s RMS ${pl.toFixed(1)} dBFS | climax 158-166 s RMS ${cl.toFixed(1)} dBFS | climax - plateau = ${(cl - pl).toFixed(1)} dB`); }
+    if (from <= 0.1 && to >= 14) console.log('content above 150 Hz, 2-s windows 0-14 s (dBFS): ' + [0, 2, 4, 6, 8, 10, 12].map((t) => { const b = bandDb(t, t + 2); return `${t}:${dBs(b.slice(1).reduce((a, x) => a + Math.pow(10, x / 10), 0)).toFixed(1)}`; }).join('  '));
+    if (from <= 90 && to >= 126) console.log('rain bands 3-6 kHz / 6+ kHz (dBFS): ' + [90, 100, 104, 110, 118, 126].filter((t) => t + 8 <= to).map((t) => { const b = bandDb(t, t + 8); return `${t}-${t + 8}s ${b[3].toFixed(0)}/${b[4].toFixed(0)}`; }).join('  '));
+    // click scan: 2nd difference outliers against the local RMS of the 2nd difference (+-10 ms)
+    let nClick = 0; const where = [];
+    { const W = 441, d2 = new Float32Array(len); for (let i = 2; i < len; i++) d2[i] = mono[i] - 2 * mono[i - 1] + mono[i - 2];
+      let acc = 0; for (let i = 0; i < Math.min(len, W); i++) acc += d2[i] * d2[i];
+      let lastI = -1e9;
+      for (let i = W; i < len - W; i++) { acc += d2[i + W] * d2[i + W] - d2[i - W] * d2[i - W]; const loc = Math.sqrt(Math.max(acc, 0) / (2 * W)), a = Math.abs(d2[i]); if (a > 0.004 && a > 14 * loc && i - lastI > 2000) { nClick++; lastI = i; if (where.length < 8) where.push((from + i / SR).toFixed(2)); } } }
+    let near = 0; for (let i = 0; i < len; i++) if (Math.abs(pcm[2 * i]) > 26214 || Math.abs(pcm[2 * i + 1]) > 26214) near++;
+    console.log(`clicks (2nd-diff > 14x local rms, > 0.004): ${nClick}${where.length ? ' at ' + where.join(' ') : ''} | samples above 0.8: ${near} | peak ${info.peak.toFixed(3)}`);
+    if (from <= 0.1) console.log(`loop seam: peak 0-2 s = ${peakIn(0, 2).toExponential(1)}, last 20 ms = ${peakIn(to - 0.02, to).toExponential(1)}`);
+  }
+}
 
 /* ---------------- spectrogram PNG ---------------- */
 if (args.spec) {

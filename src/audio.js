@@ -31,8 +31,14 @@
  *          -> ping-pong delay send ---------------/      ensure(); a session only owns dry/tone/fade nodes)
  *   -> session tone lowpass (film-time automated, closes 175-178 s) -> film fade (0-2 s in, 177-180 s out)
  *   hi bus (final tone, heartbeat) bypasses the tone filter -> film fade
- *   -> session gain -> master: hp 24 Hz -> compressor (4 ms attack) -> +3 dB make-up -> limiter -> cubic soft clip
- *      (|y| <= 0.85) -> mute gain -> destination
+ *   -> session gain -> master: hp 24 Hz -> compressor (ratio 3, 4 ms attack) -> limiter (-7 dB, 2 ms) -> 10 Hz DC blocker
+ *      -> cubic soft clip (|y| <= 0.85, no oversampling) -> mute gain -> destination
+ *
+ * Runtime notes: every entry point is wrapped in try/catch (a failure sets Anim.audio.supported = false instead of throwing
+ * into the click handler); the reverb/delay buses and the noise / IR buffers are built once (the Float32Arrays in small idle
+ * callbacks right after load); a suspended / interrupted context re-arms on the next user gesture and rebuilds from the film
+ * time; iOS gets navigator.audioSession.type = 'playback' (or a silent looping <audio>) so the ringer switch does not mute it;
+ * a late scheduler timer keeps the held layers that began in the skipped window (opts.carryFrom).
  *
  * Music: one home key (D major / D Lydian, pentatonic motifs), beat = 1.2 s (the heart beats every 2.4 s = 2 beats).
  * Leitmotif of the drop ("M"): A4 D5 E5 F#5 E5  (pentatonic degrees 3 5 6 7 6) that returns transformed in every
@@ -84,7 +90,7 @@
     return pts[pts.length - 1][1];
   }
 
-  const stats = { created: 0, alive: 0, voices: 0, liveVoices: 0, sessions: 0 };
+  const stats = { created: 0, alive: 0, voices: 0, liveVoices: 0, sessions: 0, kinds: {} }; // kinds: live voices / live nodes per event kind (diagnostics)
 
   /* ------------------------------------------------------------------ harmony */
   const CH = {
@@ -165,13 +171,13 @@
     /* ============ 0-14  awakening: near silence -> heartbeat ============ */
     // The heart is locked to the picture: s1_awakening draws the lub at BEAT_T0 + 2.4k = 2.3, 4.7, 7.1, 9.5, 11.9 s (dub
     // +0.432 s) with the strength ampEnv(); the audio follows the same envelope and is silent once the rings stop (13.6 s).
-    // The onset sits 12 ms before the beat so that the attack peak lands on it.
+    // The onset sits 30 ms before the beat: the attack peak (+12 ms) and the master's two 6 ms look-aheads then land on it.
     const HB_AMP = [[2, 0.18], [4.7, 0.78], [7.1, 1], [9.5, 1], [11.9, 0.4], [13.6, 0]];
     for (let k = 0; k < 6; k++) {
       const tk = 2.3 + 2.4 * k, a = keyedSmooth(HB_AMP, tk);
       if (a < 0.02) continue;
       const v = 0.5 * Math.pow(a, 0.6);
-      heart(tk - 0.012, v, false); heart(tk + 0.432 - 0.012, v * 0.62, true);
+      heart(tk - 0.03, v, false); heart(tk + 0.432 - 0.03, v * 0.62, true);
     }
     PN(3.6, 8, 'pure', 0.07, { rev: 0.9, dly: 0.4, tau: 1.3 }); // A5: the point of light appears (the film ends on this same note)
     [[4.94, 8], [5.03, 10], [5.12, 12], [5.21, 15]].forEach((x, i) => PN(x[0], x[1], 'glass', 0.055 - i * 0.005, { rev: 0.9, dly: 0.45, pan: (i - 1.5) * 0.3 }));
@@ -387,7 +393,7 @@
     // climax hit
     thump(158.0, 0.4, { f0: 110, f1: 36, d: 2.0 });
     [74, 78, 81, 86, 90, 93].forEach((m, i) => N(158.0 + i * 0.05, m, 'bell', 0.07, { rev: 1, dly: 0.55, pan: (i - 2.5) * 0.3, tau: 2.4 }));
-    arp(158.2, 166.2, 0.3, [7, 9, 11, 9, 8, 10, 12, 10], 'bell', 0.05, 0.045, { rng: 'cl1', skip: 0.08, w: 0.8, oct: 1, rev: 0.8, dly: 0.5, tau: 0.8 });
+    arp(158.2, 166.2, 0.3, [7, 9, 11, 9, 8, 10, 12, 10], 'bell', 0.05, 0.045, { rng: 'cl1', skip: 0.18, w: 0.8, oct: 1, rev: 0.8, dly: 0.5, tau: 0.6 });
     arp(158.2, 166.2, 0.6, [0, 2, 4, 6, 4, 2], 'harp', 0.07, 0.06, { rng: 'cl2', skip: 0.0, w: 0.5, rev: 0.7 });
     for (let t = 158, i = 0; t < 166; t += 1.2, i++) N(t, CH[chordAt(t + 0.1)].root + 12, 'piano', 0.12, { rev: 0.7, dly: 0.2, pan: -0.2 });
     // constellation: the motif lights five stars, the brightest is the hero
@@ -419,7 +425,7 @@
     BED(174, 179, { buf: 'pink', f: [[0, 1400], [2, 900], [4, 300]], type: 'lowpass', v: 0.06, env: [[0, 0], [1.5, 1], [3, 0.7], [5, 0]], off: 2.9 });
     // the point of light: one pure high tone (the same A5 that opened the film) and the heart, fading
     add('note', 177.0, { f: 880, inst: 'pure', v: 0.06, rev: 0.9, dly: 0.3, hi: true, tau: 2.0 });
-    heart(177.5 - 0.012, 0.2, false); heart(177.932 - 0.012, 0.12, true); // on the same 2.3 + 2.4k grid, which carries on across the loop (179.9 -> 2.3)
+    heart(177.5 - 0.03, 0.2, false); heart(177.932 - 0.03, 0.12, true); // on the same 2.3 + 2.4k grid, which carries on across the loop (179.9 -> 2.3)
 
     // mix arcs: per-layer gain (dB) over film time — shapes the story's loudness (hushed start, swells, climax, release)
     const ARC = {
@@ -432,12 +438,12 @@
       const a = ARC[e.k];
       if (a) e.v *= Math.pow(10, keyed(a, e.t + (e.k === 'pad' ? e.d * 0.5 : 0)) / 20);
     });
-    // dawn swell: the pads and arps hush by ~6 dB over 59.6-60.45 s (the riser keeps climbing), so the surface break at 60.5
-    // lands as a release; MACRO then lifts the level by ~2 dB over 60.5-64 s
+    // dawn swell: the pads, drone and arps (everything that is still sounding) hush by ~6 dB over 59.6-60.45 s while the riser
+    // keeps climbing, so the surface break at 60.5 lands as a release; MACRO then lifts the level by ~2 dB over 60.5-64 s
     const DAWN_DUCK = [[59.5, 1], [59.95, 0.5], [60.42, 0.5], [60.62, 1]];
     EV.forEach((e) => {
-      if (e.k === 'pad' && e.t < 60.3 && e.t + e.d > 59.5) e.duck = DAWN_DUCK;
-      else if (e.k === 'note' && e.t >= 59.5 && e.t < 60.5 && e.inst !== 'bell') e.v *= keyed(DAWN_DUCK, e.t);
+      if (e.t >= 60.45 || e.t < 44) return;
+      if ((e.k === 'pad' || e.k === 'drone') ? e.t + e.d > 59.5 : (e.k === 'note' && e.t > 50)) e.duck = DAWN_DUCK;
     });
     // order: by time, stable
     EV.forEach((e, i) => { e.i = i; });
@@ -452,7 +458,8 @@
    * AudioBuffers (resampled when the context runs at another rate) by getBufs(ctx), once per context. */
   const NSR = 44100, NOISE_N = NSR * 5, NOISE_X = Math.floor(NSR * 0.3);
   const IR_SECS = 3.5, IR_RT60 = 4.2; // IR length / -60 dB time (was 5.4 s / 5.0 s): ~35 % cheaper convolver, nearly the same tail
-  const RAW = { jobs: null, i: 0, data: {}, timer: 0 };
+  const RAW = { jobs: null, i: 0, data: {}, rs: {}, timer: 0 };
+  const PRE_SR = [48000]; // the most common device rate: its resampled copies are made in idle time as well
   function rawNoise(kind, seed, c) {
     const N = NOISE_N, X = NOISE_X, r = mulberry32(seed + c * 977), g = new Float32Array(N + X);
     let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, y = 0;
@@ -489,12 +496,21 @@
     const J = [];
     [['white', 11], ['pink', 23], ['brown', 37]].forEach((k) => [0, 1].forEach((c) => J.push(() => { (RAW.data[k[0]] = RAW.data[k[0]] || [])[c] = rawNoise(k[0], k[1], c); })));
     [0, 1].forEach((c) => J.push(() => { (RAW.data.ir = RAW.data.ir || [])[c] = rawIR(c); }));
+    RAW.rawCount = J.length; // the steps above are mandatory, the ones below only save work inside the first click
+    PRE_SR.forEach((sr) => ['white', 'pink', 'brown', 'ir'].forEach((k) => [0, 1].forEach((c) => J.push(() => { rsArr(k, c, sr); }))));
     return J;
   }
-  /** run the remaining generation steps now (what the idle callbacks did not get to) */
+  /** raw array of `kind` / channel resampled for a context running at `sr` (cached) */
+  function rsArr(kind, c, sr) {
+    const src = RAW.data[kind][c];
+    if (sr === NSR) return src;
+    const R = RAW.rs[sr] || (RAW.rs[sr] = {}), A = R[kind] || (R[kind] = []);
+    return A[c] || (A[c] = resample(src, Math.floor(sr * (kind === 'ir' ? IR_SECS : 5))));
+  }
+  /** run the remaining mandatory generation steps now (what the idle callbacks did not get to) */
   function finishRaw() {
     if (!RAW.jobs) RAW.jobs = rawJobs();
-    while (RAW.i < RAW.jobs.length) RAW.jobs[RAW.i++]();
+    while (RAW.i < RAW.rawCount) RAW.jobs[RAW.i++]();
   }
   /** generate one step per idle slot, starting right after load; never throws */
   function prewarm() {
@@ -519,16 +535,16 @@
     finishRaw();
     const sr = ctx.sampleRate;
     b = { waves: {} };
-    const mk = (arrs, secs) => {
+    const mk = (kind, secs) => {
       const n = Math.floor(sr * secs), buf = ctx.createBuffer(2, n, sr);
       for (let c = 0; c < 2; c++) {
-        const data = resample(arrs[c], n);
+        const data = rsArr(kind, c, sr);
         if (buf.copyToChannel) buf.copyToChannel(data, c, 0); else buf.getChannelData(c).set(data);
       }
       return buf;
     };
-    b.white = mk(RAW.data.white, 5); b.pink = mk(RAW.data.pink, 5); b.brown = mk(RAW.data.brown, 5);
-    b.ir = mk(RAW.data.ir, IR_SECS);
+    b.white = mk('white', 5); b.pink = mk('pink', 5); b.brown = mk('brown', 5);
+    b.ir = mk('ir', IR_SECS);
     BUFS.set(ctx, b);
     return b;
   }
@@ -542,8 +558,8 @@
 
   /* ------------------------------------------------------------------ voice container (node bookkeeping) */
   class Voice {
-    constructor(P) { this.ctx = P.ctx; this.P = P; this.nodes = []; this.srcs = []; this.pend = 0; this.freed = false; stats.voices++; stats.liveVoices++; if (P.sess.voices) P.sess.voices.add(this); }
-    add(n) { this.nodes.push(n); stats.created++; stats.alive++; return n; }
+    constructor(P) { this.ctx = P.ctx; this.P = P; this.nodes = []; this.srcs = []; this.pend = 0; this.freed = false; this.kind = P.kind || '?'; stats.voices++; stats.liveVoices++; (stats.kinds[this.kind] = stats.kinds[this.kind] || [0, 0])[0]++; if (P.sess.voices) P.sess.voices.add(this); }
+    add(n) { this.nodes.push(n); stats.created++; stats.alive++; stats.kinds[this.kind][1]++; return n; }
     gain(v) { const g = this.add(this.ctx.createGain()); if (v !== undefined) g.gain.value = v; return g; }
     filt(type, f, q) { const n = this.add(this.ctx.createBiquadFilter()); n.type = type; n.frequency.value = f; if (q != null) n.Q.value = q; return n; }
     osc(type, f) { const o = this.add(this.ctx.createOscillator()); if (type) o.type = type; o.frequency.value = f; this._src(o); return o; }
@@ -554,7 +570,7 @@
     free() {
       if (this.freed) return; this.freed = true;
       for (const n of this.nodes) { try { n.disconnect(); } catch (e) { /* */ } }
-      stats.alive -= this.nodes.length; stats.liveVoices--;
+      stats.alive -= this.nodes.length; stats.liveVoices--; stats.kinds[this.kind][0]--; stats.kinds[this.kind][1] -= this.nodes.length;
       if (this.P.sess.voices) this.P.sess.voices.delete(this);
       this.nodes = this.srcs = null;
     }
@@ -605,8 +621,8 @@
     box: { parts: [[1, 1, 1], [4, 0.16, 0.22]], tau: 0.85, atk: 0.003, k: 0.3 },
     tick: { parts: [[1, 1, 1], [2.4, 0.3, 0.5]], tau: 0.05, atk: 0.001, k: 0 },
   };
-  /** notes decay as exp(-t/tau) and are cut after NK taus (-39 dB) with a 40 ms fade: ~15 % fewer live oscillators than a 5.2 tau tail */
-  const NK = 4.5, NEND = Math.exp(-NK);
+  /** notes decay as exp(-t/tau) and are cut after NK taus (-33 dB) with a 40 ms fade: ~27 % fewer live oscillators than the old 5.2 tau tail */
+  const NK = 3.8, NEND = Math.exp(-NK);
   function playNote(P, e) {
     const ctx = P.ctx, v = new Voice(P), t = P.at(e.t), f = e.f, inst = e.inst;
     const vel = e.v * (f > 900 ? Math.pow(900 / f, 0.35) : 1); // the ear is most sensitive up here: tame very high notes
@@ -651,7 +667,9 @@
         o.start(t); o.stop(t + I.atk + life + 0.06);
       });
     }
-    route(v, mix, e);
+    let out = mix;
+    if (e.duck) { const dk = v.gain(1); sched(dk.gain, P, e.t, 0, e.duck.map((x) => [x[0] - e.t, x[1]]), false, 1); mix.connect(dk); out = dk; }
+    route(v, out, e);
   }
 
   function playPad(P, e, skip) {
@@ -731,7 +749,9 @@
     const lfo = v.osc('sine', 0.055 + (hstr(String(e.t)) % 40) / 1000), lg = v.gain(e.v * 0.12);
     lfo.connect(lg); lg.connect(eg.gain); lfo.start(t0); lfo.stop(t1 + 0.1);
     sched(eg.gain, P, e.t, skip, e.env ? finish(e.env, d) : shape(d, 3, 4), false, e.v);
-    route(v, eg, { rev: 0.3 });
+    let outN = eg;
+    if (e.duck) { const dk = v.gain(1); sched(dk.gain, P, e.t, skip, e.duck.map((x) => [x[0] - e.t, x[1]]), false, 1); eg.connect(dk); outN = dk; }
+    route(v, outN, { rev: 0.3 });
   }
 
   /** short filtered-noise tick (the "knock" that small speakers can reproduce); returns nothing, connects into `mix` */
@@ -755,16 +775,16 @@
       pg.gain.exponentialRampToValueAtTime(Math.max(1e-5, e.v * p[1] * 0.001), t + p[2]);
       o.connect(pg); pg.connect(mix); o.start(t); o.stop(t + p[2] + 0.05);
     });
-    // mid layer (about -12 dB re the sub): a pitched sweep 190 -> 120 Hz with its 2nd partial, and a 520-640 Hz noise tick,
+    // mid layer (about -10 dB re the sub in peak, -14 dB in energy): a pitched sweep 190 -> 120 Hz with its 2nd partial, and a 520-640 Hz noise tick,
     // so the heart is heard on laptop / phone speakers that cannot play 40-60 Hz
-    [[1, 0.24, 0.085], [2.02, 0.11, 0.055]].forEach((p) => {
+    [[1, 0.32, 0.11], [2.02, 0.15, 0.07]].forEach((p) => {
       const m0 = (e.dub ? 215 : 190) * p[0], m1 = (e.dub ? 140 : 120) * p[0];
       const o = v.osc('sine', m0); o.frequency.setValueAtTime(m0, t); o.frequency.exponentialRampToValueAtTime(m1, t + 0.07);
       const pg = v.gain(0); pg.gain.setValueAtTime(0, t); pg.gain.linearRampToValueAtTime(e.v * p[1], t + 0.006);
       pg.gain.exponentialRampToValueAtTime(Math.max(1e-5, e.v * p[1] * 0.01), t + p[2]); pg.gain.linearRampToValueAtTime(0, t + p[2] + 0.01);
       o.connect(pg); pg.connect(mix); o.start(t); o.stop(t + p[2] + 0.03);
     });
-    tick(v, P, mix, t, e.dub ? 640 : 520, 1.1, e.v * 1.3, 0.05, e.t);
+    tick(v, P, mix, t, e.dub ? 640 : 520, 1.1, e.v * 1.8, 0.06, e.t);
     mix.connect(g); g.gain.value = 1;
     route(v, g, { hi: e.hi, rev: 0.12 });
   }
@@ -776,10 +796,10 @@
     o.connect(g); g.connect(mix); o.start(t); o.stop(t + e.d + 0.05);
     // mid layer: a 2.5 x f0 partial sliding down to 1.6 x f0 and a short click, so the hit has weight on small speakers
     const o2 = v.osc('sine', e.f0 * 2.5); o2.frequency.setValueAtTime(e.f0 * 2.5, t); o2.frequency.exponentialRampToValueAtTime(e.f0 * 1.6, t + 0.14);
-    const g2 = v.gain(0); g2.gain.setValueAtTime(0, t); g2.gain.linearRampToValueAtTime(e.v * 0.3, t + 0.006);
+    const g2 = v.gain(0); g2.gain.setValueAtTime(0, t); g2.gain.linearRampToValueAtTime(e.v * 0.38, t + 0.006);
     g2.gain.exponentialRampToValueAtTime(Math.max(1e-5, e.v * 0.003), t + 0.4); g2.gain.linearRampToValueAtTime(0, t + 0.42);
     o2.connect(g2); g2.connect(mix); o2.start(t); o2.stop(t + 0.45);
-    tick(v, P, mix, t, 700, 0.9, e.v * 1.1, 0.07, e.t);
+    tick(v, P, mix, t, 700, 0.9, e.v * 1.4, 0.07, e.t);
     route(v, mix, { rev: 0.35 });
   }
 
@@ -882,21 +902,28 @@
   const PLAY = { note: playNote, pad: playPad, drone: playDrone, heart: playHeart, thump: playThump, bed: playBed, whale: playWhale, bub: playBub, chirp: playChirp, gliss: playGliss, plunk: playPlunk };
 
   /* ------------------------------------------------------------------ master chain / bus / session graph */
-  const MAKEUP = Math.pow(10, 3 / 20); // +3 dB after the compressor (the 4 ms attack tames the one-shot peaks first)
+  /* Master dynamics: the compressor (4 ms attack, was 12 ms; ratio 3, was 4) takes the body of the transients, a fast limiter
+   * (-7 dB) catches what is left; both have Chrome's automatic make-up gain, which brings the film up by ~3 dB at low levels
+   * vs. the previous master while the one-shot peaks stay <= ~0.75 (they were 0.63-0.71 at 3 dB less gain, i.e. ~0.9-1.0 untamed).
+   * Each DynamicsCompressorNode delays by 6 ms (look-ahead); the heartbeat lead in compose() allows for it. */
+  const MAKEUP = 1.0;
   function makeMaster(ctx, dest) {
     const m = { nodes: [] };
     const mk = (n) => { m.nodes.push(n); return n; };
     m.in = mk(ctx.createGain());
     const hp = mk(ctx.createBiquadFilter()); hp.type = 'highpass'; hp.frequency.value = 24; hp.Q.value = 0.5;
     const comp = mk(ctx.createDynamicsCompressor());
-    comp.threshold.value = -16; comp.knee.value = 12; comp.ratio.value = 4; comp.attack.value = 0.004; comp.release.value = 0.35;
+    comp.threshold.value = -16; comp.knee.value = 12; comp.ratio.value = 3; comp.attack.value = 0.004; comp.release.value = 0.35;
     const mu = mk(ctx.createGain()); mu.gain.value = MAKEUP;
+    const lim = mk(ctx.createDynamicsCompressor());
+    lim.threshold.value = -7; lim.knee.value = 1; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.12;
     const sh = mk(ctx.createWaveShaper());
     const cv = new Float32Array(2049);
     for (let i = 0; i < 2049; i++) { const x = (i / 1024) - 1; cv[i] = x * (1 - 0.15 * x * x); } // gentle cubic soft clip, |y| <= 0.85
     sh.curve = cv; try { sh.oversample = 'none'; } catch (e) { /* */ } // peaks are already tamed: no need for the 2x oversampling cost
+    const dc = mk(ctx.createBiquadFilter()); dc.type = 'highpass'; dc.frequency.value = 10; dc.Q.value = 0.5; // keeps the dynamics' gain-modulation products from leaving a DC offset
     m.mute = mk(ctx.createGain());
-    m.in.connect(hp); hp.connect(comp); comp.connect(mu); mu.connect(sh); sh.connect(m.mute); m.mute.connect(dest);
+    m.in.connect(hp); hp.connect(comp); comp.connect(mu); mu.connect(lim); lim.connect(dc); dc.connect(sh); sh.connect(m.mute); m.mute.connect(dest);
     m.comp = comp;
     return m;
   }
@@ -984,7 +1011,7 @@
   /* film-time automation that lives on the session: fade in/out and the closing "dive" lowpass */
   /* overall loudness arc (dB, every 5 s) — mastering automation tuned from offline renders so the film breathes:
    * hush -> swell -> surface -> sky -> rain -> seed -> seasons -> climax (158-166) -> release */
-  const MACRO = /*MACRO*/[[0,-6.5],[2.5,-6.5],[7.5,-10.1],[12.5,-9.4],[17.5,-7],[22.5,-6.5],[27.5,-7.8],[32.5,-7.3],[37.5,-5.6],[42.5,-4.5],[47.5,-3.4],[52.5,-2.4],[57.5,-1.1],[59.5,-1],[60.38,-1],[60.62,0.9],[62.5,0.3],[64.5,-1.2],[67.5,-1.3],[72.5,-1.9],[77.5,-1.8],[82.5,-1.3],[87.5,-1.8],[92.5,-1.5],[97.5,-0.7],[102.5,0.2],[107.5,-0.7],[112.5,-1.9],[117.5,-3.4],[122.5,-4],[127.5,-3.5],[132.5,-2.2],[137.5,-0.8],[142.5,-1.3],[147.5,-2.4],[152.5,-1.8],[157.5,-0.8],[162.5,-1.2],[167.5,-4.5],[172.5,-4.3],[177.5,0],[180,0]]/*END*/;
+  const MACRO = /*MACRO*/[[0,-6.5],[2.5,-6.5],[7.5,-10.1],[12.5,-9.4],[17.5,-7],[22.5,-6.5],[27.5,-7.8],[32.5,-7.3],[37.5,-5.6],[42.5,-4.5],[47.5,-3.4],[52.5,-2.4],[57.5,-1.1],[59.5,-1],[60.38,-1],[60.62,0.9],[62.5,0.3],[64.5,-2],[67.5,-2.4],[72.5,-3],[77.5,-2.9],[82.5,-2.4],[87.5,-2.9],[92.5,-2.5],[97.5,-1],[102.5,0.2],[107.5,-0.7],[112.5,-1.9],[117.5,-3.4],[122.5,-4],[127.5,-3.5],[132.5,-2.2],[137.5,-0.8],[142.5,-1.3],[147.5,-2.4],[152.5,-2.6],[156.8,-2],[158,-0.2],[159,1],[163,0.8],[165.5,-0.6],[167.5,-4.5],[172.5,-4.3],[177.5,0],[180,0]]/*END*/;
   const macro = (t) => Math.pow(10, keyed(MACRO, t) / 20);
   const filmGain = (t) => sstep(0, 2, t) * (1 - sstep(177, 180, t)) * macro(t);
   const toneHz = (t) => (t < 175 ? 18000 : Math.exp(lerp(Math.log(18000), Math.log(240), sstep(175, 178.2, t))));
@@ -1028,7 +1055,7 @@
         if (opts.kinds && opts.kinds.indexOf(e.k) < 0) continue;
         if (opts.carryFrom != null && e.t < opts.carryFrom) continue;
         if (lite && e.lite) continue;
-        if (e.carry && e.t + e.d > fromT + 0.4) { try { PLAY[e.k](P, e, fromT - e.t); } catch (err) { if (G.console) console.error('audio carry', err); } }
+        if (e.carry && e.t + e.d > fromT + 0.4) { P.kind = e.k; try { PLAY[e.k](P, e, fromT - e.t); } catch (err) { if (G.console) console.error('audio carry', err); } }
       }
     }
     const only = opts.kinds ? new Set(opts.kinds) : null; // diagnostic: render only some event kinds
@@ -1036,6 +1063,7 @@
       const e = ev[i];
       if (only && !only.has(e.k)) continue;
       if (lite && e.lite) continue;
+      P.kind = e.k === 'note' ? 'note:' + e.inst : e.k === 'pad' ? 'pad:' + e.type : e.k;
       try { PLAY[e.k](P, e, 0); } catch (err) { if (G.console) console.error('audio event', e.k, err); }
     }
     return rig;
@@ -1046,7 +1074,7 @@
     ctx: null, master: null, buses: [null, null], busIdx: -1, sess: null,
     T0: 0, at0: 0, next: 0, timer: 0, first: true,
     muted: false, playing: false, parked: false, pending: false, interrupted: false, armed: false, failed: false,
-    susp: 0, seekT: 0, seekAt: 0, seekTimer: 0, parkTimer: 0, unparkTimer: 0, checkTimer: 0, busTimer: 0,
+    susp: 0, seekT: 0, seekAt: 0, seekTimer: 0, parkTimer: 0, unparkTimer: 0, checkTimer: 0,
     wall: { p: 0, T: 0 }, silent: null, warned: false,
   };
   const AHEAD = 2.8, LEAD = 0.12, SEEK_WAIT = 130, SEEK_RAMP = 0.05;
@@ -1282,7 +1310,7 @@
     },
     build,
     /* diagnostics (not part of the engine contract) */
-    stats: () => Object.assign({}, stats, { events: score().length }),
+    stats: () => Object.assign({}, stats, { events: score().length, prewarm: [RAW.i, RAW.jobs ? RAW.jobs.length : 0] }),
     score,
     state: () => ({ playing: RT.playing, pending: RT.pending, parked: RT.parked, T: RT.ctx && RT.playing ? nowFilm() : RT.T0, muted: RT.muted, ctxState: RT.ctx && RT.ctx.state, bus: RT.busIdx, failed: RT.failed }),
   };
