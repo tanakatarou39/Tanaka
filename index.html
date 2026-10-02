@@ -26,13 +26,17 @@
   #c { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
 
   /* captions: phrases never break mid-word; a soft dark scrim + tight shadow keep them legible over bright scenes */
-  #captions { position: fixed; left: 0; right: 0; bottom: calc(12vh + env(safe-area-inset-bottom, 0px)); padding: 0 5vw; text-align: center; pointer-events: none; }
-  #captions .box { position: relative; display: inline-block; max-width: 100%; padding: 0.7em 1.3em 0.6em; isolation: isolate; }
+  #captions { position: fixed; left: 0; right: 0; bottom: calc(12vh + env(safe-area-inset-bottom, 0px)); padding: 0 max(5vw, env(safe-area-inset-left, 0px)) 0 max(5vw, env(safe-area-inset-right, 0px)); text-align: center; pointer-events: none; }
+  #captions .box { position: relative; display: inline-block; max-width: 100%; box-sizing: border-box; padding: 0.7em 1.3em 0.6em; isolation: isolate; }
   #captions .box::before { content: ""; position: absolute; inset: -0.7em -1.5em; z-index: -1; border-radius: 50%; opacity: var(--scrim, 0); background: radial-gradient(closest-side, rgba(3, 10, 26, 0.42), rgba(3, 10, 26, 0.24) 50%, rgba(3, 10, 26, 0.07) 78%, rgba(3, 10, 26, 0)); }
   #captions .jp { font-size: clamp(17px, 2.5vmin + 1.3vw, 33px); letter-spacing: 0.12em; line-height: 1.75; font-weight: 500; color: #fff; text-shadow: 0 1px 2px rgba(0, 8, 24, 0.85), 0 0 10px rgba(0, 8, 24, 0.6), 0 0 28px rgba(0, 8, 24, 0.45); }
   #captions .ph { display: inline-block; white-space: nowrap; }
   #captions .jp .c { display: inline-block; opacity: 0; will-change: opacity, transform, filter; }
-  #captions .en { margin-top: 0.25em; font-family: var(--font-en); font-style: italic; font-weight: 400; font-size: clamp(15px, 1.3vmin + 0.9vw, 22px); letter-spacing: 0.05em; color: #eef7ff; opacity: 0; text-shadow: 0 1px 2px rgba(0, 8, 24, 0.85), 0 0 12px rgba(0, 8, 24, 0.6); }
+  #captions .en { margin: 0.25em auto 0; max-width: 34em; text-wrap: balance; font-family: var(--font-en); font-style: italic; font-weight: 500; font-size: clamp(15px, 1.3vmin + 0.9vw, 22px); letter-spacing: 0.05em; color: #fff; opacity: 0; text-shadow: 0 0 3px rgba(0, 8, 24, 0.9), 0 1px 3px rgba(0, 8, 24, 0.85), 0 0 14px rgba(0, 8, 24, 0.7); }
+  /* bright scenes (dawn, clouds, meadow, snow): wider cool-navy scrim + heavier shadow */
+  #captions.bright .box::before { inset: -1em -2.2em; background: radial-gradient(closest-side, rgba(8, 22, 56, 0.62), rgba(8, 22, 56, 0.42) 50%, rgba(8, 22, 56, 0.14) 78%, rgba(8, 22, 56, 0)); }
+  #captions.bright .jp { text-shadow: 0 0 3px rgba(4, 14, 40, 0.95), 0 1px 3px rgba(4, 14, 40, 0.9), 0 0 16px rgba(4, 14, 40, 0.75); }
+  #captions.bright .en { text-shadow: 0 0 4px rgba(4, 14, 40, 0.98), 0 1px 3px rgba(4, 14, 40, 0.95), 0 0 16px rgba(4, 14, 40, 0.8); }
   #captions.cap-title { bottom: auto; top: 31%; transform: translateY(-50%); }
   #captions.cap-title .box::before { display: none; }
   #captions.cap-title .jp { font-size: clamp(34px, 7vmin + 2vw, 92px); letter-spacing: 0.32em; padding-left: 0.32em; font-weight: 500; text-shadow: 0 0 28px rgba(140, 220, 255, 0.85), 0 0 80px rgba(80, 170, 255, 0.55); }
@@ -42,8 +46,17 @@
   @media (max-aspect-ratio: 1/1) {
     #captions { bottom: calc(14vh + env(safe-area-inset-bottom, 0px)); padding: 0 4vw; }
     #captions .jp { font-size: clamp(16px, 4.8vw, 25px); letter-spacing: 0.05em; }
-    #captions.cap-title .jp { font-size: clamp(30px, 11vw, 64px); letter-spacing: 0.22em; padding-left: 0.22em; }
-    #captions.cap-title .en { letter-spacing: 0.08em; }
+    #captions.cap-title .box { padding-left: 0; padding-right: 0; }
+    #captions.cap-title .jp { font-size: clamp(26px, 9vw, 64px); letter-spacing: 0.16em; padding-left: 0.16em; }
+    #captions.cap-title .en { letter-spacing: 0.06em; max-width: 90vw; }
+    #captions .en { max-width: 86vw; }
+  }
+
+  @media (max-height: 480px) and (orientation: landscape) {
+    #captions { bottom: calc(19vh + env(safe-area-inset-bottom, 0px)); }
+    #captions.cap-title { top: 24%; }
+    #captions.cap-title .jp { font-size: clamp(26px, 8vh, 48px); }
+    #captions.cap-title .en { margin-top: 0.6em; font-size: clamp(13px, 4vh, 18px); }
   }
 
   /* start card */
@@ -61,24 +74,25 @@
   #start .hint { font-size: 12px; color: var(--ink-dim); letter-spacing: 0.12em; opacity: 0.8; }
   #start .btns, #start .hint { opacity: 0; transition: opacity 0.8s; pointer-events: none; }
   body.ready #start .btns, body.ready #start .hint { opacity: 1; pointer-events: auto; }
+  @media (hover: none) { #start .hint .kb { display: none; } }
   #prep { width: 120px; height: 1px; background: var(--line); position: relative; transition: opacity 0.6s; }
   #prep::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--p, 0%); background: var(--glow); box-shadow: 0 0 8px var(--glow); }
   body.ready #prep { opacity: 0; }
 
   /* transport */
-  #bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 18px 18px calc(14px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to top, rgba(2, 4, 10, 0.72), rgba(2, 4, 10, 0)); opacity: 0; transition: opacity 0.5s; z-index: 3; }
+  #bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 14px max(14px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px)); background: linear-gradient(to top, rgba(2, 4, 10, 0.72), rgba(2, 4, 10, 0)); opacity: 0; transition: opacity 0.5s; z-index: 3; }
   body.active #bar, body:not(.started) #bar { opacity: 1; }
   body:not(.started) #bar { display: none; }
-  #bar button { all: unset; box-sizing: border-box; width: 38px; height: 38px; display: grid; place-items: center; cursor: pointer; border-radius: 50%; color: var(--ink); flex: none; }
+  #bar button { all: unset; box-sizing: border-box; width: 44px; height: 44px; display: grid; place-items: center; cursor: pointer; border-radius: 50%; color: var(--ink); flex: none; }
   #bar button:hover, #bar button:focus-visible { background: rgba(255, 255, 255, 0.12); }
   #bar svg { width: 20px; height: 20px; fill: currentColor; }
   #play[data-state="pause"] .i-play, #play[data-state="play"] .i-pause { display: none; }
   #snd[data-state="on"] .i-off, #snd[data-state="off"] .i-on { display: none; }
   #time { font-family: var(--font-en); font-size: 15px; letter-spacing: 0.08em; color: var(--ink-dim); font-variant-numeric: tabular-nums; flex: none; min-width: 5.6em; text-align: center; }
-  .seekwrap { position: relative; flex: 1; min-width: 0; height: 38px; display: grid; align-items: center; }
+  .seekwrap { position: relative; flex: 1; min-width: 0; height: 44px; display: grid; align-items: center; }
   #ticks { position: absolute; left: 0; right: 0; top: 50%; height: 0; pointer-events: none; }
   #ticks i { position: absolute; width: 1px; height: 10px; margin-top: -5px; background: rgba(255, 255, 255, 0.35); }
-  #seek { -webkit-appearance: none; appearance: none; width: 100%; height: 20px; margin: 0; background: transparent; cursor: pointer; }
+  #seek { -webkit-appearance: none; appearance: none; width: 100%; height: 44px; margin: 0; background: transparent; cursor: pointer; touch-action: none; }
   #seek::-webkit-slider-runnable-track { height: 2px; border-radius: 2px; background: linear-gradient(to right, var(--glow) var(--p, 0%), rgba(255, 255, 255, 0.22) var(--p, 0%)); }
   #seek::-moz-range-track { height: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.22); }
   #seek::-moz-range-progress { height: 2px; background: var(--glow); }
@@ -103,7 +117,7 @@
       <button id="go" type="button">音を出して はじめる</button>
       <button id="goquiet" type="button" class="quiet">音なしで みる</button>
     </div>
-    <div class="hint">約3分 ・ スペースキーで一時停止 ・ ← → で5秒移動</div>
+    <div class="hint">約3分<span class="kb"> ・ スペースキーで一時停止 ・ ← → で5秒移動</span></div>
   </div>
 </div>
 

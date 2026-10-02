@@ -73,7 +73,7 @@
     if (i < 0) return;
     const c = Anim.timeline.cues[i];
     const kind = c.kind || 'line';
-    capEl.className = 'cap-' + kind;
+    capEl.className = 'cap-' + kind + (c.bright ? ' bright' : '');
     boxEl = document.createElement('div'); boxEl.className = 'box';
     jpEl = document.createElement('div'); jpEl.className = 'jp';
     // group characters into phrases (split after 、 and 。) so line breaks only happen between phrases

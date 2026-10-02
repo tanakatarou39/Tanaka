@@ -334,7 +334,7 @@
 
       /* ---- the hero ---- */
       {
-        const rS = u.lerp(0.4, 1, sstep(2, 9, T));
+        const rS = u.lerp(0.55, 1, sstep(2, 9, T));   // 0.55 = the seam point (matches the end of s8)
         const wob = 1 + 0.06 * Math.sin(T * 2.4) * sstep(11, 14, T);
         const pulse = rS * (1 + 0.9 * bt) * wob;
         hero.draw(g, cx, cy, pin.r * S, {

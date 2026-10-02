@@ -753,7 +753,7 @@
       const uu = (T - FALL0) / (IMPACT - FALL0);
       return { x: _sp[0], y: _sp[1], r: S * PIN_IN.r, hue: PIN_IN.hue, form: 'star', a: 1, pulse: 1 + 0.06 * sin(T * 2.4), glow: 1 + 0.5 * ss(0.5, 1, uu), flare: 1 - ss(0.0, 0.85, uu) };
     }
-    const rr = KS([[IMPACT, 0.017], [172.5, 0.0135], [175.5, 0.0125], [177, 0.0095], [178.3, 0.0048], [180, 0.0048]], T);
+    const rr = KS([[IMPACT, 0.017], [172.5, 0.0135], [175.5, 0.0125], [177, 0.0095], [178.3, 0.0066], [180, 0.0066]], T);
     const hue = KS([[IMPACT, 212], [174, 203], [177, 196], [178.4, 190]], T);
     const calm = ss(176.5, 178.2, T);
     const pulse = (1 + 0.05 * sin(T * 2.4)) * (1 - 0.0 * calm);
