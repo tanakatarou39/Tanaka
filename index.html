@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ひとしずくの旅</title>
+<meta name="description" content="一滴の光が海から空へ、雨となって大地に落ち、木となり、星になり、また海へ還る。約3分の連続アニメーション。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,300;1,400&family=Shippori+Mincho:wght@400;500&display=swap">
+<style>
+  /* Layout: one full-bleed canvas; captions float low-centre; title card + transport fade in/out. */
+  :root {
+    --void: #02040a;
+    --ink: #eaf4ff;
+    --ink-dim: rgba(234, 244, 255, 0.62);
+    --glow: #9fe4ff;
+    --line: rgba(234, 244, 255, 0.22);
+    --font-jp: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif CJK JP", "IPAexMincho", "IPAMincho", serif;
+    --font-en: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--void); color: var(--ink); overflow: hidden; color-scheme: dark; }
+  body { font-family: var(--font-jp); -webkit-tap-highlight-color: transparent; }
+  #stage { position: fixed; inset: 0; background: var(--void); }
+  #c { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* captions */
+  #captions { position: fixed; left: 0; right: 0; bottom: calc(14vh + env(safe-area-inset-bottom, 0px)); padding: 0 24px; text-align: center; pointer-events: none; text-shadow: 0 0 18px rgba(0,0,0,0.65), 0 0 2px rgba(0,0,0,0.6); }
+  #captions .jp { font-size: clamp(17px, 2.6vmin + 1.4vw, 34px); letter-spacing: 0.14em; line-height: 1.7; font-weight: 400; }
+  #captions .jp span { display: inline-block; opacity: 0; will-change: opacity, transform, filter; }
+  #captions .en { margin-top: 0.3em; font-family: var(--font-en); font-style: italic; font-weight: 300; font-size: clamp(13px, 1.5vmin + 0.9vw, 21px); letter-spacing: 0.06em; color: var(--ink-dim); opacity: 0; }
+  #captions.cap-title { bottom: auto; top: 31%; transform: translateY(-50%); }
+  #captions.cap-title .jp { font-size: clamp(34px, 7vmin + 2vw, 92px); letter-spacing: 0.32em; padding-left: 0.32em; font-weight: 500; text-shadow: 0 0 28px rgba(140, 220, 255, 0.85), 0 0 80px rgba(80, 170, 255, 0.55); }
+  #captions.cap-title .en { margin-top: 1.2em; font-size: clamp(15px, 1.8vmin + 1vw, 26px); letter-spacing: 0.22em; text-transform: none; }
+  #captions.cap-end .jp { letter-spacing: 0.2em; }
+  .nocap #captions { display: none; }
+  @media (max-aspect-ratio: 1/1) { #captions { bottom: calc(11vh + env(safe-area-inset-bottom, 0px)); } #captions .jp { letter-spacing: 0.08em; } }
+
+  /* start card */
+  #start { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; background: radial-gradient(ellipse at 50% 46%, #07162b 0%, var(--void) 70%); transition: opacity 1.4s ease, visibility 0s 1.4s; z-index: 5; padding: 24px; }
+  body.started #start { opacity: 0; visibility: hidden; pointer-events: none; }
+  #start .wrap { display: grid; gap: 22px; justify-items: center; }
+  #start .dot { width: 10px; height: 10px; border-radius: 50%; background: #f2fbff; box-shadow: 0 0 14px 4px rgba(160, 230, 255, 0.9), 0 0 60px 18px rgba(90, 190, 255, 0.45); animation: beat 2.4s ease-in-out infinite; }
+  @keyframes beat { 0%, 100% { transform: scale(0.8); opacity: 0.7; } 6% { transform: scale(1.5); opacity: 1; } 14% { transform: scale(0.95); } 24% { transform: scale(1.25); opacity: 0.95; } 40% { transform: scale(0.85); opacity: 0.75; } }
+  #start h1 { margin: 6px 0 0; font-weight: 500; font-size: clamp(28px, 6vmin + 1vw, 60px); letter-spacing: 0.3em; padding-left: 0.3em; text-shadow: 0 0 24px rgba(120, 210, 255, 0.55); }
+  #start p { margin: 0; font-family: var(--font-en); font-style: italic; font-weight: 300; color: var(--ink-dim); letter-spacing: 0.1em; font-size: clamp(14px, 1.6vmin + 0.8vw, 20px); }
+  #start .btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 10px; }
+  #start button { font: inherit; font-family: var(--font-jp); font-size: 16px; letter-spacing: 0.18em; padding: 12px 26px; color: var(--ink); background: rgba(160, 225, 255, 0.07); border: 1px solid var(--line); border-radius: 999px; cursor: pointer; transition: background 0.3s, border-color 0.3s, box-shadow 0.3s; }
+  #start button:hover, #start button:focus-visible { background: rgba(160, 225, 255, 0.16); border-color: rgba(190, 235, 255, 0.6); box-shadow: 0 0 24px rgba(120, 210, 255, 0.35); outline: none; }
+  #start button.quiet { color: var(--ink-dim); }
+  #start .hint { font-size: 12px; color: var(--ink-dim); letter-spacing: 0.12em; opacity: 0.8; }
+  #start .btns, #start .hint { opacity: 0; transition: opacity 0.8s; pointer-events: none; }
+  body.ready #start .btns, body.ready #start .hint { opacity: 1; pointer-events: auto; }
+  #prep { width: 120px; height: 1px; background: var(--line); position: relative; transition: opacity 0.6s; }
+  #prep::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--p, 0%); background: var(--glow); box-shadow: 0 0 8px var(--glow); }
+  body.ready #prep { opacity: 0; }
+
+  /* transport */
+  #bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 18px 18px calc(14px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to top, rgba(2, 4, 10, 0.72), rgba(2, 4, 10, 0)); opacity: 0; transition: opacity 0.5s; z-index: 3; }
+  body.active #bar, body:not(.started) #bar { opacity: 1; }
+  body:not(.started) #bar { display: none; }
+  #bar button { all: unset; box-sizing: border-box; width: 38px; height: 38px; display: grid; place-items: center; cursor: pointer; border-radius: 50%; color: var(--ink); flex: none; }
+  #bar button:hover, #bar button:focus-visible { background: rgba(255, 255, 255, 0.12); }
+  #bar svg { width: 20px; height: 20px; fill: currentColor; }
+  #play[data-state="pause"] .i-play, #play[data-state="play"] .i-pause { display: none; }
+  #snd[data-state="on"] .i-off, #snd[data-state="off"] .i-on { display: none; }
+  #time { font-family: var(--font-en); font-size: 15px; letter-spacing: 0.08em; color: var(--ink-dim); font-variant-numeric: tabular-nums; flex: none; min-width: 5.6em; text-align: center; }
+  .seekwrap { position: relative; flex: 1; min-width: 0; height: 38px; display: grid; align-items: center; }
+  #ticks { position: absolute; left: 0; right: 0; top: 50%; height: 0; pointer-events: none; }
+  #ticks i { position: absolute; width: 1px; height: 10px; margin-top: -5px; background: rgba(255, 255, 255, 0.35); }
+  #seek { -webkit-appearance: none; appearance: none; width: 100%; height: 20px; margin: 0; background: transparent; cursor: pointer; }
+  #seek::-webkit-slider-runnable-track { height: 2px; border-radius: 2px; background: linear-gradient(to right, var(--glow) var(--p, 0%), rgba(255, 255, 255, 0.22) var(--p, 0%)); }
+  #seek::-moz-range-track { height: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.22); }
+  #seek::-moz-range-progress { height: 2px; background: var(--glow); }
+  #seek::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; margin-top: -5px; border-radius: 50%; background: #f2fbff; box-shadow: 0 0 10px 2px rgba(160, 230, 255, 0.85); }
+  #seek::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: #f2fbff; box-shadow: 0 0 10px 2px rgba(160, 230, 255, 0.85); }
+  #seek:focus-visible { outline: 1px solid var(--glow); outline-offset: 6px; }
+  @media (max-width: 520px) { #time { display: none; } #bar { gap: 6px; } }
+  @media (prefers-reduced-motion: reduce) { #start .dot { animation: none; } }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="c" aria-label="ひとしずくの旅のアニメーション"></canvas></div>
+<div id="captions" aria-live="polite"></div>
+
+<div id="start">
+  <div class="wrap">
+    <div class="dot"></div>
+    <h1>ひとしずくの旅</h1>
+    <p>The Journey of a Single Drop of Light</p>
+    <div id="prep"></div>
+    <div class="btns">
+      <button id="go" type="button">音を出して はじめる</button>
+      <button id="goquiet" type="button" class="quiet">音なしで みる</button>
+    </div>
+    <div class="hint">約3分 ・ スペースキーで一時停止 ・ ← → で5秒移動</div>
+  </div>
+</div>
+
+<div id="bar">
+  <button id="play" type="button" data-state="pause" aria-label="一時停止">
+    <svg viewBox="0 0 24 24" class="i-play"><path d="M8 5v14l11-7z"/></svg>
+    <svg viewBox="0 0 24 24" class="i-pause"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>
+  </button>
+  <div class="seekwrap"><div id="ticks"></div><input id="seek" type="range" min="0" max="180" step="0.1" value="0" aria-label="再生位置"></div>
+  <span id="time">0:00 / 3:00</span>
+  <button id="snd" type="button" data-state="on" aria-label="音を消す">
+    <svg viewBox="0 0 24 24" class="i-on"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>
+    <svg viewBox="0 0 24 24" class="i-off"><path d="M3 9v6h4l5 5V4L7 9H3zm13.6 3 2.4-2.4-1.4-1.4-2.4 2.4-2.4-2.4-1.4 1.4 2.4 2.4-2.4 2.4 1.4 1.4 2.4-2.4 2.4 2.4 1.4-1.4z"/></svg>
+  </button>
+  <button id="fs" type="button" aria-label="全画面">
+    <svg viewBox="0 0 24 24"><path d="M5 5h5v2H7v3H5V5zm9 0h5v5h-2V7h-3V5zM5 14h2v3h3v2H5v-5zm12 0h2v5h-5v-2h3v-3z"/></svg>
+  </button>
+</div>
+
+<script src="src/core.js"></script>
+<script src="src/timeline.js"></script>
+<script src="src/hero.js"></script>
+<script src="src/scenes/s1_awakening.js"></script>
+<script src="src/scenes/s2_deepsea.js"></script>
+<script src="src/scenes/s3_surface.js"></script>
+<script src="src/scenes/s4_sky.js"></script>
+<script src="src/scenes/s5_rain.js"></script>
+<script src="src/scenes/s6_tree.js"></script>
+<script src="src/scenes/s7_stars.js"></script>
+<script src="src/scenes/s8_return.js"></script>
+<script src="src/audio.js"></script>
+<script src="src/ui.js"></script>
+<script src="src/main.js"></script>
+</body>
+</html>
