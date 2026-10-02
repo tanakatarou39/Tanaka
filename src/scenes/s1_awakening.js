@@ -338,7 +338,7 @@
         const wob = 1 + 0.06 * Math.sin(T * 2.4) * sstep(11, 14, T);
         const pulse = rS * (1 + 0.9 * bt) * wob;
         hero.draw(g, cx, cy, pin.r * S, {
-          hue: pin.hue, form: pin.form, a: heroA, pulse, glow: 0.7 + 0.3 * heroA + 1.3 * bt, flare: 0.5 * bt * bt,
+          hue: pin.hue, form: pin.form, a: 0.85 + 0.15 * heroA, pulse, glow: 0.75 + 0.25 * heroA + 1.3 * bt, flare: 0.5 * bt * bt,  // T=0 == the last frame of s8 (loop seam)
         });
       }
     },

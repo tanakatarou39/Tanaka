@@ -25,17 +25,26 @@
   #stage { position: fixed; inset: 0; background: var(--void); }
   #c { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
 
-  /* captions */
-  #captions { position: fixed; left: 0; right: 0; bottom: calc(14vh + env(safe-area-inset-bottom, 0px)); padding: 0 24px; text-align: center; pointer-events: none; text-shadow: 0 0 18px rgba(0,0,0,0.65), 0 0 2px rgba(0,0,0,0.6); }
-  #captions .jp { font-size: clamp(17px, 2.6vmin + 1.4vw, 34px); letter-spacing: 0.14em; line-height: 1.7; font-weight: 400; }
-  #captions .jp span { display: inline-block; opacity: 0; will-change: opacity, transform, filter; }
-  #captions .en { margin-top: 0.3em; font-family: var(--font-en); font-style: italic; font-weight: 300; font-size: clamp(13px, 1.5vmin + 0.9vw, 21px); letter-spacing: 0.06em; color: var(--ink-dim); opacity: 0; }
+  /* captions: phrases never break mid-word; a soft dark scrim + tight shadow keep them legible over bright scenes */
+  #captions { position: fixed; left: 0; right: 0; bottom: calc(12vh + env(safe-area-inset-bottom, 0px)); padding: 0 5vw; text-align: center; pointer-events: none; }
+  #captions .box { position: relative; display: inline-block; max-width: 100%; padding: 0.7em 1.3em 0.6em; isolation: isolate; }
+  #captions .box::before { content: ""; position: absolute; inset: -0.7em -1.5em; z-index: -1; border-radius: 50%; opacity: var(--scrim, 0); background: radial-gradient(closest-side, rgba(3, 10, 26, 0.5), rgba(3, 10, 26, 0.3) 52%, rgba(3, 10, 26, 0.1) 78%, rgba(3, 10, 26, 0)); }
+  #captions .jp { font-size: clamp(17px, 2.5vmin + 1.3vw, 33px); letter-spacing: 0.12em; line-height: 1.75; font-weight: 500; color: #fff; text-shadow: 0 1px 2px rgba(0, 8, 24, 0.85), 0 0 10px rgba(0, 8, 24, 0.6), 0 0 28px rgba(0, 8, 24, 0.45); }
+  #captions .ph { display: inline-block; white-space: nowrap; }
+  #captions .jp .c { display: inline-block; opacity: 0; will-change: opacity, transform, filter; }
+  #captions .en { margin-top: 0.25em; font-family: var(--font-en); font-style: italic; font-weight: 400; font-size: clamp(15px, 1.3vmin + 0.9vw, 22px); letter-spacing: 0.05em; color: #eef7ff; opacity: 0; text-shadow: 0 1px 2px rgba(0, 8, 24, 0.85), 0 0 12px rgba(0, 8, 24, 0.6); }
   #captions.cap-title { bottom: auto; top: 31%; transform: translateY(-50%); }
+  #captions.cap-title .box::before { display: none; }
   #captions.cap-title .jp { font-size: clamp(34px, 7vmin + 2vw, 92px); letter-spacing: 0.32em; padding-left: 0.32em; font-weight: 500; text-shadow: 0 0 28px rgba(140, 220, 255, 0.85), 0 0 80px rgba(80, 170, 255, 0.55); }
-  #captions.cap-title .en { margin-top: 1.2em; font-size: clamp(15px, 1.8vmin + 1vw, 26px); letter-spacing: 0.22em; text-transform: none; }
-  #captions.cap-end .jp { letter-spacing: 0.2em; }
+  #captions.cap-title .en { margin-top: 1.1em; font-size: clamp(15px, 1.6vmin + 1vw, 26px); letter-spacing: 0.14em; color: #d6ecff; }
+  #captions.cap-end .jp { letter-spacing: 0.18em; }
   .nocap #captions { display: none; }
-  @media (max-aspect-ratio: 1/1) { #captions { bottom: calc(11vh + env(safe-area-inset-bottom, 0px)); } #captions .jp { letter-spacing: 0.08em; } }
+  @media (max-aspect-ratio: 1/1) {
+    #captions { bottom: calc(14vh + env(safe-area-inset-bottom, 0px)); padding: 0 4vw; }
+    #captions .jp { font-size: clamp(16px, 4.8vw, 25px); letter-spacing: 0.05em; }
+    #captions.cap-title .jp { font-size: clamp(30px, 11vw, 64px); letter-spacing: 0.22em; padding-left: 0.22em; }
+    #captions.cap-title .en { letter-spacing: 0.08em; }
+  }
 
   /* start card */
   #start { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; background: radial-gradient(ellipse at 50% 46%, #07162b 0%, var(--void) 70%); transition: opacity 1.4s ease, visibility 0s 1.4s; z-index: 5; padding: 24px; }

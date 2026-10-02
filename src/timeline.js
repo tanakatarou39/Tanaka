@@ -21,22 +21,22 @@
   /* Captions (DOM, drawn by ui.js). kind: 'title' (centre, large) | 'line' (bottom) | 'end' */
   const cues = [
     { t0: 8.0, t1: 15.8, kind: 'title', jp: 'ひとしずくの旅', en: 'The Journey of a Single Drop of Light' },
-    { t0: 17.5, t1: 23.2, jp: '音のない、いちばん深い場所で。', en: 'In the deepest place, where there is no sound,' },
-    { t0: 23.8, t1: 30.0, jp: 'ひとしずくの光が、ゆっくりと目をさました。', en: 'a single drop of light slowly awoke.' },
+    { t0: 16.6, t1: 22.8, jp: '音のない、いちばん深い場所で。', en: 'In the deepest place, where there is no sound,' },
+    { t0: 23.4, t1: 29.8, jp: 'ひとしずくの光が、ゆっくりと目をさました。', en: 'a single drop of light slowly awoke.' },
     { t0: 32.0, t1: 39.5, jp: '大きな影が、静かに通りすぎていく。', en: 'A vast shadow drifts past, without a sound.' },
     { t0: 41.0, t1: 48.5, jp: '上へ、上へ。あかるい方へ。', en: 'Up, and further up, toward the light.' },
     { t0: 58.0, t1: 64.5, jp: '水面のむこうに、朝があった。', en: 'Beyond the surface, there was morning.' },
     { t0: 65.0, t1: 71.5, jp: 'ひとしずくは光にとけて、空へのぼる。', en: 'Melting into the light, it rose into the sky.' },
     { t0: 77.0, t1: 84.0, jp: '空では、たくさんのしずくが待っていた。', en: 'Up there, countless drops were waiting.' },
     { t0: 85.0, t1: 92.5, jp: 'ひとつ、またひとつ。集まって、雲になった。', en: 'One by one they gathered, and became a cloud.' },
-    { t0: 93.5, t1: 101.0, jp: '雲は、すこしずつ重くなっていく。', en: 'The cloud grew heavier, little by little.' },
+    { t0: 93.5, t1: 100.4, jp: '雲は、すこしずつ重くなっていく。', en: 'The cloud grew heavier, little by little.' },
     { t0: 103.0, t1: 110.0, jp: 'そして、雨になって、落ちていく。', en: 'And then it fell, as rain.' },
     { t0: 111.0, t1: 119.0, jp: '山をこえ、森をぬけて、大地のなかへ。', en: 'Over the mountains, through the forest, into the earth.' },
-    { t0: 123.0, t1: 130.0, jp: 'そこには、眠りつづける小さな種があった。', en: 'There, a small seed had been sleeping.' },
-    { t0: 131.0, t1: 138.0, jp: 'ひとしずくに触れて、種は目をさます。', en: 'Touched by the drop, the seed awoke.' },
-    { t0: 139.0, t1: 147.5, jp: '春、夏、秋、冬。いくつもの季節をこえて、', en: 'Spring, summer, autumn, winter — season after season,' },
-    { t0: 148.0, t1: 154.0, jp: '木は、空にむかってのびていった。', en: 'the tree reached up toward the sky.' },
-    { t0: 155.5, t1: 160.5, jp: '夜が来て、木は光を空へ返した。', en: 'When night came, the tree gave its light back to the sky.' },
+    { t0: 122.8, t1: 127.6, jp: 'そこには、眠りつづける小さな種があった。', en: 'There, a small seed had been sleeping.' },
+    { t0: 128.2, t1: 134.6, jp: 'ひとしずくに触れて、種は目をさます。', en: 'Touched by the drop, the seed awoke.' },
+    { t0: 140.6, t1: 148.4, jp: '春、夏、秋、冬。いくつもの季節をこえて、', en: 'Spring, summer, autumn, winter — season after season,' },
+    { t0: 149.0, t1: 154.6, jp: '木は、空にむかってのびていった。', en: 'the tree reached up toward the sky.' },
+    { t0: 155.6, t1: 160.4, jp: '夜が来て、木は光を空へ返した。', en: 'When night came, the tree gave its light back to the sky.' },
     { t0: 161.0, t1: 166.0, jp: 'ひとしずくは、星になった。', en: 'The drop became a star.' },
     { t0: 167.0, t1: 172.0, jp: '星はやがて、海へと帰っていく。', en: 'And in time, the star returns to the sea.' },
     { t0: 173.2, t1: 179.2, kind: 'end', jp: 'ひとしずくの旅は、また、はじまる。', en: 'The journey begins again.' },
@@ -73,7 +73,8 @@
       bloom: u.keys([[0, 0.9], [14, 0.8], [44, 0.55], [60, 0.8], [76, 0.5], [100, 0.4], [126, 0.5], [156, 0.75], [162, 1.0], [170, 0.85], [180, 0.9]], T),
       vignette: 0.55,
       grain: 0.022,
-      fade: u.smoothstep(0, 1.2, T) * (1 - u.smoothstep(178.4, 180, T)),
+      // the film starts and ends on the same dim point of light (not black), so the loop reads as one continuous cycle
+      fade: (0.35 + 0.65 * u.smoothstep(0, 2.5, T)) * (1 - 0.65 * u.smoothstep(177.8, 180, T)),
     };
   }
 

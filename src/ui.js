@@ -61,6 +61,7 @@
   UI.setPlaying = (p) => { $('play').setAttribute('aria-label', p ? '一時停止' : '再生'); $('play').dataset.state = p ? 'pause' : 'play'; if (!p) document.body.classList.add('active'); };
   UI.setMuted = (m) => { $('snd').dataset.state = m ? 'off' : 'on'; $('snd').setAttribute('aria-label', m ? '音を出す' : '音を消す'); };
 
+  let boxEl;
   function buildCue(i) {
     capEl.textContent = '';
     cueIndex = i;
@@ -69,15 +70,23 @@
     const c = Anim.timeline.cues[i];
     const kind = c.kind || 'line';
     capEl.className = 'cap-' + kind;
+    boxEl = document.createElement('div'); boxEl.className = 'box';
     jpEl = document.createElement('div'); jpEl.className = 'jp';
-    for (const ch of Array.from(c.jp)) {
-      const s = document.createElement('span');
-      s.textContent = ch;
-      jpEl.appendChild(s);
-      chars.push(s);
+    // group characters into phrases (split after 、 and 。) so line breaks only happen between phrases
+    const phrases = c.jp.match(/[^、。]+[、。]?|[、。]/g) || [c.jp];
+    for (const ph of phrases) {
+      const p = document.createElement('span'); p.className = 'ph';
+      for (const ch of Array.from(ph)) {
+        const s = document.createElement('span');
+        s.className = 'c'; s.textContent = ch;
+        p.appendChild(s);
+        chars.push(s);
+      }
+      jpEl.appendChild(p);
     }
     enEl = document.createElement('div'); enEl.className = 'en'; enEl.textContent = c.en;
-    capEl.appendChild(jpEl); capEl.appendChild(enEl);
+    boxEl.appendChild(jpEl); boxEl.appendChild(enEl);
+    capEl.appendChild(boxEl);
   }
 
   /** called every frame with global time */
@@ -99,7 +108,8 @@
         s.style.filter = k < 0.98 ? `blur(${((1 - k) * 6).toFixed(2)}px)` : 'none';
       }
       const en = u.smoothstep(0.6 + n * stagger * 0.5, 1.8 + n * stagger * 0.5, tin) * fadeOut;
-      enEl.style.opacity = (en * 0.8).toFixed(3);
+      enEl.style.opacity = (en * 0.95).toFixed(3);
+      boxEl.style.setProperty('--scrim', (u.smoothstep(0, 0.9, tin) * fadeOut).toFixed(3));
     }
     const seek = $('seek');
     if (!UI.dragging) seek.value = String(T);

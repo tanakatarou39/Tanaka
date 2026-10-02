@@ -44,27 +44,29 @@
     u.glow(g, x, y, R * 18, hue, sat, 58, 0.2 * a * gl, 'soft');
     u.glow(g, x, y, R * 7, hue, sat, 62, 0.5 * a * gl, 'soft');
     if (form === 'drop') {
+      // a proper teardrop: long curved taper, bright all the way to the tip, glassy rim, additive core on top
+      const D = R * 1.2;
       g.save();
       g.translate(x, y);
       g.rotate(o.angle || 0);
-      g.globalAlpha = Math.min(1, a);
       const p = new Path2D();
-      p.moveTo(0, -R * 2.7);
-      p.bezierCurveTo(R * 0.4, -R * 1.6, R * 1.05, -R * 0.8, R * 1.05, R * 0.15);
-      p.arc(0, R * 0.15, R * 1.05, 0, Math.PI);
-      p.bezierCurveTo(-R * 1.05, -R * 0.8, -R * 0.4, -R * 1.6, 0, -R * 2.7);
+      p.moveTo(0, -D * 2.55);
+      p.bezierCurveTo(D * 0.12, -D * 1.95, D * 1.02, -D * 1.0, D * 1.02, D * 0.22);
+      p.arc(0, D * 0.22, D * 1.02, 0, Math.PI);
+      p.bezierCurveTo(-D * 1.02, -D * 1.0, -D * 0.12, -D * 1.95, 0, -D * 2.55);
       p.closePath();
-      const gr = g.createRadialGradient(-R * 0.25, R * 0.0, R * 0.05, 0, R * 0.2, R * 1.4);
-      gr.addColorStop(0, u.hsl(hue, sat * 0.3, 98, 1));
-      gr.addColorStop(0.45, u.hsl(hue, sat * 0.8, 80, 0.92));
-      gr.addColorStop(1, u.hsl(hue, sat, 55, 0.7));
-      g.fillStyle = gr;
+      g.globalAlpha = Math.min(1, a);
+      const lg = g.createLinearGradient(0, -D * 2.55, 0, D * 1.25);
+      lg.addColorStop(0, u.hsl(hue, sat * 0.35, 97, 0.98));
+      lg.addColorStop(0.45, u.hsl(hue, sat * 0.55, 92, 0.97));
+      lg.addColorStop(1, u.hsl(hue, sat * 0.9, 78, 0.9));
+      g.fillStyle = lg;
       g.fill(p);
-      g.lineWidth = Math.max(1, R * 0.12);
-      g.strokeStyle = u.hsl(hue, sat * 0.4, 96, 0.6);
+      g.lineWidth = Math.max(1, D * 0.1);
+      g.strokeStyle = u.hsl(hue, sat * 0.3, 99, 0.85);
       g.stroke(p);
       g.restore();
-      u.glow(g, x, y + R * 0.1, R * 3.4, hue, sat * 0.6, 88, 0.7 * a, 'core');
+      u.glow(g, x, y - D * 0.1, D * 2.4, hue, sat * 0.6, 90, 0.55 * a, 'core');
     } else if (form === 'seed') {
       g.save();
       g.translate(x, y);
@@ -93,16 +95,17 @@
       g.save();
       g.globalCompositeOperation = 'lighter';
       g.translate(x, y);
-      for (let k = 0; k < 2; k++) {
-        const len = k === 0 ? L : L * 0.55;
+      // [angle, length]: long horizontal, shorter vertical and diagonals (a full-height vertical hairline reads as a stray string)
+      const rays = [[0, 1.0, 1.0], [Math.PI, 0, 0], [Math.PI / 2, 0.42, 0.9], [Math.PI / 4, 0.46, 0.55], [-Math.PI / 4, 0.46, 0.55]];
+      for (const [ang, kl, ka] of rays) {
+        if (kl <= 0) continue;
+        const len = L * kl;
         g.save();
-        g.rotate(k * (Math.PI / 4) + (o.flareRot || 0));
+        g.rotate(ang + (o.flareRot || 0));
         const lg = g.createLinearGradient(-len, 0, len, 0);
-        const c0 = u.hsl(hue, sat * 0.4, 92, 0), c1 = u.hsl(hue, sat * 0.4, 94, 0.75 * a * (k === 0 ? 1 : 0.6));
+        const c0 = u.hsl(hue, sat * 0.4, 92, 0), c1 = u.hsl(hue, sat * 0.4, 94, 0.75 * a * ka);
         lg.addColorStop(0, c0); lg.addColorStop(0.5, c1); lg.addColorStop(1, c0);
         g.fillStyle = lg;
-        g.fillRect(-len, -R * 0.09, len * 2, R * 0.18);
-        g.rotate(Math.PI / 2);
         g.fillRect(-len, -R * 0.09, len * 2, R * 0.18);
         g.restore();
       }

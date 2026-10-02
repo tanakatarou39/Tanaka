@@ -319,9 +319,9 @@
       d.save();
       d.setTransform(1, 0, 0, 1, 0, 0);
       d.globalAlpha = 1; d.globalCompositeOperation = 'source-over';
-      d.drawImage(L0, 0, 0);
-      d.globalAlpha = act[1].w;
-      d.drawImage(L1, 0, 0);
+      const wB = act[1].w;
+      if (wB < 0.995) d.drawImage(L0, 0, 0);
+      if (wB > 0.008) { d.globalAlpha = wB > 0.995 ? 1 : wB; d.drawImage(L1, 0, 0); }
       d.restore();
       const fa = sceneFx(act[0], T), fb = sceneFx(act[1], T);
       if (fa || fb) {
