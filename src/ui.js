@@ -30,11 +30,15 @@
     seek.addEventListener('input', () => api.seek(parseFloat(seek.value)));
     play.addEventListener('click', (e) => { e.stopPropagation(); api.toggle(); });
     snd.addEventListener('click', (e) => { e.stopPropagation(); api.toggleMute(); });
+    const canFs = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+    if (!canFs) fs.hidden = true;   // e.g. iPhone Safari, or an embedding frame that forbids it
     fs.addEventListener('click', (e) => {
       e.stopPropagation();
-      const d = document;
-      if (d.fullscreenElement) d.exitFullscreen && d.exitFullscreen();
-      else if (d.documentElement.requestFullscreen) d.documentElement.requestFullscreen().catch(() => {});
+      const d = document, el = d.documentElement;
+      try {
+        if (d.fullscreenElement || d.webkitFullscreenElement) { (d.exitFullscreen || d.webkitExitFullscreen).call(d); }
+        else { const r = (el.requestFullscreen || el.webkitRequestFullscreen).call(el); if (r && r.catch) r.catch(() => {}); }
+      } catch (err) { /* fullscreen is optional */ }
     });
     $('stage').addEventListener('click', () => { api.toggle(); UI.poke(); });
     G.addEventListener('mousemove', UI.poke);

@@ -28,7 +28,7 @@
   /* captions: phrases never break mid-word; a soft dark scrim + tight shadow keep them legible over bright scenes */
   #captions { position: fixed; left: 0; right: 0; bottom: calc(12vh + env(safe-area-inset-bottom, 0px)); padding: 0 5vw; text-align: center; pointer-events: none; }
   #captions .box { position: relative; display: inline-block; max-width: 100%; padding: 0.7em 1.3em 0.6em; isolation: isolate; }
-  #captions .box::before { content: ""; position: absolute; inset: -0.7em -1.5em; z-index: -1; border-radius: 50%; opacity: var(--scrim, 0); background: radial-gradient(closest-side, rgba(3, 10, 26, 0.5), rgba(3, 10, 26, 0.3) 52%, rgba(3, 10, 26, 0.1) 78%, rgba(3, 10, 26, 0)); }
+  #captions .box::before { content: ""; position: absolute; inset: -0.7em -1.5em; z-index: -1; border-radius: 50%; opacity: var(--scrim, 0); background: radial-gradient(closest-side, rgba(3, 10, 26, 0.42), rgba(3, 10, 26, 0.24) 50%, rgba(3, 10, 26, 0.07) 78%, rgba(3, 10, 26, 0)); }
   #captions .jp { font-size: clamp(17px, 2.5vmin + 1.3vw, 33px); letter-spacing: 0.12em; line-height: 1.75; font-weight: 500; color: #fff; text-shadow: 0 1px 2px rgba(0, 8, 24, 0.85), 0 0 10px rgba(0, 8, 24, 0.6), 0 0 28px rgba(0, 8, 24, 0.45); }
   #captions .ph { display: inline-block; white-space: nowrap; }
   #captions .jp .c { display: inline-block; opacity: 0; will-change: opacity, transform, filter; }
