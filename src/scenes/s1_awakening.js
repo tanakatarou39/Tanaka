@@ -36,7 +36,7 @@
 
   const HZ = { cols: 0, rows: 0, cv: null, cx: null, img: null, dith: null };
   function hazeSetup(env) {
-    const n = 2800;
+    const n = 2000;
     HZ.cols = Math.max(24, Math.round(Math.sqrt(n * env.W / env.H)));
     HZ.rows = Math.max(24, Math.round(Math.sqrt(n * env.H / env.W)));
     HZ.cv = u.canvas(HZ.cols, HZ.rows); HZ.cx = HZ.cv.getContext('2d');
@@ -120,7 +120,10 @@
 
   /* ====================================== s1 =========================================== */
   const BEAT_T0 = 2.3, BEAT_P = 2.4;           // lub of beat k at BEAT_T0 + k*BEAT_P
-  const ampEnv = (T) => u.keys([[2, 0.18], [4.7, 0.78], [7.1, 1], [11, 1], [13.6, 0]], T, 'smooth');
+  const ampEnv = (T) => u.keys([[2, 0.18], [4.7, 0.78], [7.1, 1], [9.5, 1], [11.9, 0.4], [13.6, 0]], T, 'smooth');
+  /* every beat is a little different: the first ring is small, the second wider, the third a pronounced lub-dub, then the full ring */
+  const RING_SC = [0.52, 0.80, 1.0, 1.0, 1.05, 0.9], DUB_A = [0.35, 0.45, 0.95, 0.55, 0.55, 0.4];
+  const ringSc = (k) => RING_SC[k < 5 ? k : 5], dubA = (k) => DUB_A[k < 5 ? k : 5];
   const RING_D = 2.4, RING_R = 0.4;            // ring lifetime (s), radius (xS)
 
   let ringSoft = null, ringFill = null;
@@ -150,6 +153,12 @@
     }
   }
 
+  const tealSpr = () => u.sprite('s1|teal', 64, 64, (c) => {
+    const gr = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(235,255,245,1)'); gr.addColorStop(0.14, 'rgba(150,250,215,0.8)');
+    gr.addColorStop(0.4, 'rgba(60,200,170,0.2)'); gr.addColorStop(1, 'rgba(30,150,140,0)');
+    c.fillStyle = gr; c.fillRect(0, 0, 64, 64);
+  });
   const ringRad = (t, R) => R * (1 - (1 - clamp(t / RING_D)) * (1 - clamp(t / RING_D)));
   const ringList = [];
 
@@ -178,8 +187,9 @@
         if (k < 0) continue;
         const tk = BEAT_T0 + k * BEAT_P, a = ampEnv(tk);
         if (a < 0.01) continue;
-        if (T - tk < RING_D + 1.6) ringList.push({ t: T - tk, a, R: RING_R, kind: 0 });
-        if (T - (tk + 0.43) > 0 && T - (tk + 0.43) < RING_D * 0.8 + 1.4) ringList.push({ t: T - tk - 0.43, a: a * 0.5, R: RING_R * 0.62, kind: 1 });
+        const sc = ringSc(k);
+        if (T - tk < RING_D + 1.6) ringList.push({ t: T - tk, a, R: RING_R * sc, kind: 0 });
+        if (T - (tk + 0.43) > 0 && T - (tk + 0.43) < RING_D * 0.8 + 1.4) ringList.push({ t: T - tk - 0.43, a: a * dubA(k), R: RING_R * 0.62 * (k === 2 ? 1.25 : sc), kind: 1 });
       }
 
       /* ================= low-res layer: background, haze, halos, soft rings ================= */
@@ -188,12 +198,13 @@
         const top = [BG_TOP[0] * bgA, BG_TOP[1] * bgA, BG_TOP[2] * bgA], bot = [BG_BOT[0] * bgA, BG_BOT[1] * bgA, BG_BOT[2] * bgA];
         u.vgrad(q, W, H, [[0, u.css(top)], [1, u.css(bot)]]);
         const hzA = sstep(6, 13, T);
-        hazeDraw(q, env, T, 0.30 * hzA * (1 + 0.10 * bt), HAZE_TINT, pin.x, pin.y, 3.2);
+        const hzTint = u.mixc([12, 62, 128], HAZE_TINT, sstep(6.5, 13.5, T));   // the haze starts cold blue and warms to B1's teal
+        hazeDraw(q, env, T, 0.21 * hzA * (1 + 0.10 * bt), hzTint, pin.x, pin.y, 3.2);
         q.globalCompositeOperation = 'lighter';
         // heart glow: wide breathing halo that lifts the black around the point
-        const lift = heroA * (0.05 + 0.10 * bt) * (1 - 0.6 * sstep(9, 13.5, T));
+        const lift = heroA * (0.05 + 0.10 * bt) * (1 - 0.6 * sstep(9, 13.5, T)) * (1 - sstep(11, 14, T));
         u.glow(q, cx, cy, S * 0.55, 195, 80, 45, lift, 'soft');
-        u.glow(q, cx, cy, S * 0.20, 190, 80, 55, heroA * (0.07 + 0.22 * bt), 'soft');
+        u.glow(q, cx, cy, S * 0.20, 190, 80, 55, heroA * (0.07 + 0.22 * bt) * (1 - sstep(10.5, 13.8, T)), 'soft');
         // faint out-of-focus discs close to the lens
         const bk = bokehSpr();
         for (let i = 0; i < BK.N; i++) {
@@ -265,6 +276,25 @@
           g.drawImage(dot, cx + x * S - rr, cy + y * S - rr, rr * 2, rr * 2);
         }
 
+        /* ---- a slow stream of plankton glints drifts through (9.5-14.5 s): the first hint of the life that waits in B1/s2 ---- */
+        const gE = sstep(9.6, 11.8, T) * (1 - sstep(13.2, 14.6, T));
+        if (gE > 0.01) {
+          const tl = tealSpr(), span = (W / S + 0.5);
+          for (let i = 0; i < 34; i++) {
+            const h1 = u.hash2(i, 301), h2 = u.hash2(i, 302), h3 = u.hash2(i, 303);
+            const sp = u.wrap(i / 34 + 0.012 * (T - 9.5) * (0.8 + 0.5 * h3), 0, 1);
+            const x = (sp - 0.5) * span, bx = 0.18 * Math.sin(sp * 5.0 + 0.6) + 0.15 * (0.5 - sp);
+            const y = bx + (h1 - 0.5) * 0.07 + 0.012 * Math.sin(T * 0.9 + h2 * TAU);
+            const edge = Math.sin(Math.PI * sp);
+            const tw = 0.35 + 0.65 * Math.pow(0.5 + 0.5 * Math.sin(T * (1.6 + 2 * h2) + h1 * 20), 2);
+            const aa = gE * edge * tw * (0.5 + 0.4 * h3);
+            if (aa < 0.01) continue;
+            const rr = S * (0.0045 + 0.004 * h2) * 2.4;
+            g.globalAlpha = aa > 1 ? 1 : aa;
+            g.drawImage(tl, cx + x * S - rr, cy + y * S - rr, rr * 2, rr * 2);
+          }
+        }
+
         /* ---- beat rings: crisp hairline on top of the soft glow ---- */
         g.lineCap = 'butt';
         for (let q = 0; q < ringList.length; q++) {
@@ -282,7 +312,8 @@
         }
 
         /* ---- sparks born from each beat, drifting outward like fireflies ---- */
-        for (let k = Math.max(0, kNow - 1); k <= kNow; k++) {
+        const sparkFade = 1 - sstep(13.0, 14.8, T);
+        for (let k = Math.max(0, kNow - 1); k <= kNow && sparkFade > 0.003; k++) {
           const tk = BEAT_T0 + k * BEAT_P, a0 = ampEnv(tk);
           if (a0 < 0.05) continue;
           const t = T - tk;
@@ -291,7 +322,7 @@
           for (let j = 0; j < 14; j++) {
             const ang = u.hash2(k * 31 + j, 91) * TAU + 0.35 * f * (j % 2 ? 1 : -1);
             const dist = (0.06 + 0.26 * u.hash2(k * 31 + j, 92)) * S * (1 - Math.pow(1 - f, 2.2));
-            const al = a0 * Math.sin(Math.PI * Math.pow(f, 0.6)) * (0.5 + 0.5 * Math.sin(T * 3 + j * 1.7)) * 0.9;
+            const al = a0 * Math.sin(Math.PI * Math.pow(f, 0.6)) * (0.5 + 0.5 * Math.sin(T * 3 + j * 1.7)) * 0.9 * sparkFade;
             if (al < 0.01) continue;
             const rr = S * (0.0035 + 0.003 * u.hash2(k * 31 + j, 93)) * 2.4;
             g.globalAlpha = al > 1 ? 1 : al;

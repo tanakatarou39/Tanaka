@@ -43,28 +43,31 @@
     SW[2] = max(0, 1 - abs(sv - 2));
     SW[3] = max(0, 1 - abs(sv - 3));
   }
-  // the racing day: keyframed day count D(T); day fraction f -> a warped time of day (long days, short nights)
-  const DK = [[122, 0.2], [133, 0.2], [134.1, 0.35], [136, 0.63], [139.3, 1.63], [142.6, 2.63], [145.9, 3.63], [148.3, 4.35], [151, 4.91], [152.5, 5.12], [153.5, 5.13], [160, 5.13]];
-  const dayD = (T) => u.keys(DK, T, 'spline');
-  // long days, short nights: a C1 mapping of the day fraction onto the time of day (so the sun never lurches)
-  const TODK = [[-0.19, 0.70], [-0.09, 0.75], [0.01, 0.80], [0.25, 1.20], [0.35, 1.25], [0.45, 1.30], [0.81, 1.70], [0.91, 1.75], [1.01, 1.80]];
-  const todWarp = (D) => u.keys(TODK, D - floor(D), 'spline');
+  // the racing day: the time of day in "turns" (x.25 = sunrise, x.5 = noon, x.75 = sunset, x+1.0 = midnight), authored per season so that
+// every season keeps ONE dominant sky for ~3 s (spring: pink dawn -> bright day -> rose dusk; summer: bright blue; autumn: gold; winter: pale
+// blue-white; then the final dusk). The nights between two days are a quick, violet "dip" (the sky never goes darker than dusk-violet until
+// the very last dusk), so the light changes slowly instead of strobing.
+const TODT = [[122, 1.235], [131.0, 1.235], [134.0, 1.275], [136.0, 1.33], [138.3, 1.45], [140.0, 1.62], [140.7, 1.72], [141.1, 1.77],
+  [141.95, 2.235], [143.1, 2.5], [144.6, 2.745],
+  [145.35, 3.235], [146.4, 3.5], [148.0, 3.745],
+  [148.65, 4.235], [149.45, 4.5], [150.7, 4.75], [152.6, 5.0], [160, 5.0]];
+const todAt = (T) => u.keys(TODT, T, 'spline');
 
-  /* ------------------------------------------------------------------ colour tables */
+/* ------------------------------------------------------------------ colour tables */
   // sky by sun elevation (-1..1): night, twilight, dawn/dusk, low sun, day
   const SKY_RISE = [
     [-0.45, [hex('#0a1030'), hex('#1a1a48'), hex('#3a2a5a')]],
-    [-0.20, [hex('#1a2260'), hex('#4a3e86'), hex('#9a5a8e')]],
-    [-0.04, [hex('#44589a'), hex('#c8809c'), hex('#ffb888')]],
-    [0.10, [hex('#4f72b8'), hex('#e6a0a0'), hex('#ffd0a0')]],
+    [-0.20, [hex('#26326e'), hex('#56488a'), hex('#a06a90')]],
+    [-0.04, [hex('#5a6f9c'), hex('#c8a6a0'), hex('#f2d3a8')]],
+    [0.10, [hex('#6684b8'), hex('#e0b8aa'), hex('#ffdcb0')]],
     [0.35, [hex('#4a80c8'), hex('#8cb4e0'), hex('#e8dcc8')]],
     [0.75, [hex('#3f7ccc'), hex('#7eb0e4'), hex('#c6dcec')]],
   ];
   const SKY_SET = [
     [-0.45, [hex('#0a1030'), hex('#1a1a48'), hex('#3a2a5a')]],
-    [-0.20, [hex('#1c2160'), hex('#52408a'), hex('#a8508a')]],
-    [-0.04, [hex('#384888'), hex('#b8648c'), hex('#ff9c60')]],
-    [0.10, [hex('#4a6cb0'), hex('#e49a92'), hex('#ffc890')]],
+    [-0.20, [hex('#2a306c'), hex('#5c4688'), hex('#a8648a')]],
+    [-0.04, [hex('#4c5c96'), hex('#c28e9c'), hex('#ffb882')]],
+    [0.10, [hex('#5a78b0'), hex('#e8aea4'), hex('#ffcc98')]],
     [0.35, [hex('#4a80c8'), hex('#8cb4e0'), hex('#ecd8bc')]],
     [0.75, [hex('#3f7ccc'), hex('#7eb0e4'), hex('#c6dcec')]],
   ];
@@ -87,7 +90,7 @@
   let CAM = null;       // camera tables
   let TL = null;        // scratch layer (earth dissolve)
   let BGL = null;       // half-resolution background layer (sky + hills + ground)
-  let MYC = null, ROOT = null, STEMW = null; // underground glow structures
+  let MYC = null, ROOT = null, STEMW = null, PRE = null; // underground glow structures
   let PART = null;      // particle seeds
 
   /* ================================================================== the tree skeleton (deterministic) */
@@ -99,7 +102,8 @@
     const r = u.rng(60613);
     const rnd = (a, b) => a + (b - a) * r();
     const asp = clamp((H / S - 1) / 0.78);
-    const crown = { cy: hT + 0.09 * asp, rx: 0.335 + 0.02 * asp, ry: 0.285 + 0.07 * asp };
+    const crown = { cy: hT + 0.02 * asp, rx: 0.335 + 0.1 * asp, ry: 0.285 + 0.2 * asp };
+    const areaK = (crown.rx * crown.ry) / (0.335 * 0.285);   // bigger crowns (phones) get proportionally more foliage
     const inside = (x, y, k) => {
       const dx = x / (crown.rx * k), dy = (y - crown.cy) / (crown.ry * k);
       const ang = atan2(dy, dx), lob = 1 + 0.17 * (u.noise1(ang * 1.7 + 40) - 0.5) * 2 + 0.07 * sin(ang * 5 + 1);
@@ -143,7 +147,7 @@
       };
       if (depth === 0) {
         const L = [0.3, 0.3, 0.33, 0.27, 0.3, 0.23, 0.26, 0.19];
-        const spec = [[nn - 1, 0.1], [nn - 1, 0.95], [nn - 2, -1.0], [nn - 3, 1.2], [nn - 4, -1.25], [nn - 5, 1.3], [nn - 6, -1.35], [nn - 7, 1.3]];
+        const spec = [[nn - 1, 0.1], [nn - 1, 0.85], [nn - 2, -0.9], [nn - 3, 1.02], [nn - 4, -1.08], [nn - 5, 1.12], [nn - 6, -1.16], [nn - 7, 1.1]];   // limbs fan upwards (no low, horizontal arms)
         spec.forEach(([j, off], i) => { if (j >= 2) kid(j, b.a[j] + off * rnd(0.8, 1.15), L[i] * rnd(0.85, 1.2), rnd(0.15, 0.5) + i * 0.05); });
       } else if (depth < 5) {
         let side = r() < 0.5 ? 1 : -1;
@@ -162,7 +166,7 @@
       return b;
     }
 
-    const trunkLen = max(0.15, hT - 0.17 + 0.02 * asp);
+    const trunkLen = max(0.15, hT - 0.17 - 0.16 * asp);
     mk(null, 0, 0, 0, PI / 2 + 0.05, trunkLen, 0, 0);
 
     // pipe-model widths (children first)
@@ -192,7 +196,7 @@
       for (let i = 1; i < n; i++, pi++) {
         P.x0[pi] = b.x[i - 1]; P.y0[pi] = b.y[i - 1]; P.x1[pi] = b.x[i]; P.y1[pi] = b.y[i];
         P.s0[pi] = b.t[i - 1] / tmax; P.s1[pi] = b.t[i] / tmax;
-        let w = (b.w[i - 1] + b.w[i]) * 0.5 * WS * (b.depth === 0 ? 1.3 : b.depth === 1 ? 1.15 : 1);
+        let w = (b.w[i - 1] + b.w[i]) * 0.5 * WS * (b.depth === 0 ? 1.65 : b.depth === 1 ? 1.18 : 1);
         if (b.depth === 0 && i <= 4) w *= 1 + 0.45 * (1 - (i - 1) / 4);
         P.w[pi] = w; P.d[pi] = b.depth; P.b[pi] = b.idx;
       }
@@ -254,8 +258,8 @@
       return out;
     };
     const LV = [];
-    for (const c of pickNodes(150)) LV.push({ x: c.x + rnd(-0.012, 0.012), y: c.y + rnd(-0.01, 0.014), b: c.t + 0.012, sz: (c.last ? 1.08 : 1) * rnd(0.078, 0.104), r: r(), z: r() * 0.9, bl: 0, juv: 0 });
-    for (const c of fillers(110, 0.13, 0.92)) LV.push({ x: c.x, y: c.y, b: c.t, sz: rnd(0.088, 0.116), r: r(), z: r() * 0.7, bl: 0, juv: 0 });
+    for (const c of pickNodes(Math.round(150 * Math.sqrt(areaK)))) LV.push({ x: c.x + rnd(-0.012, 0.012), y: c.y + rnd(-0.01, 0.014), b: c.t + 0.012, sz: (c.last ? 1.08 : 1) * rnd(0.078, 0.104), r: r(), z: r() * 0.9, bl: 0, juv: 0 });
+    for (const c of fillers(Math.round(110 * areaK), 0.13, 0.92)) LV.push({ x: c.x, y: c.y, b: c.t, sz: rnd(0.088, 0.116), r: r(), z: r() * 0.7, bl: 0, juv: 0 });
     // juvenile leaves: single blades alternating up the young trunk (they fall away once the crown closes)
     {
       const b = BR[0];
@@ -266,8 +270,8 @@
     }
     // blossoms: their own little clusters along limbs and twigs
     const BV = [];
-    for (const c of pickNodes(190)) BV.push({ x: c.x + rnd(-0.012, 0.012), y: c.y + rnd(-0.006, 0.016), b: c.t + 0.01, sz: rnd(0.05, 0.072), r: r() });
-    for (const c of fillers(120, 0.1, 0.96)) BV.push({ x: c.x, y: c.y, b: c.t, sz: rnd(0.05, 0.07), r: r() });
+    for (const c of pickNodes(Math.round(190 * Math.sqrt(areaK)))) BV.push({ x: c.x + rnd(-0.012, 0.012), y: c.y + rnd(-0.006, 0.016), b: c.t + 0.01, sz: rnd(0.05, 0.072), r: r() });
+    for (const c of fillers(Math.round(120 * areaK), 0.1, 0.96)) BV.push({ x: c.x, y: c.y, b: c.t, sz: rnd(0.05, 0.07), r: r() });
     const nbl = BV.length;
     const BL = { n: nbl, x: new Float32Array(nbl), y: new Float32Array(nbl), b: new Float32Array(nbl), sz: new Float32Array(nbl), r: new Float32Array(nbl), r2: new Float32Array(nbl), r3: new Float32Array(nbl) };
     const r4 = u.rng(4141);
@@ -284,7 +288,7 @@
     LV.forEach((v, i) => {
       L.x[i] = v.x; L.y[i] = v.y; L.b[i] = v.b; L.sz[i] = v.sz; L.r[i] = v.r; L.bl[i] = v.bl; L.juv[i] = v.juv;
       L.z[i] = v.z < 0.34 ? 0 : v.z < 0.72 ? 1 : 2;
-      L.td[i] = 146.0 + 3.4 * v.r;
+      L.td[i] = 145.7 + 2.5 * v.r;   // autumn leaves are all gone before the snow comes (~148.5)
       L.r2[i] = r2(); L.r3[i] = r2();
     });
     let c0 = 0, c1 = 0;
@@ -546,11 +550,13 @@
     const sv = seasonVal(T); F.sv = sv; seasonW(sv);
     F.summer = SW[1]; F.snow = SW[3];
     // day clock
-    const D = dayD(T); F.tod = todWarp(D) % 1;
-    const phi = TAU * (todWarp(D) - 0.25);
-    F.el = sin(phi);
-    const el = F.el;
+    const tod = todAt(T); F.tod = tod % 1;
+    const phi = TAU * (tod - 0.25);
+    F.elT = sin(phi);
     F.nd = ss(149.5, 152.5, T);
+    // light / sky use an elevation that dips no lower than dusk-violet while the days race (true night only at the very end)
+    F.el = lerp(max(F.elT, -0.12), F.elT, F.nd);
+    const el = F.el;
     const floorA = lerp(0.42, 0.02, F.nd);
     F.A = lerp(floorA, 1, ss(-0.12, 0.32, el));
     F.warm = (1 - ss(0.0, 0.5, el)) * ss(-0.25, 0.02, el);
@@ -585,10 +591,10 @@
     // sun / moon on their arcs
     const R = (F.hy - 0.13 * H) * (0.8 + 0.2 * SW[1] - 0.1 * SW[3]);
     F.sunX = W * (0.5 - 0.47 * cos(phi)); F.sunY = F.hy - sin(phi) * R;
-    F.sunA = ss(-0.1, 0.02, el);
+    F.sunA = ss(-0.12, 0.05, F.elT);
     const phm = phi + PI;
     F.moonX = W * (0.5 - 0.42 * cos(phm)); F.moonY = F.hy - sin(phm) * R * 0.95;
-    F.moonA = ss(0.0, -0.14, el) * (1 - ss(149.5, 152.0, T)) * ss(0.02, 0.2, sin(phm));
+    F.moonA = 0; // no moon: the nights of the time-lapse are short violet dips; the last night belongs to the stars
   }
 
   /* ================================================================== the meadow world */
@@ -666,7 +672,7 @@
     g.fillStyle = gr; g.fillRect(0, 0, W, H);
     const hg = F.warm * 0.4 * ss(-0.3, 0.0, F.el);
     if (hg > 0.01) {
-      u.glow(g, F.sunX, hy, S * 0.95, 24, 80, 58, hg * 0.4);
+      u.glow(g, F.sunX, hy, S * 0.72, 24, 80, 58, hg * 0.46);
       u.glow(g, F.sunX, F.sunY, S * 0.5, 38, 90, 66, hg * 0.4 * F.sunA);
     }
     if (F.sunA > 0.01 && F.sunY < hy + S * 0.06) {
@@ -703,7 +709,7 @@
         g.save(); g.globalCompositeOperation = 'lighter';
         const rk = 0.8 + 0.2 * SW[1] - 0.1 * SW[3];
         for (let i = 1; i <= 24; i++) {
-          const tt = T - i * 0.04, ph = TAU * (todWarp(dayD(tt)) - 0.25), eg = sin(ph), hyt = H * KS(HYK, tt), Rr = (hyt - 0.13 * H) * rk;
+          const tt = T - i * 0.04, ph = TAU * (todAt(tt) - 0.25), eg = sin(ph), hyt = H * KS(HYK, tt), Rr = (hyt - 0.13 * H) * rk;
           const fade = pow(1 - i / 25, 1.5) * k;
           const sA = ss(-0.1, 0.02, eg) * fade, sy = hyt - eg * Rr;
           if (sA > 0.01 && sy < hyt) { const sz = S * 0.045; g.globalAlpha = 0.17 * sA; g.drawImage(sunS, W * (0.5 - 0.47 * cos(ph)) - sz, sy - sz, sz * 2, sz * 2); }
@@ -716,18 +722,21 @@
     // clouds (three tints: day / dusk-dawn / night)
     const ca = (0.3 + 0.62 * SW[1] + 0.2 * SW[3] + 0.1 * SW[2]) * (1 - 0.8 * F.nd);
     if (ca > 0.02) {
-      const Dd = dayD(F.T);
+      const Dd = todAt(F.T) - 1.2;
       const wDay = ss(0.28, 0.8, F.A) * (1 - 0.7 * F.warm), wDusk = F.warm * ss(0.3, 0.8, F.A) * 1.0 + F.warm * (1 - ss(0.3, 0.8, F.A)) * 0.6, wNight = 1 - ss(0.2, 0.7, F.A);
       const ws = [wDay, wDusk, wNight];
+      const cwMin = Math.min(wDay, wDusk, wNight) < 0.9 * Math.max(wDay, wDusk, wNight) ? ws.slice().sort((p, q) => p - q)[1] - 1e-6 : 0;
       for (const c of PART.clouds) {
         const wdt = W * 0.3 * c.s * (W / H > 1.2 ? 1 : 1.5);
         const hgt = wdt * 140 / 320;
         const x = u.wrap(c.x * (W + wdt * 2) + Dd * c.v * W * 0.07 + F.T * 0.002 * W, -wdt, W + wdt);
         const y = c.y * hy * 0.62 + 0.03 * H;
         const sp = SPR.cloud[c.k];
+        if (x + wdt / 2 < 0 || x - wdt / 2 > W) continue;
         for (let t = 0; t < 3; t++) {
+          if (ws[t] < cwMin) continue;   // only the two strongest tints are painted (the third one is below the noise)
           const a = ca * c.a * ws[t] * 0.8;
-          if (a < 0.015) continue;
+          if (a < 0.02) continue;
           g.globalAlpha = min(1, a); g.drawImage(sp[t], x - wdt / 2, y - hgt / 2, wdt, hgt);
         }
       }
@@ -742,8 +751,10 @@
     g.save(); g.globalCompositeOperation = 'lighter';
     if (sa > 0.01) {
       const sp = u.glowSprite(215, 40, 90);
-      const thr = lerp(0.62, 0.74, F.nd), sd = dayD(F.T) * 0.03;
-      for (const s of PART.stars) {
+      const thr = lerp(0.62, 0.74, F.nd), sd = todAt(F.T) * 0.03;
+      const nst = min(PART.stars.length, Math.round(130 * clamp(env.aspect / 1.78, 1, 1.85)));
+      for (let si = 0; si < nst; si++) {
+        const s = PART.stars[si];
         if (s.b < thr) continue;
         const tw = 0.65 + 0.35 * sin(F.T * (0.8 + s.b * 1.5) + s.ph);
         const a = sa * tw * (0.35 + 0.65 * s.b) * ss(0.0, 0.28, 1 - s.y);
@@ -915,7 +926,7 @@
     const winter = F.snow;
     const hs = 1 - 0.7 * winter;
     const gust = 0.5 + 0.5 * sin(T * 0.35);
-    const gate = 1 - ss(0.35, 0.85, F.soilVis);
+    const gate = front ? 1 - ss(0.35, 0.85, F.soilVis) : ss(132.6, 133.8, T);   // back blades poke through the soil edge as the sprout breaks the surface
     for (let tone = 0; tone < 4; tone++) {
       const k = [0.62, 0.84, 1.04, 1.22][tone];
       const c = mulc(lit, [k, k * 1.02, k * 0.95]);
@@ -940,7 +951,7 @@
     if (front) {
       // big soft blades in the corners (depth framing)
       const k = [0.34, 0.4, 0.36], bc = mulc(lit, k);
-      g.fillStyle = u.css(bc); g.globalAlpha = 0.92;
+      g.fillStyle = u.css(bc); g.globalAlpha = 0.92 * (1 - ss(151.0, 152.6, T));
       g.beginPath();
       for (const b of GR.big) {
         const grow = ss(b.st, b.st + 1.8, T) * gate; if (grow < 0.02) continue;
@@ -1053,6 +1064,14 @@
           t.restore();
         }
       }
+      if (c.rim && w > 1.4) {
+        // faint violet rim light on the side that faces the sky glow
+        t.save();
+        t.translate(-sunSide * w * 0.24, -w * 0.1);
+        t.lineWidth = max(0.8, w * 0.2); t.strokeStyle = c.rim;
+        t.stroke(path);
+        t.restore();
+      }
       if (c.snow > 0.04 && cls > 0) {
         t.save();
         t.translate(0, -w * 0.32 - 0.4);
@@ -1073,13 +1092,138 @@
     SK = { cw, ch, bx: hw, by: top, v: [], snow: null };
     for (let v = 0; v < 3; v++) {
       const c = u.canvas(cw, ch), t = c.getContext('2d');
-      strokeBranches(t, { gam: 1, ks: S, bx: hw, by: top, swA: 0, LM: SK_LM[v], snowOnly: false, snow: 0, sunSide: 1, fh: 1 });
+      strokeBranches(t, { gam: 1, ks: S, bx: hw, by: top, swA: 0, LM: SK_LM[v], snowOnly: false, snow: 0, sunSide: 1, fh: 1, rim: v === 2 ? 'rgba(150,126,228,0.2)' : v === 1 ? 'rgba(150,130,220,0.08)' : null });
       SK.v.push(c);
     }
     const c = u.canvas(cw, ch), t = c.getContext('2d');
     strokeBranches(t, { gam: 1, ks: S, bx: hw, by: top, swA: 0, LM: [1, 1, 1], snowOnly: true, snow: 1, sunSide: 1, fh: 1 });
     SK.snow = c;
   }
+
+  /* ================================================================== the night tree (shared with s7_stars)
+   * The same tree must be on screen on both sides of the B6 window: s6 draws it for T >= ~151 and s7 for T <= ~160, through these
+   * three calls (crown light behind the limbs, the cached skeleton, live sparkles in front). Everything is baked once per size. */
+  let NCR = null;       // baked crown light
+  let TREE_KEY = '';
+  function ensureTree(env) {
+    const key = env.W + 'x' + env.H;
+    if (TR && TREE_KEY === key) return;
+    if (!SPR) buildSprites();
+    TR = buildTree(env);
+    ensureBuckets(TR.np);
+    buildSkeletonCache(env);
+    buildNightCrown(env);
+    TREE_KEY = key;
+  }
+  function buildNightCrown(env) {
+    const { S } = env, cr = TR.crown;
+    const rx = cr.rx * S, ry = cr.ry * S, mx = 0.17 * S;
+    const w = ceil(2 * (rx + mx)), h = ceil(2 * (ry + mx)), ox = w / 2, oy = h / 2;
+    const c = u.canvas(w, h), lc = c.getContext('2d');
+    const rnd = u.rng(5150);
+    const edge = (a) => 1 + 0.17 * (u.noise1(a * 1.7 + 40) - 0.5) * 2 + 0.07 * sin(a * 5 + 1);   // the very outline the twigs were grown inside
+    const lobes = [];
+    for (let i = 0; i < 34; i++) { const a = (i / 34) * TAU + (rnd() - 0.5) * 0.18, e = edge(a), rr = 0.8 + 0.1 * rnd(); lobes.push([cos(a) * rx * rr * e, -sin(a) * ry * rr * e, (0.05 + 0.028 * rnd()) * S]); }
+    for (let i = 0; i < 70; i++) { const a = rnd() * TAU, rr = sqrt(rnd()) * 0.72; lobes.push([cos(a) * rx * rr, -sin(a) * ry * rr, (0.05 + 0.04 * rnd()) * S]); }
+    const dens = (x, y) => { let d = 0; for (let i = 0; i < lobes.length; i++) { const l = lobes[i], dx = x - l[0], dy = y - l[1], q = (dx * dx + dy * dy) / (l[2] * l[2]); if (q < 2.2) d += exp(-q * 1.1); } return d; };
+    lc.save(); lc.translate(ox, oy);
+    const order = lobes.map((l, i) => i).sort((i, j) => Math.hypot(lobes[j][0] / rx, lobes[j][1] / ry) - Math.hypot(lobes[i][0] / rx, lobes[i][1] / ry));
+    for (const li of order) {
+      const l = lobes[li], dn = Math.hypot(l[0] / rx, l[1] / ry), r = l[2] * 1.25;
+      const fx = l[0] * 0.65, fy = l[1] * 0.65;
+      const gr = lc.createRadialGradient(fx + (l[0] - fx) * 0.15, fy + (l[1] - fy) * 0.15, r * 0.05, l[0], l[1], r);
+      const warm = clamp(1 - dn * 1.1, 0, 1), rim = clamp((dn - 0.55) * 2.2, 0, 1);
+      const c0 = [255, lerp(196, 222, warm), lerp(140 + 30 * rim, 134, warm)], c1 = [lerp(244, 252, warm), lerp(138, 168, warm) - 8 * rim, lerp(118 + 30 * rim, 104, warm)];
+      const al = 0.5 + 0.08 * warm;
+      gr.addColorStop(0, `rgba(${c0[0] | 0},${c0[1] | 0},${c0[2] | 0},${al})`);
+      gr.addColorStop(0.62, `rgba(${c1[0] | 0},${c1[1] | 0},${c1[2] | 0},${al * 0.8})`);
+      gr.addColorStop(0.9, `rgba(${(c1[0] * 0.9) | 0},${(c1[1] * 0.85) | 0},${(c1[2] * 0.95) | 0},${al * 0.45})`);
+      gr.addColorStop(1, `rgba(${c1[0] | 0},${c1[1] | 0},${c1[2] | 0},0)`);
+      lc.fillStyle = gr; lc.beginPath(); lc.arc(l[0], l[1], r, 0, TAU); lc.fill();
+    }
+    for (let i = 0; i < 70; i++) {   // shade pockets between the lobes
+      const a = rnd() * TAU, rr = sqrt(rnd()) * 0.92, x = cos(a) * rx * rr, y = -sin(a) * ry * rr;
+      if (dens(x, y) < 0.9) continue;
+      const r = (0.012 + 0.03 * rnd()) * S, gr = lc.createRadialGradient(x, y, 0, x, y, r);
+      gr.addColorStop(0, 'rgba(130,60,80,0.34)'); gr.addColorStop(1, 'rgba(130,60,80,0)');
+      lc.fillStyle = gr; lc.beginPath(); lc.arc(x, y, r, 0, TAU); lc.fill();
+    }
+    lc.globalCompositeOperation = 'lighter';
+    // the real blossoms of the tree, on its real twigs
+    const B = TR.BL;
+    for (let i = 0; i < B.n; i++) {
+      const sz = B.sz[i] * S * 1.05, ci = clamp(Math.round(Math.log(sz / 28) / 0.1157), 0, 13), cs = BCLS[ci];
+      const x = B.x[i] * S, y = -(B.y[i] - cr.cy) * S;
+      lc.globalAlpha = 0.34;
+      lc.drawImage(SPR.blos[0][floor(B.r2[i] * 3) % 3][ci], x - cs * 0.5, y - cs * 0.5, cs, cs);
+    }
+    lc.globalAlpha = 1;
+    let placed = 0, guard = 0;
+    const NB = Math.round(2600 * (S / 720) * (S / 720) * 0.6 * (rx * ry) / (0.33 * 0.265 * S * S) + 1400);
+    while (placed < NB && guard++ < NB * 14) {   // fine blossom dust
+      const x = (rnd() * 2 - 1) * rx * 1.12, y = (rnd() * 2 - 1) * ry * 1.12, d = dens(x, y);
+      if (rnd() > clamp(d * 0.6 - 0.05, 0, 1)) continue;
+      const dn = Math.hypot(x / rx, y / ry);
+      const lit = clamp((0.5 + 0.7 * u.fbm2(x / S * 7 + 3, y / S * 7 + 8, 3)) * (0.7 + 0.4 * (1 - dn)), 0.2, 1.1);
+      const r = (0.0026 + 0.0034 * rnd()) * S, pr = rnd();
+      let cg, cb;
+      if (pr < 0.03 + 0.16 * dn * dn) { cg = 190 + 24 * rnd(); cb = 196 + 20 * rnd(); } else if (pr < 0.6) { cg = 232 + 16 * rnd(); cb = 196 + 24 * rnd(); } else { cg = 214 + 16 * rnd(); cb = 140 + 30 * rnd(); }
+      lc.fillStyle = `rgba(255,${cg | 0},${cb | 0},${clamp(0.28 * lit + 0.22 * rnd(), 0, 0.6)})`;
+      lc.beginPath(); lc.arc(x, y, r, 0, TAU); lc.fill();
+      placed++;
+    }
+    lc.restore();
+    lc.globalCompositeOperation = 'destination-in';   // underside of the canopy a little shaded
+    const shade = lc.createLinearGradient(0, oy - ry, 0, oy + ry * 1.1);
+    shade.addColorStop(0, 'rgba(0,0,0,1)'); shade.addColorStop(0.55, 'rgba(0,0,0,0.95)'); shade.addColorStop(1, 'rgba(0,0,0,0.4)');
+    lc.fillStyle = shade; lc.fillRect(0, 0, w, h);
+    NCR = { c, w, h, ox, oy, cyPx: cr.cy * S, rx, ry, spk: [] };
+    // sparkle spots: a fixed subset of the blossoms
+    for (let i = 0; i < B.n; i += 6) NCR.spk.push([B.x[i] * S, B.y[i] * S, B.r[i], B.r3[i]]);
+  }
+  // wind sway of the cached tree (px), identical in both scenes
+  const nightSway = (T, S) => S * 0.0016 * (sin(T * 0.8) + 0.55 * sin(T * 1.9 + 1.0));
+  const NT_API = {
+    ready(env) { ensureTree(env); },
+    /** o: { cx, G (ground y, px), T, k (bloom 0..1), glow (0..1) } */
+    crown(g, env, o) {
+      ensureTree(env);
+      const k = o.k; if (k < 0.005) return;
+      const e = u.ease.outCubic(clamp(k)), sc = lerp(0.86, 1, e), pulse = 0.94 + 0.06 * sin(o.T * 2.4);
+      const cx = o.cx + nightSway(o.T, env.S) * 0.6, cy = o.G - NCR.cyPx;
+      g.save();
+      g.globalCompositeOperation = 'lighter'; g.globalAlpha = clamp(0.47 * (o.glow == null ? 1 : o.glow) * e * (0.94 + 0.06 * pulse), 0, 1);
+      g.imageSmoothingEnabled = true;
+      g.drawImage(NCR.c, cx - NCR.ox * sc, cy - NCR.oy * sc, NCR.w * sc, NCR.h * sc);
+      g.restore();
+    },
+    skeleton(g, env, o) {
+      ensureTree(env);
+      g.save();
+      g.globalAlpha = o.alpha == null ? 1 : o.alpha;
+      g.translate(Math.round(o.cx + nightSway(o.T, env.S)), Math.round(o.G));
+      g.drawImage(SK.v[2], -Math.round(SK.bx), -Math.round(SK.by));
+      g.restore();
+    },
+    sparkles(g, env, o) {
+      ensureTree(env);
+      const k = o.k; if (k < 0.02) return;
+      const S = env.S, T = o.T, cx = o.cx + nightSway(T, S);
+      const pk = u.glowSprite(335, 60, 86), wm = u.glowSprite(44, 90, 70);
+      g.save(); g.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < NCR.spk.length; i++) {
+        const q = NCR.spk[i];
+        const tw = pow(0.5 + 0.5 * sin(T * (1.1 + q[3] * 1.8) + q[2] * 40), 3);
+        const a = 0.6 * tw * k * (o.glow == null ? 1 : o.glow);
+        if (a < 0.02) continue;
+        const r = S * (0.011 + 0.012 * q[3]);
+        g.globalAlpha = a;
+        g.drawImage(q[2] > 0.45 ? wm : pk, cx + q[0] - r, o.G - q[1] - r, r * 2, r * 2);
+      }
+      g.restore();
+    },
+  };
+  (Anim.shared = Anim.shared || {}).nightTree = NT_API;
 
   /* leaves: light-level sprite pick (dithered per leaf), colour from the season */
   function drawLeaves(g, env, z0, z1) {
@@ -1099,7 +1243,7 @@
       const r = L.r[i], r2 = L.r2[i];
       let alive, pcv;
       if (L.juv[i]) {
-        alive = 1 - ss(138.6 + r * 1.4, 140.0 + r * 1.4, T);
+        alive = 1 - ss(140.8 + r * 1.4, 142.4 + r * 1.4, T);   // the young blades stay until the crown has closed (no bare-tree gap)
         if (alive < 0.02) continue;
         const y = L.y[i], sg = L.juv[i];
         const x = L.x[i] + swayX(y);
@@ -1114,7 +1258,7 @@
         continue;
       } else {
         const sh = 1 - ss(L.td[i], L.td[i] + 0.55, T);
-        const re = r2 < 0.8 ? ss(151.6 + r2 * 2.4, 153.0 + r2 * 2.4, T) * 0.66 : 0;
+        const re = 0;
         if (sh < 0.02 && re < 0.02) continue;
         if (sh >= re) {
           alive = sh;
@@ -1143,13 +1287,12 @@
   function blossomEnv(i, T) {
     const r = TR.BL.r[i];
     const b1 = ss(137.9 + r * 1.2, 139.4 + r * 1.2, T) * (1 - ss(141.6 + r * 1.6, 143.0 + r * 1.6, T));
-    const b2 = ss(151.3 + r * 1.3, 152.7 + r * 1.3, T);
-    return max(b1, b2);
+    return b1;   // (the second bloom of the year, at dusk, is the shared night tree)
   }
   function drawBlossoms(g, env) {
     const { W, H, S } = env;
     const B = TR.BL, gam = F.gam, ks = F.ks, G = F.G, cx = F.cx, T = F.T;
-    if (!(T > 137.8 && T < 143.8) && T < 151.2) return;
+    if (!(T > 137.8 && T < 143.8)) return;
     const glowK = ss(151.3, 153.5, T);
     let smoothB = false;
     g.imageSmoothingEnabled = false;
@@ -1206,11 +1349,12 @@
     g.fillStyle = grd; g.fillRect(cx - shadowR, G + 0.012 * S - shadowR, shadowR * 2, shadowR * 2);
     g.restore();
     drawLeaves(g, env, 0, 1);
-    if (T >= CACHE_T && SK) {
-      // cached skeleton, leaned by the wind; light = blend of the neighbouring variants
+    if ((T >= CACHE_T || F.gam >= 0.985) && SK) {
+      // cached skeleton (the last 1.5 % of the growth is invisible), leaned by the wind (shear) / shifted; light = blend of the neighbouring variants
       const lum = F.lum;
       g.save();
       g.translate(Math.round(cx + F.swX * ks), Math.round(G));
+      if (F.swA > 1e-5 || F.swA < -1e-5) g.transform(1, 0, -F.swA, 1, 0, 0);
       const draw = (v, a) => { g.globalAlpha = a; g.drawImage(SK.v[v], -Math.round(SK.bx), -Math.round(SK.by)); };
       const l0 = lumOf(SK_LM[2]), l1 = lumOf(SK_LM[1]);
       const mixd = (vb, vt, a) => { if (a < 0.02) draw(vb, 1); else if (a > 0.98) draw(vt, 1); else { draw(vb, 1); draw(vt, a); } };
@@ -1271,6 +1415,7 @@
         const x = L.x[li] + 0.075 * sin(1.15 * t + p.ph) * (1 - ss(tl - 0.6, tl, t)) + 0.03 * t * (0.5 + p.r) * (t < tl ? 1 : 0) + (t >= tl ? 0.03 * tl * (0.5 + p.r) : 0);
         if (t < tl) { y = y0 - v * t; a = ss(0, 0.2, t); }
         else { y = 0.004; a = 1 - ss(tl + 0.8, tl + 3.2, t); flat = 1; }
+        a *= 1 - ss(150.4, 151.7, T);   // no litter left on the ground by the time the dusk blossoms open
         if (a < 0.02) continue;
         proj(x, y, T, amp);
         const py = _pr[1] + (flat ? p.dz * S * 0.055 : 0);
@@ -1301,15 +1446,17 @@
   function drawFireflies(g, env) {
     const { W, H, S } = env;
     const T = F.T;
-    const k = (1 - F.A) * (SW[1] + ss(152.0, 153.6, T) * (1 - SW[3])) * ss(133, 138, T);
+    const k = (1 - F.A) * SW[1] * ss(133, 138, T);
     if (k < 0.03) return;
     const sp = u.glowSprite(72, 90, 62, 'core');
     g.save(); g.globalCompositeOperation = 'lighter';
-    for (const f of PART.ff) {
+    const ffX = 1 - ss(150.6, 152.4, T);   // the dusk meadow's own (s7) fireflies take over
+    for (let fi = 0; fi < PART.ff.length; fi++) {
+      const f = PART.ff[fi];
       const x = f.x * W + sin(T * 0.5 + f.ph) * S * 0.04 + sin(T * 1.3 + f.ph * 2) * S * 0.01;
       const y = lerp(F.hy + 0.04 * H, H * 0.97, f.y) + sin(T * 0.7 + f.ph * 1.7) * S * 0.03;
       const bl = pow(0.5 + 0.5 * sin(T * (1.1 + f.r) + f.ph * 3), 3);
-      const a = k * (0.15 + 0.85 * bl);
+      const a = k * (0.15 + 0.85 * bl) * ffX;
       if (a < 0.02) continue;
       const sz = S * 0.014 * (0.7 + 0.5 * f.r);
       g.globalAlpha = a;
@@ -1338,17 +1485,18 @@
   function drawRising(g, env) {
     const { W, H, S } = env;
     const T = F.T, L = TR.L;
-    if (T < 150.8) return;
+    if (T < 150.2) return;
     const amp = 0.011;
-    const spP = SPR.petal[1];
-    const gs = u.glowSprite(44, 90, 74);
+    const spP = SPR.petal[0];
+    const gs = u.glowSprite(335, 55, 84);
     for (const p of PART.rise) {
       const t = T - p.t0; if (t < 0) continue;
       const li = p.li, B = TR.BL;
       const v = 0.035 + 0.05 * p.r + 0.012 * t;
       const y = B.y[li] + v * t, x = B.x[li] + p.dx + sin(0.9 * t + p.ph) * 0.03 + 0.012 * t * (p.r - 0.5);
       proj(x, y, T, amp);
-      const a = ss(0, 0.7, t) * (0.55 + 0.45 * sin(T * 2 + p.ph));
+      const a = ss(0, 0.7, t) * (1 - ss(3.4, 5.2, t)) * (0.55 + 0.45 * sin(T * 2 + p.ph));
+      if (a < 0.02) continue;
       g.globalCompositeOperation = 'lighter';
       g.globalAlpha = a * 0.55;
       const gz = F.ks * 0.03 * p.s;
@@ -1550,6 +1698,20 @@
     addRoot(0, 0.024 * S, -0.5, 0.45 * S, 1, 127.7, 0.26 * S);
     addRoot(0, 0.024 * S, 0.55, 0.5 * S, 1, 127.8, 0.26 * S);
     STEMW = { amp: 0.022 * S };
+    // pre-touch life: a few pale threads around the dim seed, each carrying slow travelling light dots (offsets from the seed, px)
+    PRE = [];
+    const rp = u.rng(3131);
+    for (let i = 0; i < 8; i++) {
+      const side = i % 2 ? 1 : -1, a0 = (side > 0 ? 0 : PI) + (rp() - 0.5) * 1.5 + (i < 4 ? 0.5 : -0.4) * side * -1;
+      let px = side * (0.04 + rp() * 0.05) * S, py = (rp() - 0.4) * 0.06 * S, a = a0;
+      const pts = [[px, py]], cum = [0], n = 9 + floor(rp() * 4);
+      for (let k = 0; k < n; k++) {
+        a += (rp() - 0.5) * 0.8;
+        const l = (0.03 + rp() * 0.024) * S;
+        px += cos(a) * l; py += sin(a) * l * 0.9 + 0.004 * S; pts.push([px, py]); cum.push(cum[k] + l);
+      }
+      PRE.push({ pts, cum, len: cum[n], ph: rp() * 6, sp: 0.016 + rp() * 0.012 });
+    }
   }
   const stemX = (y, YS, S, cx) => cx + 0.022 * S * sin(PI * clamp(y / YS)) * sin(y / S * 5.4 + 1.1);
 
@@ -1584,6 +1746,16 @@
         g.drawImage(TL.c, 0, y0, W, hh, 0, y0, W, hh);
       }
     }
+    // morning mist lying over the cut edge of the earth (no razor-straight soil / sky seam)
+    {
+      const mk = ss(130.4, 131.8, T) * (1 - ss(134.2, 136.4, T)) * sv;
+      if (mk > 0.04 && G > -0.2 * H && G < H + 0.1 * S) {
+        const mc = mixc(F.sky[2], [255, 244, 232], 0.45), y0 = G - 0.085 * S, y1 = G + 0.05 * S;
+        const mg = g.createLinearGradient(0, y0, 0, y1);
+        mg.addColorStop(0, rgba(mc, 0)); mg.addColorStop(0.5, rgba(mc, 0.26 * mk)); mg.addColorStop(0.66, rgba(mc, 0.4 * mk)); mg.addColorStop(1, rgba(mc, 0));
+        g.fillStyle = mg; g.fillRect(0, y0, W, y1 - y0);
+      }
+    }
     const seedY = G + YS, rx = 0.0165 * S, ry = 0.025 * S;
     const wake = ss(T_TOUCH + 0.05, T_TOUCH + 1.6, T);
     const relax = 1 - 0.5 * ss(130.5, 133.5, T);
@@ -1598,6 +1770,41 @@
       const sz = S * 0.005;
       g.globalAlpha = 0.5 * tw * sv;
       g.drawImage(spS, s.x * W - sz, y - sz, sz * 2, sz * 2);
+    }
+    // the living dark before the touch (fades in while the previous scene is still dominant, then hands over to the awakening)
+    {
+      const lv = ss(122.3, 124.6, T) * sv;
+      if (lv > 0.01) {
+        // a warm halo around the sleeping seed, breathing slowly
+        u.glow(g, cx, seedY, S * 0.27, 40, 80, 58, 0.075 * lv * (0.78 + 0.22 * sin(T * 0.9)) * (1 - wake));
+        // pale threads with travelling dots
+        const pa = lv * (1 - ss(127.2, 128.5, T));
+        if (pa > 0.01) {
+          const gl2 = u.glowSprite(44, 70, 78);
+          g.lineCap = 'round'; g.lineJoin = 'round';
+          for (const th of PRE) {
+            const path = new Path2D(), p0 = th.pts;
+            path.moveTo(cx + p0[0][0], seedY + p0[0][1]);
+            for (let i = 1; i < p0.length; i++) path.lineTo(cx + p0[i][0], seedY + p0[i][1]);
+            g.globalAlpha = pa * (0.12 + 0.05 * sin(T * 0.7 + th.ph)); g.strokeStyle = 'rgb(236,222,176)'; g.lineWidth = max(0.8, S * 0.0013); g.stroke(path);
+            const sz = S * 0.0065;
+            for (let q = 0; q < 2; q++) {
+              pointOnPoly(p0, th.cum, u.wrap(T * th.sp * S / th.len + th.ph * 0.17 + q * 0.5, 0, 1) * th.len, _pp);
+              g.globalAlpha = pa * 0.34 * (0.6 + 0.4 * sin(T * 1.3 + th.ph + q * 2));
+              g.drawImage(gl2, cx + _pp[0] - sz, seedY + _pp[1] - sz, sz * 2, sz * 2);
+            }
+          }
+        }
+        // dust grains drifting up on two or three parallax layers
+        const ds = u.glowSprite(36, 22, 72), dl = lv * (1 - ss(130.5, 133.5, T));
+        if (dl > 0.01) for (const d of PART.dust) {
+          const v = [0.006, 0.01, 0.015][d.l] * S, y = u.wrap(d.y * H - T * v, -0.02 * H, 1.02 * H);
+          const x = d.x * W + sin(T * 0.3 + d.ph) * S * (0.008 + 0.006 * d.l);
+          const sz = S * (0.0022 + 0.0016 * d.l) * d.s;
+          g.globalAlpha = dl * (0.16 + 0.07 * d.l) * (0.6 + 0.4 * sin(T * 0.8 + d.ph)) * ss(0, 0.12, y / H) * ss(1, 0.88, y / H);
+          g.drawImage(ds, x - sz * 2, y - sz * 2, sz * 4, sz * 4);
+        }
+      }
     }
     // the seed breathes very faintly
     u.glow(g, cx, seedY, S * 0.06, 40, 50, 40, (0.04 + 0.025 * sin(T * 0.9) + 0.22 * ss(126.1, 127.0, T)) * (1 - wake) * sv);
@@ -1849,7 +2056,7 @@
   }
 
   // each turn of the season is announced by a soft ring of light travelling out from the heart of the tree
-  const SEASON_PULSE = [[141.0, 345, 80, 86], [144.5, 100, 70, 74], [148.0, 28, 85, 70], [151.5, 205, 55, 86]];
+  const SEASON_PULSE = [[141.0, 345, 80, 86], [144.5, 100, 70, 74], [148.0, 28, 85, 70]];
   function drawSeasonPulse(g, env) {
     const { S } = env, T = F.T;
     for (const [t0, hue, sat, lig] of SEASON_PULSE) {
@@ -1857,8 +2064,12 @@
         const tt = (T - t0 - m * 0.16) / 1.7;
         if (tt <= 0 || tt >= 1) continue;
         const e = 1 - pow(1 - tt, 2.2), rr = S * (0.05 + 0.7 * e), a = pow(1 - tt, 1.6) * (m ? 0.12 : 0.22);
-        g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = a;
-        g.drawImage(u.glowSprite(hue, sat, lig, 'ring'), HS.x - rr, HS.y - rr, rr * 2, rr * 2);
+        // a feathered ring from three stacked strokes (a full-size ring sprite costs ~10 ms of fill)
+        g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'butt';
+        g.beginPath(); g.arc(HS.x, HS.y, rr * 0.87, 0, TAU);
+        g.lineWidth = rr * 0.3; g.strokeStyle = u.hsl(hue, sat, lig, a * 0.2); g.stroke();
+        g.lineWidth = rr * 0.16; g.strokeStyle = u.hsl(hue, sat, lig, a * 0.34); g.stroke();
+        g.lineWidth = rr * 0.06; g.strokeStyle = u.hsl(hue, sat, lig, a * 0.5); g.stroke();
         g.restore();
       }
     }
@@ -1874,7 +2085,7 @@
     const x = F.cx, y = F.G - hc * F.ks, rad = TR.crown.rx * F.ks * (0.7 + 0.5 * min(1, F.apexH / TR.Htot));
     g.save(); g.globalCompositeOperation = 'lighter';
     if (!front) {
-      const a = (0.1 + 0.4 * night) * k * (0.5 + 0.5 * ss(150, 153, T) + 0.3 * SW[0]);
+      const a = (0.1 + 0.4 * night) * k * (0.5 + 0.5 * ss(150, 153, T) + 0.3 * SW[0]) * (1 - 0.8 * ss(151, 153, T));
       u.glow(g, x, y, rad * 0.95, 48, 82, 66, a * 0.55);
     }
     g.restore();
@@ -1895,6 +2106,9 @@
     for (let i = 0; i < 18; i++) { const sg = r() < 0.5 ? -1 : 1; PART.seeds.push({ x: sg * (0.14 + r() * 0.5), y: 0.2 + r() * 0.95, s: 0.7 + r() * 0.7, ph: r() * TAU, rot: (r() - 0.5) * 1.2 }); }
     PART.birds = [];
     for (let i = 0; i < 9; i++) PART.birds.push({ t0: 141.2 + r() * 1.4, y: 0.16 + r() * 0.2, dy: (r() - 0.5) * 0.06, sp: 0.2 + r() * 0.05, s: 0.7 + r() * 0.5, ph: r() * 6, off: (r() - 0.5) * 0.05 });
+    PART.dust = [];
+    for (let i = 0; i < 56; i++) PART.dust.push({ x: r(), y: r(), l: i % 3, ph: r() * TAU, s: 0.6 + r() * 0.8 });
+    { const rx = u.rng(8642); for (let i = 0; i < 110; i++) PART.stars.push({ x: rx(), y: pow(rx(), 0.8) * 0.97, b: rx(), ph: rx() * TAU }); }   // extra stars, only used on ultra-wide screens
     for (let i = 0; i < 70; i++) PART.spores.push({ x: r() - 0.5, y: r(), v: 0.012 + r() * 0.03, ph: r() * TAU, s: 0.5 + r() });
   }
   function initLeafParts() {
@@ -1905,7 +2119,7 @@
     PART.petals = []; PART.fall = []; PART.rise = [];
     for (let i = 0; i < 100; i++) PART.petals.push({ li: bls[floor(r() * bls.length)], t0: 138.9 + r() * 4.2, dx: (r() - 0.5) * 0.04, ph: r() * TAU, r: r(), s: 0.7 + r() * 0.7, dz: r() });
     for (const li of fl) PART.fall.push({ li, ph: r() * TAU, r: r(), c: floor(pow(r(), 0.8) * 6) % 6, s: 0.75 + r() * 0.6, dz: r() });
-    for (let i = 0; i < 100; i++) PART.rise.push({ li: bls[floor(r() * bls.length)], t0: 150.9 + r() * 4.4, dx: (r() - 0.5) * 0.05, ph: r() * TAU, r: r(), s: 0.7 + r() * 0.7 });
+    for (let i = 0; i < 80; i++) PART.rise.push({ li: bls[floor(r() * bls.length)], t0: 150.2 + r() * 6.4, dx: (r() - 0.5) * 0.05, ph: r() * TAU, r: r(), s: 0.7 + r() * 0.7 });
   }
 
   /* ================================================================== the scene */
@@ -1920,9 +2134,7 @@
       const { W, H, S } = env;
       GEO = { W, H, S };
       buildCam(env);
-      TR = buildTree(env);
-      ensureBuckets(TR.np);
-      buildSkeletonCache(env);
+      ensureTree(env);
       setupGamma();
       initLeafParts();
       buildHills(env); buildGrass(env); buildSoil(env); buildGlow(env);
@@ -1932,7 +2144,9 @@
     },
 
     fx(T, L) {
-      return { bloom: u.keys([[122, 0.55], [127, 0.9], [130, 0.8], [134, 0.5], [140, 0.36], [148, 0.38], [151, 0.5], [153, 0.62], [156, 0.62]], T, 'spline'), vignette: 0.5 };
+      // the hero is pinned (and the bloom constant, like s5's) through the B5 window; it swells only after the cross-fade is over
+      const bloom = T < 126.0 ? 0.5 : T < 127.2 ? 0.5 + 0.4 * ss(126.0, 127.2, T) : T < 134 ? u.keys([[127.2, 0.9], [130, 0.8], [134, 0.5]], T, 'spline') : u.keys([[134, 0.5], [140, 0.36], [148, 0.38], [151, 0.5], [153.2, 0.74], [156, 0.78]], T, 'spline');
+      return { bloom, vignette: 0.55 - 0.05 * ss(126.5, 129, T) };
     },
 
     render(g, T, L, env) {
@@ -1943,7 +2157,8 @@
       const above = F.G > -0.04 * H;
       if (above) {
         const b = BGL.ctx;
-        b.setTransform(0.5, 0, 0, 0.5, 0, 0); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over';
+        // exact W/H -> layer scale (W/2 may be fractional: a 0.5 scale would leave a half-covered, history-dependent last column)
+        b.setTransform(BGL.c.width / W, 0, 0, BGL.c.height / H, 0, 0); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over';
         drawSkyBG(b, env);
         if (F.gam > 0.0004 || T >= CAM.Tb) drawCanopyHalo(b, env, false);
         b.setTransform(1, 0, 0, 1, 0, 0);
@@ -1951,18 +2166,23 @@
         g.drawImage(BGL.c, 0, 0, W, H);
         g.imageSmoothingEnabled = true;
         drawSkyFront(g, env);
-        drawHills(g, env);
-        drawGround(g, env);
-        drawGrass(g, env, 0);
+        if (T < 152.6) { drawHills(g, env); drawGround(g, env); }
       }
       drawUnder(g, env, hs);
+      if (above && T < 152.6) drawGrass(g, env, 0);
+      const NL = Anim.shared && Anim.shared.nightLand, nl = ss(150.8, 152.6, T);
+      if (NL && nl > 0.004) NL.ground(g, env, { T, alpha: nl });
+      const nk = ss(150.9, 153.4, T);
+      if (nk > 0.004) NT_API.crown(g, env, { cx: W * 0.5, G: F.G, T, k: nk });
       if (F.gam > 0.0004 || T >= CAM.Tb) {
         drawTree(g, env);
       }
+      if (nk > 0.004) NT_API.sparkles(g, env, { cx: W * 0.5, G: F.G, T, k: ss(151.6, 153.8, T) });
+      if (NL && nl > 0.004) NL.fore(g, env, { T, alpha: nl });
       if (above) {
         drawGrass(g, env, 1);
         drawFalling(g, env);
-        drawBlossoms(g, env); drawBlossomGlow(g, env);
+        drawBlossoms(g, env);
         drawMotes(g, env); drawSnow(g, env); drawFireflies(g, env); drawRising(g, env);
       }
       drawSeasonPulse(g, env);

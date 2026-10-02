@@ -33,7 +33,7 @@
 
   const HZ = { cols: 0, rows: 0, cv: null, cx: null, img: null, dith: null };
   function hazeSetup(env) {
-    const n = 2800;
+    const n = 2000;
     HZ.cols = Math.max(24, Math.round(Math.sqrt(n * env.W / env.H)));
     HZ.rows = Math.max(24, Math.round(Math.sqrt(n * env.H / env.W)));
     HZ.cv = u.canvas(HZ.cols, HZ.rows); HZ.cx = HZ.cv.getContext('2d');
@@ -124,6 +124,7 @@
 
   /* ---------- sprites ---------- */
   const spr = {};
+  const TK = 0.64;
   function buildSprites() {
     spr.dot = dotSpr();
     spr.bokeh = bokehSpr();
@@ -143,10 +144,42 @@
       gy.addColorStop(0, 'rgba(0,0,0,0)'); gy.addColorStop(0.07, 'rgba(0,0,0,1)'); gy.addColorStop(0.42, 'rgba(0,0,0,0.42)'); gy.addColorStop(1, 'rgba(0,0,0,0)');
       c.fillStyle = gy; c.fillRect(0, 0, w, h);
     });
-    spr.fish = u.sprite('s2|fish', 32, 8, (c, w, h) => {
+    // tight versions of the two mote sprites: the same core and halo, compressed so that the faint outer tail is cut (drawn at TK x the radius) -> ~60% less fill
+    spr.dotT = u.sprite('s2|dotT', 48, 48, (c) => {
+      const gr = c.createRadialGradient(24, 24, 0, 24, 24, 24);
+      gr.addColorStop(0, 'rgba(240,255,255,1)'); gr.addColorStop(0.14 / TK, 'rgba(170,240,250,0.8)');
+      gr.addColorStop(0.4 / TK, 'rgba(70,180,210,0.22)'); gr.addColorStop(1, 'rgba(30,120,170,0)');
+      c.fillStyle = gr; c.fillRect(0, 0, 48, 48);
+    });
+    spr.tealT = u.sprite('s2|tealT', 48, 48, (c) => {
+      const gr = c.createRadialGradient(24, 24, 0, 24, 24, 24);
+      gr.addColorStop(0, 'rgba(235,255,245,1)'); gr.addColorStop(0.14 / TK, 'rgba(150,250,215,0.8)');
+      gr.addColorStop(0.4 / TK, 'rgba(60,200,170,0.22)'); gr.addColorStop(1, 'rgba(30,150,140,0)');
+      c.fillStyle = gr; c.fillRect(0, 0, 48, 48);
+    });
+    // fish: tapered body, forked tail at the left, bright back and a glint near the head (drawn heading +x)
+    spr.fish = u.sprite('s2|fish2', 64, 16, (c, w, h) => {
       const gr = c.createLinearGradient(0, 0, w, 0);
-      gr.addColorStop(0, 'rgba(210,235,250,0)'); gr.addColorStop(0.35, 'rgba(225,245,255,0.9)'); gr.addColorStop(0.8, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(220,240,255,0.0)');
-      c.fillStyle = gr; c.beginPath(); c.ellipse(w / 2, h / 2, w / 2, h * 0.28, 0, 0, TAU); c.fill();
+      gr.addColorStop(0, 'rgba(200,228,248,0)'); gr.addColorStop(0.22, 'rgba(215,238,252,0.55)'); gr.addColorStop(0.6, 'rgba(240,252,255,0.95)'); gr.addColorStop(0.9, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(230,245,255,0)');
+      c.fillStyle = gr;
+      c.beginPath();
+      c.moveTo(w * 0.99, h * 0.5);
+      c.bezierCurveTo(w * 0.88, h * 0.16, w * 0.60, h * 0.13, w * 0.30, h * 0.44);
+      c.lineTo(w * 0.02, h * 0.10); c.quadraticCurveTo(w * 0.12, h * 0.5, w * 0.02, h * 0.90); c.lineTo(w * 0.30, h * 0.56);
+      c.bezierCurveTo(w * 0.60, h * 0.87, w * 0.88, h * 0.84, w * 0.99, h * 0.5);
+      c.fill();
+      c.globalCompositeOperation = 'lighter';
+      const lg = c.createLinearGradient(0, h * 0.2, 0, h * 0.5);
+      lg.addColorStop(0, 'rgba(255,255,255,0.55)'); lg.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = lg; c.beginPath(); c.ellipse(w * 0.66, h * 0.34, w * 0.2, h * 0.12, 0, 0, TAU); c.fill();
+    });
+    spr.bubble = u.sprite('s2|bubble', 48, 48, (c) => {
+      const gr = c.createRadialGradient(24, 24, 0, 24, 24, 24);
+      gr.addColorStop(0, 'rgba(150,220,240,0.04)'); gr.addColorStop(0.62, 'rgba(150,225,245,0.10)'); gr.addColorStop(0.86, 'rgba(210,248,255,0.62)'); gr.addColorStop(0.95, 'rgba(160,230,248,0.20)'); gr.addColorStop(1, 'rgba(150,225,245,0)');
+      c.fillStyle = gr; c.fillRect(0, 0, 48, 48);
+      const hg = c.createRadialGradient(16, 15, 0, 16, 15, 7);
+      hg.addColorStop(0, 'rgba(255,255,255,0.9)'); hg.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = hg; c.fillRect(0, 0, 48, 48);
     });
   }
 
@@ -162,6 +195,11 @@
   /* fish */
   const NFISH = 110;
   const FS = { a: new Float32Array(NFISH), b: new Float32Array(NFISH), ph: new Float32Array(NFISH), sz: new Float32Array(NFISH), sp: new Float32Array(NFISH) };
+  /* the surge before B2: a nearer school, falling streaks, rising bubbles */
+  const NFS2 = 34, NSK = 34, NBB = 12;
+  const FS2 = { a: new Float32Array(NFS2), b: new Float32Array(NFS2), ph: new Float32Array(NFS2), sz: new Float32Array(NFS2) };
+  const SKS = { x0: new Float32Array(NSK), y0: new Float32Array(NSK), z: new Float32Array(NSK) };
+  const BUB = { x0: new Float32Array(NBB), y0: new Float32Array(NBB), r: new Float32Array(NBB), v: new Float32Array(NBB), ph: new Float32Array(NBB) };
   /* whale trail glints */
   const NTR = 44;
 
@@ -182,8 +220,8 @@
   /* ---------- whale ---------- */
   const WH = { cv: null, cw: 0, ch: 0, sc: 0.5, L: 0, oy: 0 };
   // outline control points in body space: x 0 (tail tip) .. 1 (nose), y in units of body length (+ down)
-  const TOP = [[1.0, 0.000], [0.996, -0.013], [0.978, -0.029], [0.945, -0.046], [0.895, -0.063], [0.82, -0.077], [0.72, -0.086], [0.62, -0.087], [0.52, -0.079], [0.42, -0.065], [0.35, -0.052], [0.31, -0.048], [0.285, -0.054], [0.258, -0.043], [0.20, -0.034], [0.14, -0.030]];
-  const BOT = [[1.0, 0.014], [0.995, 0.030], [0.978, 0.049], [0.945, 0.071], [0.895, 0.088], [0.82, 0.097], [0.72, 0.100], [0.62, 0.093], [0.52, 0.079], [0.42, 0.061], [0.34, 0.046], [0.26, 0.036], [0.20, 0.030], [0.14, 0.026]];
+  const TOP = [[1.0, 0.021], [0.995, 0.009], [0.985, -0.001], [0.965, -0.011], [0.94, -0.021], [0.91, -0.031], [0.88, -0.042], [0.845, -0.052], [0.80, -0.061], [0.75, -0.069], [0.69, -0.075], [0.61, -0.077], [0.52, -0.072], [0.44, -0.062], [0.375, -0.051], [0.340, -0.046], [0.318, -0.054], [0.298, -0.048], [0.265, -0.039], [0.21, -0.031], [0.15, -0.026], [0.10, -0.022]];
+  const BOT = [[1.0, 0.030], [0.996, 0.038], [0.985, 0.048], [0.965, 0.060], [0.94, 0.072], [0.90, 0.084], [0.86, 0.092], [0.82, 0.096], [0.76, 0.097], [0.70, 0.094], [0.62, 0.086], [0.53, 0.075], [0.44, 0.061], [0.36, 0.048], [0.28, 0.037], [0.20, 0.029], [0.14, 0.024], [0.10, 0.020]];
   const topY = (xn) => ptsY(TOP, xn), botY = (xn) => ptsY(BOT, xn);
   function ptsY(P, xn) { // P sorted x descending, linear interpolation
     if (xn >= P[0][0]) return P[0][1];
@@ -214,31 +252,38 @@
   const RIM = rimPoints();
   function whalePath(c, X, Y) {
     c.beginPath();
-    c.moveTo(X(1.0), Y(0.014));
-    c.lineTo(X(1.0), Y(0.000));
+    c.moveTo(X(1.0), Y(BOT[0][1]));
+    c.quadraticCurveTo(X(1.006), Y((BOT[0][1] + TOP[0][1]) / 2), X(1.0), Y(TOP[0][1]));
     trace(c, TOP, X, Y, false);
-    // flukes: near blade large and swept up, far blade foreshortened (3/4 view)
-    c.bezierCurveTo(X(0.115), Y(-0.034), X(0.078), Y(-0.058), X(0.040), Y(-0.088));
-    c.bezierCurveTo(X(0.030), Y(-0.096), X(0.022), Y(-0.102), X(0.014), Y(-0.100));
-    c.bezierCurveTo(X(0.030), Y(-0.074), X(0.046), Y(-0.040), X(0.074), Y(-0.010));
-    c.bezierCurveTo(X(0.070), Y(0.004), X(0.066), Y(0.014), X(0.058), Y(0.026));
-    c.bezierCurveTo(X(0.052), Y(0.034), X(0.044), Y(0.040), X(0.036), Y(0.040));
-    c.bezierCurveTo(X(0.074), Y(0.040), X(0.110), Y(0.034), X(0.14), Y(0.026));
+    // flukes: curved blades with a median notch; near blade large and swept up, far blade foreshortened (3/4 view)
+    c.bezierCurveTo(X(0.080), Y(-0.030), X(0.052), Y(-0.058), X(0.014), Y(-0.097));
+    c.bezierCurveTo(X(0.030), Y(-0.082), X(0.040), Y(-0.034), X(0.057), Y(-0.002));
+    c.bezierCurveTo(X(0.050), Y(0.012), X(0.030), Y(0.040), X(0.016), Y(0.061));
+    c.bezierCurveTo(X(0.040), Y(0.052), X(0.074), Y(0.036), X(0.10), Y(0.020));
     trace(c, BOT, X, Y, true);
     c.closePath();
   }
+  /** pectoral fin in its own frame: root at the origin, pointing down (+y), curving back (-x); length in body lengths */
+  function finPath(c, L) {
+    c.beginPath();
+    c.moveTo(L * 0.016, -L * 0.012);
+    c.bezierCurveTo(L * 0.026, L * 0.028, L * 0.014, L * 0.074, -L * 0.026, L * 0.134);
+    c.quadraticCurveTo(-L * 0.040, L * 0.140, -L * 0.040, L * 0.126);
+    c.bezierCurveTo(-L * 0.048, L * 0.084, -L * 0.044, L * 0.038, -L * 0.036, -L * 0.006);
+    c.closePath();
+  }
   function buildWhale(env) {
-    const { W, H } = env;
-    const L = Math.min(1.5 * W, 4.2 * H, 3400);
-    const sc = L > 1700 ? 0.5 : 0.62;
+    const { W, H, S } = env;
+    const L = Math.min(Math.max(1.5 * W, 2.4 * S), 4.2 * H, 3400);   // never shorter than 1.5 W (or 2.4 S in portrait)
+    const sc = Math.min(0.62, 1.3 * LLC.w / W);                       // the body is painted into the low-res layer: cache it at ~that resolution (avoids aliasing from big down-scales)
     WH.L = L; WH.sc = sc;
     WH.cw = Math.ceil(L * sc); WH.ch = Math.ceil(L * 0.24 * sc); WH.oy = Math.round(0.128 * L * sc);
     const cw = WH.cw, ch = WH.ch, Ls = L * sc;
     const cv = u.canvas(cw, ch), c = cv.getContext('2d');
     const X = (x) => x * cw, Y = (y) => WH.oy + y * Ls;
     const fillBody = (ctx, XX, YY) => {
-      const gr = ctx.createLinearGradient(0, YY(-0.09), 0, YY(0.10));
-      gr.addColorStop(0, 'rgba(11,36,56,0.97)'); gr.addColorStop(0.3, 'rgba(4,17,31,0.985)'); gr.addColorStop(0.62, 'rgba(3,13,25,0.985)'); gr.addColorStop(0.88, 'rgba(10,36,56,0.975)'); gr.addColorStop(1, 'rgba(16,52,76,0.96)');
+      const gr = ctx.createLinearGradient(0, YY(-0.085), 0, YY(0.10));
+      gr.addColorStop(0, 'rgba(12,38,58,0.97)'); gr.addColorStop(0.28, 'rgba(4,18,32,0.985)'); gr.addColorStop(0.6, 'rgba(3,13,25,0.985)'); gr.addColorStop(0.86, 'rgba(9,32,50,0.975)'); gr.addColorStop(1, 'rgba(18,56,80,0.96)');
       ctx.fillStyle = gr;
       whalePath(ctx, XX, YY);
       ctx.fill();
@@ -256,27 +301,39 @@
     // details clipped to the body
     c.save();
     whalePath(c, X, Y); c.clip();
-    // ventral pleats (soft, irregular)
-    c.lineWidth = Math.max(1, Ls * 0.0012);
-    for (let i = 0; i < 11; i++) {
-      const x0 = 0.97 - 0.05 * u.hash2(i, 201), x1 = 0.50 + 0.2 * u.hash2(i, 202);
+    // ventral pleats: grooves run from the chin back towards the navel, following the belly curve
+    c.lineWidth = Math.max(1, Ls * 0.0016);
+    for (let i = 0; i < 16; i++) {
+      const x0 = 0.985 - 0.04 * u.hash2(i, 201), x1 = 0.46 + 0.22 * u.hash2(i, 202);
       const pg = c.createLinearGradient(X(x1), 0, X(x0), 0);
-      pg.addColorStop(0, 'rgba(140,205,230,0)'); pg.addColorStop(0.3, `rgba(140,205,230,${0.05 + 0.04 * u.hash2(i, 203)})`); pg.addColorStop(0.85, `rgba(140,205,230,${0.04 + 0.03 * u.hash2(i, 204)})`); pg.addColorStop(1, 'rgba(140,205,230,0)');
+      const pa = 0.05 + 0.04 * u.hash2(i, 203);
+      pg.addColorStop(0, 'rgba(150,215,238,0)'); pg.addColorStop(0.3, `rgba(150,215,238,${pa})`); pg.addColorStop(0.85, `rgba(150,215,238,${pa * 0.8})`); pg.addColorStop(1, 'rgba(150,215,238,0)');
       c.strokeStyle = pg;
       c.beginPath();
-      for (let x = x0, f = true; x >= x1; x -= 0.02) { const yb = botY(x), yt = topY(x); const y = yb - (yb - yt) * (0.04 + 0.022 * i) + Math.sin(x * 40 + i) * 0.0018; if (f) { c.moveTo(X(x), Y(y)); f = false; } else c.lineTo(X(x), Y(y)); }
+      for (let x = x0, f = true; x >= x1; x -= 0.015) { const yb = botY(x), yt = topY(x); const y = yb - (yb - yt) * (0.035 + 0.019 * i) + Math.sin(x * 40 + i) * 0.0016; if (f) { c.moveTo(X(x), Y(y)); f = false; } else c.lineTo(X(x), Y(y)); }
       c.stroke();
     }
-    // soft sheen along the back
-    const dg = c.createLinearGradient(0, Y(-0.09), 0, Y(-0.015));
-    dg.addColorStop(0, 'rgba(80,160,190,0.26)'); dg.addColorStop(1, 'rgba(80,160,190,0)');
-    c.fillStyle = dg; c.fillRect(0, Y(-0.09), cw, Y(-0.015) - Y(-0.09));
-    // belly shine + mouth line
-    const bgr = c.createLinearGradient(0, Y(0.05), 0, Y(0.1));
-    bgr.addColorStop(0, 'rgba(120,190,215,0)'); bgr.addColorStop(1, 'rgba(120,190,215,0.12)');
-    c.fillStyle = bgr; c.fillRect(X(0.45), Y(0.05), cw, Y(0.1) - Y(0.05));
-    c.strokeStyle = 'rgba(120,195,220,0.26)'; c.lineWidth = Math.max(1, Ls * 0.0024);
-    c.beginPath(); c.moveTo(X(0.999), Y(0.014)); c.bezierCurveTo(X(0.93), Y(0.030), X(0.84), Y(0.046), X(0.74), Y(0.044)); c.stroke();
+    // mottling on the flanks (pale scars / barnacle patches)
+    for (let i = 0; i < 70; i++) {
+      const xn = 0.14 + 0.82 * u.hash2(i, 211), yb = botY(xn), yt = topY(xn), yn = yt + (yb - yt) * (0.18 + 0.55 * u.hash2(i, 212));
+      c.fillStyle = `rgba(110,170,195,${0.025 + 0.035 * u.hash2(i, 213)})`;
+      c.beginPath(); c.ellipse(X(xn), Y(yn), Ls * (0.006 + 0.012 * u.hash2(i, 214)), Ls * (0.002 + 0.004 * u.hash2(i, 215)), (u.hash2(i, 216) - 0.5) * 0.6, 0, TAU); c.fill();
+    }
+    // soft sheen along the back, fading towards head and tail (moonlight from above)
+    const dg = c.createLinearGradient(0, Y(-0.085), 0, Y(-0.005));
+    dg.addColorStop(0, 'rgba(90,175,205,0.30)'); dg.addColorStop(0.35, 'rgba(80,160,190,0.10)'); dg.addColorStop(1, 'rgba(80,160,190,0)');
+    c.fillStyle = dg; c.fillRect(0, Y(-0.085), cw, Y(-0.005) - Y(-0.085));
+    // lighter belly / throat
+    const bgr = c.createLinearGradient(0, Y(0.03), 0, Y(0.1));
+    bgr.addColorStop(0, 'rgba(120,190,215,0)'); bgr.addColorStop(1, 'rgba(120,190,215,0.10)');
+    c.fillStyle = bgr; c.fillRect(X(0.40), Y(0.03), cw, Y(0.1) - Y(0.03));
+    // mouth line: from the tip, along the lower jaw, curling up at the corner under the eye
+    c.lineCap = 'round';
+    c.strokeStyle = 'rgba(125,205,230,0.34)'; c.lineWidth = Math.max(1, Ls * 0.0026);
+    c.beginPath(); c.moveTo(X(0.997), Y(0.032)); c.bezierCurveTo(X(0.95), Y(0.046), X(0.88), Y(0.056), X(0.81), Y(0.046)); c.quadraticCurveTo(X(0.785), Y(0.040), X(0.776), Y(0.028)); c.stroke();
+    // lower-jaw edge light
+    c.strokeStyle = 'rgba(120,195,220,0.12)'; c.lineWidth = Math.max(1, Ls * 0.0035);
+    c.beginPath(); c.moveTo(X(0.99), Y(0.046)); c.bezierCurveTo(X(0.96), Y(0.068), X(0.91), Y(0.086), X(0.84), Y(0.094)); c.stroke();
     c.restore();
     WH.cv = cv;
   }
@@ -285,8 +342,9 @@
     const f = 1 - xn;
     return 0.05 * Math.pow(f, 1.7) * Math.sin(TAU * (f * 0.6 - T / 6.4)) - 0.08 * xn * (1 - xn) * (0.7 + 0.3 * Math.sin(T * 0.17)) + 0.012 * (xn - 0.5) * Math.sin(T * 0.21);
   };
-  const WHALE_T0 = 27, WHALE_V = 0.13;
-  const whaleHead = (T, W) => (T - WHALE_T0) * WHALE_V * W;
+  const WHALE_T0 = 27, WHALE_V = 0.0867;              // head speed in body lengths per second
+  /** the whale glides, then flicks away to the right (faster) so that it has left the frame by ~43 s */
+  const whaleHead = (T, L) => (T - WHALE_T0) * WHALE_V * L + 0.46 * L * sstep(35.5, 43.8, T);
   const whaleAxis = (T, H) => H * (0.46 + 0.012 * (T - 35));
 
   Anim.defineScene({
@@ -300,6 +358,9 @@
       }
       for (let i = 0; i < NS; i++) { SN.x0[i] = u.hash2(i, 21) - 0.5; SN.y0[i] = u.hash2(i, 22) - 0.5; SN.z[i] = u.hash2(i, 23); SN.ph[i] = u.hash2(i, 24) * TAU; SN.t[i] = u.hash2(i, 25); }
       for (let i = 0; i < NF; i++) { FL.x[i] = u.hash2(i, 31) - 0.5; FL.y[i] = u.hash2(i, 32) - 0.5; FL.per[i] = 2.6 + 4 * u.hash2(i, 33); FL.ph[i] = u.hash2(i, 34) * 10; FL.sz[i] = 0.5 + u.hash2(i, 35); }
+      for (let i = 0; i < NFS2; i++) { FS2.a[i] = u.hash2(i, 151) + u.hash2(i, 152) - 1; FS2.b[i] = u.hash2(i, 153) + u.hash2(i, 154) - 1; FS2.ph[i] = u.hash2(i, 155) * TAU; FS2.sz[i] = 0.7 + 0.7 * u.hash2(i, 156); }
+      for (let i = 0; i < NSK; i++) { SKS.x0[i] = u.hash2(i, 161) - 0.5; SKS.y0[i] = u.hash2(i, 162) - 0.5; SKS.z[i] = u.hash2(i, 163); }
+      for (let i = 0; i < NBB; i++) { BUB.x0[i] = u.hash2(i, 171) - 0.5; BUB.y0[i] = u.hash2(i, 172); BUB.r[i] = 0.006 + 0.011 * u.hash2(i, 173) * u.hash2(i, 173); BUB.v[i] = 0.05 + 0.05 * u.hash2(i, 174); BUB.ph[i] = u.hash2(i, 175) * TAU; }
       for (let i = 0; i < NFISH; i++) { FS.a[i] = (u.hash2(i, 51) + u.hash2(i, 52) - 1); FS.b[i] = (u.hash2(i, 53) + u.hash2(i, 54) - 1); FS.ph[i] = u.hash2(i, 55) * TAU; FS.sz[i] = 0.6 + 0.8 * u.hash2(i, 56); FS.sp[i] = 0.8 + 0.4 * u.hash2(i, 57); }
     },
 
@@ -334,7 +395,7 @@
         const m = (f) => u.css(u.mixc(top, bot, f));
         u.vgrad(q, W, H, [[0, u.css(top)], [0.3, m(0.24)], [0.65, m(0.64)], [1, u.css(bot)]]);
         const hzTint = u.mixc(HAZE_TINT, [28, 150, 176], sstep(18, 44, T));
-        hazeDraw(q, env, T, lerp(0.30, 0.0, sstep(18, 44, T)), hzTint, 0.5, hY, 3.2);
+        hazeDraw(q, env, T, lerp(0.21, 0.0, sstep(18, 44, T)), hzTint, 0.5, hY, 3.2);
         q.globalCompositeOperation = 'lighter';
         // broad soft brightening from the upper left (the surface is far above)
         const bright = sstep(24, 46, T);
@@ -347,12 +408,12 @@
         if (sh > 0.005) {
           const len = H * 1.7;
           for (let k = 0; k < 4; k++) {
-            const xT = (k === 0 ? 0.15 : 0.26 + 0.2 * k) * W + 0.03 * W * Math.sin(T * 0.07 + k * 2.1);
+            const xT = (k === 0 ? 0.15 : 0.26 + 0.2 * k) * W + 0.045 * W * Math.sin(T * 0.15 + k * 2.1);
             const wd = S * (k === 0 ? 0.12 : 0.26 + 0.05 * (k % 2));
             q.save();
             q.translate(xT, -H * 0.12);
             q.rotate(-0.24 + 0.025 * Math.sin(T * 0.09 + k * 1.3));
-            q.globalAlpha = sh * (k === 0 ? 0.10 : 0.034 + 0.01 * k) * (0.75 + 0.25 * Math.sin(T * 0.23 + k * 1.9));
+            q.globalAlpha = sh * (1 + 0.45 * sstep(38, 44, T)) * (k === 0 ? 0.10 : 0.034 + 0.01 * k) * (0.75 + 0.25 * Math.sin(T * 0.23 + k * 1.9));
             q.drawImage(spr.shaft, -wd / 2, 0, wd, len);
             q.restore();
           }
@@ -374,7 +435,7 @@
         const sw = sstep(17.2, 20.5, T) * (1 - sstep(24.5, 28.5, T));
         if (sw > 0.003) { q.globalAlpha = sw * 0.25; const R = S * 0.55; q.drawImage(spr.dot, cx - R, cy - R * 0.8, R * 2, R * 1.6); q.globalAlpha = 1; }
         // jellyfish halos
-        for (let i = 0; i < NPOSE; i++) { const p = POSE[i]; if (p.j.z === 0) continue; u.glow(q, p.x, p.y - p.h * 0.3, p.R * (p.j.z === 0 ? 2.6 : 3.2), p.j.hue, 85, 52, 0.20 * p.dim, 'soft'); }
+        for (let i = 0; i < NPOSE; i++) { const p = POSE[i]; if (p.j.z === 0 || p.y - 3.4 * p.R > H || p.y + 3.4 * p.R < 0 || p.x + 3.4 * p.R < 0 || p.x - 3.4 * p.R > W) continue; u.glow(q, p.x, p.y - p.h * 0.3, p.R * 3.2, p.j.hue, 85, 52, 0.20 * p.dim, 'soft'); u.glow(q, p.x, p.y - p.h * 0.5, p.R * 0.7, p.j.hue + 10, 80, 70, 0.16 * p.dim * (0.75 + 0.5 * p.c), 'soft'); }
         // shimmer at the very top edge (the surface, far above)
         const ta = sstep(36, 46, T);
         if (ta > 0.01) {
@@ -445,7 +506,7 @@
             const mx = cx + x * S, my = H * 0.5 + y * S, hl = heroLight(mx - cx, my - cy, S, hLit);
             const r = S * (0.0012 + 0.0024 * z) * 2.4 * (1 + 0.35 * lowCol) * (1 + 0.5 * hl);
             g.globalAlpha = (0.10 + 0.26 * z) * (0.55 + 0.45 * Math.sin(T * (0.4 + SN.ph[i] * 0.15) + SN.ph[i])) * (1 + 0.5 * lowCol) * (1 + 1.1 * hl);
-            g.drawImage(dotS, mx - r, my - r, r * 2, r * 2);
+            g.drawImage(spr.dotT, mx - r * TK, my - r * TK, r * TK * 2, r * TK * 2);
           }
         }
         // bioluminescent flashes (pops of light that fade as the water brightens)
@@ -458,12 +519,13 @@
             const x = FL.x[i] * (W / S + 0.2) * S + W / 2, y = FL.y[i] * (H / S + 0.2) * S + H / 2;
             const r = S * 0.014 * FL.sz[i] * (0.6 + 0.8 * f / 0.12);
             g.globalAlpha = Math.sin(Math.PI * f / 0.12) * 0.55 * fa;
-            g.drawImage(spr.teal, x - r, y - r, r * 2, r * 2);
+            g.drawImage(spr.tealT, x - r * TK, y - r * TK, r * TK * 2, r * TK * 2);
           }
         }
       }
       g.restore();
 
+      drawSurge(g, T, env);             // 40-46 s: nearer school, streaks, bubbles
       drawPlankton(g, T, env, cx, cy);  // plankton swarm
       drawJellies(g, T, env, 1);        // mid jellyfish
 
@@ -510,19 +572,18 @@
       const edge = Math.pow(Math.sin(Math.PI * u.wrap(PK.p[i] - 0.030 * (T - 17) * PK.dsp[i], 0, 1)), 0.5);
       const tw = 0.45 + 0.55 * Math.pow(0.5 + 0.5 * Math.sin(T * (2.2 + 3 * PK.dsp[i]) + PK.ph[i] * 7), 2);
       const a = env0 * edge * tw * (0.42 + 0.35 * near) * depth * (1 - 0.7 * disp);
-      if (a < 0.01) continue;
+      if (a < 0.02) continue;
       const r = S * (0.0032 + 0.0042 * PK.sz[i]) * depth * (1 + 0.5 * near) * 2.4;
-      const sp = PK.teal[i] ? spr.teal : spr.dot;
+      const sp = PK.teal[i] ? spr.tealT : spr.dotT;
       g.globalAlpha = a > 1 ? 1 : a;
-      g.drawImage(sp, cx + x - r, cy + y - r, r * 2, r * 2);
+      const rt = r * TK;
+      g.drawImage(sp, cx + x - rt, cy + y - rt, rt * 2, rt * 2);
       if (i % 4 === 0) { // comet tail: the same mote a moment ago, further out along its ribbon
         pkPos(i, T, S, disp, 0.014, _pk);
         const r2 = r * 0.7;
         g.globalAlpha = a * 0.5;
-        g.drawImage(sp, cx + _pk[0] - r2, cy + _pk[1] - r2, r2 * 2, r2 * 2);
-        pkPos(i, T, S, disp, 0.028, _pk);
-        g.globalAlpha = a * 0.22;
-        g.drawImage(sp, cx + _pk[0] - r2 * 0.8, cy + _pk[1] - r2 * 0.8, r2 * 1.6, r2 * 1.6);
+        const r2t = r2 * TK;
+        g.drawImage(sp, cx + _pk[0] - r2t, cy + _pk[1] - r2t, r2t * 2, r2t * 2);
       }
     }
     g.restore();
@@ -530,7 +591,7 @@
 
   /* ================================== jellyfish =================================== */
   const POSE = [];
-  for (let i = 0; i < 16; i++) POSE.push({ x: 0, y: 0, R: 0, h: 0, c: 0, dim: 0, j: null, k: 0 });
+  for (let i = 0; i < 16; i++) POSE.push({ x: 0, y: 0, R: 0, h: 0, c: 0, dim: 0, j: null, k: 0, vis: true });
   let NPOSE = 0;
   const HRS = [0.74, 0.84, 0.95];
   /** the bell (dome, soft fill, rim light, ribs, lip beads) is painted once per jelly into a sprite and then only scaled */
@@ -596,10 +657,12 @@
       p.j = j; p.R = j.R * S; p.c = c; p.x = W / 2 + x * S; p.y = H / 2 + y * S;
       p.h = p.R * (j.bell.hr + 0.14 * c) * 1.05;
       p.dim = (j.z === 0 ? 0.55 : j.z === 2 ? 0.88 : 1) * (j.soft ? 0.72 : 1) * a;
+      // cull: bell below the frame, tentacles ended above it, or fully beside it
+      p.vis = p.y - 1.2 * p.R < H && p.y + 8.2 * p.R > 0 && p.x + 1.7 * p.R > 0 && p.x - 1.7 * p.R < W;
     }
   }
   function drawJellies(g, T, env, layer) {
-    for (let i = 0; i < NPOSE; i++) if (POSE[i].j.z === layer) jelly(g, T, POSE[i]);
+    for (let i = 0; i < NPOSE; i++) if (POSE[i].j.z === layer && POSE[i].vis) jelly(g, T, POSE[i]);
   }
 
   const TT = new Float32Array(13 * 14 * 2);
@@ -613,8 +676,8 @@
     const spA = u.glowSprite(hue + 25, 90, 80, 'soft'), spB = u.glowSprite(hue + 10, 80, 70, 'soft');
     const gl = (sp, x, y, r, a) => { g.globalAlpha = a > 1 ? 1 : a; g.drawImage(sp, x - r, y - r, r * 2, r * 2); };
     /* tentacles (behind the bell), batched: three strokes per jelly */
-    const nT = layer === 0 ? 4 : layer === 1 ? 7 : 10;
-    const M = 12;
+    const nT = layer === 0 ? 4 : layer === 1 ? 6 : 9;
+    const M = layer === 0 ? 8 : layer === 1 ? 10 : 12;
     g.lineCap = 'round'; g.lineJoin = 'round';
     const seed = (j.ph * 10) | 0;
     for (let t = 0; t < nT; t++) {
@@ -630,9 +693,10 @@
       }
     }
     const blurK = B.k > 1 ? 1.9 : 1, lw = Math.max(0.7, R * (layer === 2 ? 0.014 : 0.011)) * blurK;
-    const bands = [[0, 4, 0.52, 1.15], [4, 8, 0.28, 0.9], [8, M - 1, 0.12, 0.8]];
+    const e1 = Math.round(4 * (M - 1) / 11);
+    const bands = [[0, e1, 0.52, 1.15], [e1, M - 1, 0.22, 0.85]];
     g.globalAlpha = 1;
-    for (let q = 0; q < 3; q++) {
+    for (let q = 0; q < 2; q++) {
       const s0 = bands[q][0], s1 = bands[q][1];
       g.beginPath();
       for (let t = 0; t < nT; t++) {
@@ -669,7 +733,6 @@
         const a = i * Math.PI + 0.6;
         gl(spA, Math.cos(a) * w * 0.22, -h * 0.30 + Math.sin(a) * h * 0.12, R * 0.34, 0.30 * dim * pu);
       }
-      gl(spB, 0, -h * 0.5, R * 0.7, 0.16 * dim * pu);
       for (let i = 0; i < 3; i++) {                             // twinkling beads on the lip
         const th = Math.PI * (i + 0.5) / 3;
         gl(spA, Math.cos(th) * w, Math.sin(th) * eh, R * 0.075, 0.5 * dim * (0.5 + 0.5 * Math.sin(T * 2 + i * 1.9 + j.ph)));
@@ -714,8 +777,64 @@
     g.restore();
   }
 
+  /* ================= the surge towards the light (T 40-46): a nearer school rushes through, snow streaks past, bubbles rise ================= */
+  function drawSurge(g, T, env) {
+    if (T < 39.4 || T > 47.9) return;
+    const { W, H, S } = env;
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    /* nearer school, right to left across the hero */
+    const e = sstep(39.6, 41.2, T) * (1 - sstep(44.4, 45.6, T));
+    if (e > 0.01) {
+      const xc = W * (1.30 - 0.30 * (T - 40)), yc = H * (0.50 + 0.03 * Math.sin(T * 0.6));
+      for (let i = 0; i < NFS2; i++) {
+        const a = FS2.a[i], b = FS2.b[i];
+        const px = xc + a * 0.15 * W * (1 + 0.1 * Math.sin(T * 0.5)) + 0.014 * S * Math.sin(T * 0.8 + FS2.ph[i]);
+        const py = yc + b * 0.075 * H + Math.sin((px / W) * 3.4 + T * 0.3) * 0.05 * H + 0.012 * S * Math.sin(T * 1.4 + FS2.ph[i]);
+        if (px < -0.1 * W || px > 1.1 * W) continue;
+        const dy = Math.cos((px / W) * 3.4 + T * 0.3) * 0.05 * H * 3.4 / W * -0.3 + 0.012 * S * 1.4 * Math.cos(T * 1.4 + FS2.ph[i]) * 0.06;
+        const ang = Math.atan2(dy, -1);
+        const flash = 0.5 + 0.5 * Math.sin(T * 3.3 - a * 6 + FS2.ph[i]);
+        const len = S * 0.046 * FS2.sz[i];
+        g.globalAlpha = Math.min(1, e * (0.22 + 0.55 * flash * flash * flash));
+        const cs = Math.cos(ang), sn = Math.sin(ang);
+        g.setTransform(cs, sn, -sn, cs, px, py);
+        g.drawImage(spr.fish, -len * 0.5, -len * 0.125, len, len * 0.25);
+      }
+      g.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    /* snow streaks: the camera is speeding up, near motes fall past quickly */
+    const sk = sstep(39.6, 42.4, T) * (1 - sstep(44.2, 46.4, T));
+    if (sk > 0.01) {
+      const Wd = MO.Wd, Hd = MO.Hd;
+      for (let i = 0; i < NSK; i++) {
+        const z = SKS.z[i], v = 0.10 + 0.16 * z;
+        const x = u.wrap(SKS.x0[i] * Wd + 0.01 * Math.sin(T * 0.4 + i), -Wd / 2, Wd / 2);
+        const y = u.wrap(SKS.y0[i] * Hd + v * (T - 38), -Hd / 2, Hd / 2);
+        const rw = S * (0.0022 + 0.0030 * z) * 1.6, rh = rw + S * v * 0.12;
+        const mx = W * 0.5 + x * S, my = H * 0.5 + y * S;
+        g.globalAlpha = sk * (0.18 + 0.30 * z);
+        g.drawImage(spr.dotT, mx - rw, my - rh, rw * 2, rh * 2);
+      }
+    }
+    /* bubbles rising */
+    const be = sstep(40.2, 43.0, T) * (1 - sstep(46.0, 47.8, T));
+    if (be > 0.01) {
+      const Hd = H / S + 0.3;
+      for (let i = 0; i < NBB; i++) {
+        const r = BUB.r[i] * S;
+        const y = u.wrap(BUB.y0[i] * Hd - BUB.v[i] * (T - 40), -0.5 * Hd, 0.5 * Hd) ;
+        const x = BUB.x0[i] * (W / S + 0.1) + 0.012 * Math.sin(T * 0.9 + BUB.ph[i]) + 0.004 * Math.sin(T * 2.3 + BUB.ph[i] * 2);
+        g.globalAlpha = be * (0.5 + 0.3 * Math.sin(T * 0.7 + BUB.ph[i]));
+        g.drawImage(spr.bubble, W * 0.5 + x * S - r, H * 0.5 + y * S - r, r * 2, r * 2);
+      }
+    }
+    g.restore();
+  }
+
   /* =================================== the whale =================================== */
-  const whalePres = (T) => sstep(26.6, 29.8, T) * (1 - sstep(40.2, 44, T));
+  const whalePres = (T) => sstep(26.6, 29.8, T) * (1 - sstep(40.6, 43.0, T));
+  const finAng = (T) => 0.36 + 0.09 * Math.sin(T * 0.55);
   /** soft light for the low-res layer: backlit mist behind the whale (so the silhouette reads) + glow wake behind the tail */
   function whaleGlow(q, T, env) {
     const pres = whalePres(T);
@@ -727,7 +846,7 @@
     q.scale(1, 0.40);
     u.glow(q, 0, 0, Math.max(W * 0.85, L * 0.45), 190, 65, 34, 0.30 * pres, 'soft');
     q.restore();
-    const xTail = whaleHead(T, W) - L;
+    const xTail = whaleHead(T, L) - L;
     q.save();
     q.translate(xTail - L * 0.06, yAxis + whaleWave(0.0, T) * L);
     q.scale(1, 0.22);
@@ -740,41 +859,43 @@
     const pres = whalePres(T);
     if (pres < 0.004) return;
     const { W, H } = env, L = WH.L;
-    const xHead = whaleHead(T, W), xTail = xHead - L;
+    const xHead = whaleHead(T, L), xTail = xHead - L;
     if (xTail > W + 0.2 * L || xHead < -0.05 * L) return;
     const yAxis = whaleAxis(T, H);
     const offY = (xn) => whaleWave(xn, T) * L;
+    // pectoral fin (behind the body): soft leaf with a lighter tip
     q.save();
     q.globalCompositeOperation = 'source-over';
     q.globalAlpha = pres * 0.98;
-    q.translate(xTail + 0.73 * L, yAxis + offY(0.73) + 0.062 * L);
-    q.rotate(-(0.30 + 0.08 * Math.sin(T * 0.55)));
-    q.beginPath();
-    q.moveTo(L * 0.016, -L * 0.014);
-    q.bezierCurveTo(-L * 0.020, -L * 0.016, -L * 0.060, -L * 0.004, -L * 0.095, L * 0.030);
-    q.bezierCurveTo(-L * 0.108, L * 0.044, -L * 0.112, L * 0.056, -L * 0.100, L * 0.058);
-    q.bezierCurveTo(-L * 0.075, L * 0.056, -L * 0.035, L * 0.040, L * 0.016, L * 0.028);
-    q.closePath();
-    q.fillStyle = 'rgb(4,16,28)'; q.fill();
+    q.translate(xTail + 0.73 * L, yAxis + offY(0.73) + 0.066 * L);
+    q.rotate(finAng(T));
+    finPath(q, L);
+    const fg = q.createLinearGradient(0, 0, 0, L * 0.135);
+    fg.addColorStop(0, 'rgb(4,16,29)'); fg.addColorStop(0.6, 'rgb(6,24,40)'); fg.addColorStop(1, 'rgb(14,46,68)');
+    q.fillStyle = fg; q.fill();
     q.restore();
+    // body: vertical strips, each sheared so that the undulation is a continuous polyline (no stair-steps)
     q.save();
     q.globalCompositeOperation = 'source-over';
     q.globalAlpha = pres;
     q.imageSmoothingEnabled = true;
-    const k = WH.sc, kx = LLC.w / W;                            // strips are aligned to whole low-res pixels => no seams
+    const k = WH.sc, kx = LLC.w / W, ky = LLC.h / H, y00 = yAxis - WH.oy / k, dh = WH.ch / k;
     let i = Math.floor(Math.max(xTail, 0) * kx);
     const iEnd = Math.ceil(Math.min(W + 20, xHead) * kx);
     while (i < iEnd) {
       const xnm = (i / kx - xTail) / L;
-      const m = xnm < 0.2 ? 2 : xnm < 0.5 ? 3 : 6;
+      const m = Math.max(2, Math.ceil((xnm < 0.2 ? 0.02 : 0.035) * L * kx));   // ~35 sheared segments: the displacement is smooth, so this is a continuous polyline
       let D0 = i / kx, D1 = (i + m) / kx;
       i += m;
       if (D0 < xTail) D0 = xTail;
       if (D1 > xHead) D1 = xHead;
       if (D1 <= D0) continue;
       const a0 = (D0 - xTail) / L, a1 = (D1 - xTail) / L;
-      q.drawImage(WH.cv, a0 * WH.cw, 0, (a1 - a0) * WH.cw, WH.ch, D0, yAxis + offY((a0 + a1) * 0.5) - WH.oy / k, D1 - D0, WH.ch / k);
+      const o0 = offY(a0), o1 = offY(a1);
+      q.setTransform(kx, ky * (o1 - o0) / (D1 - D0), 0, ky, kx * D0, ky * (y00 + o0));
+      q.drawImage(WH.cv, a0 * WH.cw, 0, (a1 - a0) * WH.cw, WH.ch, 0, 0, D1 - D0, dh);
     }
+    q.setTransform(kx, 0, 0, ky, 0, 0);
     q.restore();
   }
 
@@ -784,7 +905,7 @@
     const pres = whalePres(T);
     if (pres < 0.004) return;
     const L = WH.L;
-    const xHead = whaleHead(T, W);
+    const xHead = whaleHead(T, L);
     const xTail = xHead - L;
     if (xTail > W + 0.2 * L || xHead < -0.05 * L) return;
     const yAxis = whaleAxis(T, H);
@@ -797,25 +918,29 @@
       const d = 0.5 + 5.5 * u.hash2(i, 91);
       const Tp = T - d;
       if (Tp < WHALE_T0) continue;
-      const xx = whaleHead(Tp, W) - L + (u.hash2(i, 93) - 0.5) * L * 0.03;
+      const xx = whaleHead(Tp, L) - L + (u.hash2(i, 93) - 0.5) * L * 0.03;
       if (xx < -S * 0.1 || xx > W + S * 0.1) continue;
       const yy = whaleAxis(Tp, H) + whaleWave(0.02, Tp) * L + (u.hash2(i, 92) - 0.5) * L * 0.05 * (1 + d * 0.25) + d * S * 0.025;
       const a = pres * (1 - d / 6.2) * (0.35 + 0.65 * Math.pow(0.5 + 0.5 * Math.sin(T * 2.3 + i * 1.9), 2)) * 0.8;
       if (a < 0.01) continue;
       const r = S * 0.0065 * (0.6 + u.hash2(i, 95)) * 2.4;
       g.globalAlpha = a;
-      g.drawImage(i % 3 ? spr.dot : spr.teal, xx - r, yy - r, r * 2, r * 2);
+      g.drawImage(i % 3 ? spr.dotT : spr.tealT, xx - r * TK, yy - r * TK, r * TK * 2, r * TK * 2);
     }
-    /* rim light along the back */
+    /* rim light along the back: three widths, brightest over the shoulders and fading to nothing at head and tail */
     g.lineCap = 'round'; g.lineJoin = 'round';
     g.beginPath();
     for (let i = 0; i < RIM.length; i += 2) {
       const X = xTail + RIM[i] * L, Y = yAxis + offY(RIM[i]) + RIM[i + 1] * L;
       if (i === 0) g.moveTo(X, Y); else g.lineTo(X, Y);
     }
-    g.globalAlpha = pres; g.strokeStyle = 'rgba(70,170,205,0.09)'; g.lineWidth = Math.max(3, L * 0.0034); g.stroke();
-    g.strokeStyle = 'rgba(95,205,230,0.30)'; g.lineWidth = Math.max(1.2, L * 0.0013); g.stroke();
-    const NSP = 80;
+    const rg = g.createLinearGradient(xTail + 0.10 * L, 0, xHead, 0);
+    rg.addColorStop(0, 'rgba(95,205,230,0)'); rg.addColorStop(0.16, 'rgba(95,205,230,0.55)'); rg.addColorStop(0.5, 'rgba(110,215,238,1)');
+    rg.addColorStop(0.82, 'rgba(95,205,230,0.7)'); rg.addColorStop(1, 'rgba(95,205,230,0)');
+    g.strokeStyle = rg;
+    g.globalAlpha = pres * 0.11; g.lineWidth = Math.max(3, L * 0.0048); g.stroke();
+    g.globalAlpha = pres * 0.20; g.lineWidth = Math.max(1.1, L * 0.0011); g.stroke();
+    const NSP = 72;
     for (let i = 0; i < NSP; i++) {
       const hsh = u.hash2(i, 101);
       const xn = 0.30 + 0.68 * u.hash2(i, 102);
@@ -833,20 +958,24 @@
       if (a < 0.02) continue;
       const r = S * (0.0045 + 0.004 * u.hash2(i, 105)) * 2.4;
       g.globalAlpha = a > 1 ? 1 : a;
-      g.drawImage(hsh < 0.3 ? spr.teal : spr.dot, X - r, Y - r, r * 2, r * 2);
+      g.drawImage(hsh < 0.3 ? spr.tealT : spr.dotT, X - r * TK, Y - r * TK, r * TK * 2, r * TK * 2);
     }
-    // flipper speckles
-    for (let i = 0; i < 8; i++) {
-      const s = i / 7;
-      const th0 = 0.30 + 0.08 * Math.sin(T * 0.55), lx = -L * 0.098 * s, ly = L * 0.034 * s * (0.2 + s);
-      const fx = xTail + 0.73 * L + lx * Math.cos(th0) + ly * Math.sin(th0), fy = yAxis + offY(0.73) + 0.062 * L - lx * Math.sin(th0) + ly * Math.cos(th0);
-      g.globalAlpha = pres * 0.5 * (0.5 + 0.5 * Math.sin(T * 1.3 + i));
-      const r = S * 0.008; g.drawImage(spr.dot, fx - r, fy - r, r * 2, r * 2);
+    // flipper speckles (a line of dots along the leading edge)
+    {
+
+      const th0 = finAng(T), cs = Math.cos(th0), sn = Math.sin(th0);
+      const rx = xTail + 0.73 * L, ry = yAxis + offY(0.73) + 0.066 * L;
+      for (let i = 0; i < 9; i++) {
+        const s2 = (i + 0.5) / 9, lx = L * (0.018 * (1 - s2) - 0.045 * s2 * s2) , ly = L * 0.134 * s2;
+        const fx = rx + lx * cs - ly * sn, fy = ry + lx * sn + ly * cs;
+        g.globalAlpha = pres * 0.5 * (0.5 + 0.5 * Math.sin(T * 1.3 + i));
+        const r = S * 0.0075 * TK; g.drawImage(spr.dotT, fx - r, fy - r, r * 2, r * 2);
+      }
     }
     // eye
     {
-      const X = xTail + 0.925 * L, Y = yAxis + offY(0.925) + 0.034 * L;
-      g.globalAlpha = pres * 0.6; const r = S * 0.012; g.drawImage(spr.dot, X - r, Y - r, r * 2, r * 2);
+      const X = xTail + 0.918 * L, Y = yAxis + offY(0.918) + 0.030 * L;
+      g.globalAlpha = pres * 0.6; const r = S * 0.012 * TK; g.drawImage(spr.dotT, X - r, Y - r, r * 2, r * 2);
     }
     g.restore();
   }

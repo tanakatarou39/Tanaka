@@ -34,8 +34,7 @@
   // the camera sinks with the drop: height above the water (1 = start, 0 = at the surface, <0 = under it)
   const HC_KEYS = [[173.0, 1], [174.2, 0.2], [174.75, 0], [175.9, -0.8], [177.4, -1.8], [178.6, -2.5]];
   const YE_KEYS = [[173.0, 0.78], [174.5, 0.58], [175.7, 0.38], [177.3, -0.02], [178.6, -0.4]];   // horizon / waterline (fraction of H)
-  const HY_KEYS = [[171, 0.885], [173.1, 0.885], [174.5, 0.70], [175.7, 0.5], [180, 0.5]];       // the drop's own screen y (fraction of H)
-
+  
   /* ------------------------------------------------------------------ B7 palettes (identical to s7) */
   const SKY_E = [0, 0.08, 0.2, 0.45, 0.8, 1.6, 3.4];
   const SKY7 = [[20, 33, 74], [14, 24, 60], [10, 18, 48], [6, 10, 30], [2, 3, 12], [2, 3, 10], [1, 2, 8]];
@@ -151,6 +150,7 @@
   let SKY = null;    // star lists
   let BASE = null;   // sky + sea + horizon glow (cached)
   const UF = { cv: null, cx: null, img: null, cols: 0, rows: 0, dith: null };
+  const UO = { cv: null, cx: null, k: 0.5, kx: 0.5, ky: 0.5 };   // half-res target for the underwater body (soft, so it costs a quarter of the pixels)
 
   function buildSky(env) {
     const { W, H, S } = env;
@@ -233,11 +233,14 @@
     UF.cv = u.canvas(UF.cols, UF.rows); UF.cx = UF.cv.getContext('2d');
     UF.img = UF.cx.createImageData(UF.cols, UF.rows);
     UF.dith = new Float32Array(UF.cols * UF.rows);
+    UO.cv = u.canvas(Math.ceil(env.W * UO.k), Math.ceil(env.H * UO.k)); UO.cx = UO.cv.getContext('2d', { alpha: false });
+    UO.kx = UO.cv.width / env.W; UO.ky = UO.cv.height / env.H;   // exact, so the buffer maps onto the canvas edge to edge
     const r = u.rng(8088);
     for (let i = 0; i < UF.dith.length; i++) UF.dith[i] = r() - 0.5;
   }
 
   /* ------------------------------------------------------------------ camera */
+  const BW = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]], BWP = [0, 0.3, 0.5, 0.72, 1];
   const cam = { yH: 0, hc: 1, eps: 0.2, z: 1, cx: 0, cy: 0, th: 0, dy: 0, hy: 0 };
   function setCam(T, env) {
     const { W, H } = env;
@@ -249,7 +252,7 @@
     cam.z = lerp(1, 1.45, sss(173, 175.5, T));
     cam.cx = W * 0.5;
     cam.cy = cam.yH + (LYF - HZF) * H * hc;   // where the surface point of impact is seen
-    cam.hy = KS(HY_KEYS, T) * H;
+    cam.hy = lerp(LYF, 0.5, sss(173.1, 175.9, T)) * H;   // eased, no overshoot: it settles exactly at (.5,.5) and stays
     cam.th = 0.0042 * (T - 152);
   }
 
@@ -430,7 +433,7 @@
     g.globalCompositeOperation = 'lighter';
     const seaH = (H - yH) * hc;
     const rip = nAct > 0;
-    const NS = rip ? 5 : 4;
+    const NSB = rip ? 5 : 4;
     const refl = SKY.refl;
     const stretch = hc;
     const glitter = 1 + 1.1 * ss(171, 171.9, T) * (1 - ss(173.4, 175, T)); // the landing wakes the whole sea
@@ -447,6 +450,7 @@
       if (a < 0.03) continue;
       const len = S * (0.035 + 0.075 * s.b) * (s.kind === 2 ? 1.5 : 1) * (0.35 + 0.65 * hc);
       const wd = S * (s.kind === 2 ? 0.05 : 0.03);
+      const NS = s.kind === 2 || !rip ? NSB : 3;
       const sl = len / NS;
       for (let q = 0; q < NS; q++) {
         const fq = (q + 0.5) / NS;
@@ -520,7 +524,7 @@
     g.globalCompositeOperation = 'lighter';
     // as the camera meets the surface the rings crowd into one bright line; from below they glow quietly on the silver sheet
     const edgeBoost = 1 + 1.1 * exp(-hc * hc / 0.06);
-    const under = hc < 0 ? 0.75 * (1 - ss(-0.2, -1.4, hc)) : 1;
+    const under = hc < 0 ? 0.75 * (1 - ss(-0.04, -0.7, hc)) : 1;
     for (let k = 0; k < NR; k++) {
       const a = T - RT[k];
       if (a < 0) continue;
@@ -666,7 +670,7 @@
     g.globalCompositeOperation = 'lighter';
     // --- flash + flat splash light on the water
     const fl = exp(-a / 0.28) * ss(-0.02, 0.02, a);
-    if (fl > 0.01) {
+    if (fl > 0.04) {
       gl(g, SP.gCold, cx, cy, S * 0.34 * z, 0.62 * fl);
       gl(g, SP.coreWhite, cx, cy, S * 0.1 * z, 0.8 * fl);
       g.save();
@@ -730,8 +734,8 @@
     if (sink > 0.01) {
       g.save();
       g.translate(cx, cam.hy); g.scale(1, 0.6);
-      g.globalAlpha = min(1, 0.55 * sink);
-      g.drawImage(SP.gCyan, -S * 0.4 * z, -S * 0.4 * z, S * 0.8 * z, S * 0.8 * z);
+      g.globalAlpha = min(1, 0.7 * sink);
+      g.drawImage(SP.gCyan, -S * 0.3 * z, -S * 0.3 * z, S * 0.6 * z, S * 0.6 * z);
       g.restore();
     }
     g.restore();
@@ -790,21 +794,32 @@
     const cTop = [18 * lit + 5, 66 * lit + 12, 108 * lit + 24];
     const cMid = [6 * lit + 3, 34 * lit + 9, 64 * lit + 18];
     const cLow = [3, 17 * lit + 6, 34 * lit + 13];
-    const mk = (c, f) => rgbs([c[0] * kd * f, c[1] * kd * f, c[2] * kd * f]);
     const y0 = yE - 0.35 * H, y1 = yE + 1.0 * H;
-    const bg = g.createLinearGradient(0, y0, 0, y1);
-    bg.addColorStop(0, mk(cTop, 1)); bg.addColorStop(0.3, mk(cTop, 0.85)); bg.addColorStop(0.5, mk(cMid, 0.95));
-    bg.addColorStop(0.72, mk(cLow, 0.9)); bg.addColorStop(1, mk(cLow, 0.35));
-    g.fillStyle = bg;
-    if (below > 0.004) { g.globalAlpha = below; g.fillRect(0, max(0, yE), W, H); }
-    if (above > 0.004 && yE > 0) { g.globalAlpha = above; g.fillRect(0, 0, W, yE + 1); }
+    // the body of water: flat bands (a gradient fill is 5x dearer to rasterise; the steps are below one 8-bit level)
+    const wst = BW;
+    const sc = (c, f, o) => { o[0] = c[0] * kd * f; o[1] = c[1] * kd * f; o[2] = c[2] * kd * f; };
+    sc(cTop, 1, wst[0]); sc(cTop, 0.85, wst[1]); sc(cMid, 0.95, wst[2]); sc(cLow, 0.9, wst[3]); sc(cLow, 0.35, wst[4]);
+    const kk = g === UO.cx ? UO.ky : 1;   // device pixels per logical pixel: bands are laid on whole device rows (no seams, no double blending)
+    const bandFill = (ya, yb, al) => {
+      g.globalAlpha = al;
+      const d0 = Math.round(ya * kk), d1 = Math.round(yb * kk), bd = max(2, Math.round(H * kk / 190));
+      for (let d = d0; d < d1; d += bd) {
+        const t = clamp(((d + bd * 0.5) / kk - y0) / (y1 - y0));
+        let i = 0; while (i < 3 && t > BWP[i + 1]) i++;
+        const f = (t - BWP[i]) / (BWP[i + 1] - BWP[i]), a = wst[i], b = wst[i + 1];
+        g.fillStyle = `rgb(${(a[0] + (b[0] - a[0]) * f) | 0},${(a[1] + (b[1] - a[1]) * f) | 0},${(a[2] + (b[2] - a[2]) * f) | 0})`;
+        g.fillRect(0, d / kk, W, min(bd, d1 - d) / kk);
+      }
+    };
+    if (below > 0.004) bandFill(max(0, yE), H, below);
+    if (above > 0.004 && yE > 0) bandFill(0, min(H, yE), above);
     g.globalAlpha = 1;
     if (dark <= 0.002) { g.fillStyle = '#000'; g.fillRect(0, 0, W, H); return; }
     const m = kd;
     g.globalCompositeOperation = 'lighter';
     // the surface from below: a shimmering silver sheet that closes overhead and then retreats upward
     const B = (0.35 + 0.65 * lit) * 0.9;
-    if (above > 0.01 && yE > -0.45 * H) drawSheet(g, T, yE, B * m * above);
+    if (above > 0.04 && yE > -0.45 * H) drawSheet(g, T, yE, B * m * above);
     // soft shafts from the surface
     const sh = ss(0.1, -0.5, hc);
     for (let i = 0; i < 3; i++) {
@@ -829,7 +844,7 @@
         const tw = 0.5 + 0.5 * sin(T * (0.9 + 1.4 * hash1(i * 5)) + i * 2.1);
         gl(g, SP.gCyan, xx * W, yy * H, S * 0.011 * zf + 1.5, 0.45 * zf * tw * ma);
         g.globalAlpha = 0.6 * zf * tw * ma; g.fillStyle = '#d6f4ff';
-        g.fillRect(xx * W - 0.7, yy * H - 0.7, 1.4, 1.4);
+        g.fillRect(xx * W - 1, yy * H - 1, 2, 2);
       }
     }
     // bubbles lifted off the drop
@@ -843,7 +858,7 @@
     }
     // the drop's own light in the water
     const dl = ss(0.7, -0.1, hc);
-    gl(g, SP.gCyan, W * 0.5, cam.hy, S * 0.42, 0.17 * m * dl);
+    gl(g, SP.gCyan, W * 0.5, cam.hy, S * 0.32, 0.2 * m * dl);
     gl(g, SP.gSilver, W * 0.5, cam.hy, S * 0.16, 0.1 * m * dl);
     g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
   }
@@ -883,7 +898,7 @@
     let p = 0, q = 0;
     for (let j = 0; j < rows; j++) {
       const y = (j + 0.5) / rows * yTop;
-      const pp = (ys - y) / H;
+      const pp = (ys - y) / S;   // depth below the sheet in S units: the pattern keeps its proportions in portrait
       const edge = pp >= 0 ? 1 : pow(ss(-0.075, 0.0, pp), 1.6);
       const ppp = max(pp, 0);
       const pvr = 0.12 * dsc / (ppp + 0.07);
@@ -907,9 +922,16 @@
     UF.cx.putImageData(UF.img, 0, 0);
     g.save();
     g.globalCompositeOperation = 'lighter';
-    g.imageSmoothingEnabled = true;
     g.globalAlpha = 1;
-    g.drawImage(UF.cv, 0, 0, W, yTop);
+    if (g !== UO.cx) {
+      // full-res target (the surface is still closing): smooth-upscale the field to the half-res buffer, then add it with a cheap 2x copy
+      const c = UO.cx, hh = yTop * UO.ky;
+      c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+      c.fillStyle = '#000'; c.fillRect(0, 0, UO.cv.width, Math.ceil(hh) + 1);
+      c.imageSmoothingEnabled = true; c.drawImage(UF.cv, 0, 0, UO.cv.width, hh);
+      g.imageSmoothingEnabled = false;
+      g.drawImage(UO.cv, 0, 0, UO.cv.width, hh, 0, 0, W, yTop);
+    } else { g.imageSmoothingEnabled = true; g.drawImage(UF.cv, 0, 0, W, yTop); }
     // the bright lip of the surface (total internal reflection sheen)
     const lip = g.createLinearGradient(0, ys - 0.1 * H, 0, ys + 0.1 * H);
     lip.addColorStop(0, 'rgba(160,200,235,0)'); lip.addColorStop(0.5, `rgba(190,225,250,${0.14 * B})`); lip.addColorStop(1, 'rgba(120,170,220,0)');
@@ -947,10 +969,12 @@
       prepRipples(T);
       const hc = cam.hc;
 
-      if (hc > -0.36) {
+      const dive = hc <= -0.36;
+      if (!dive) {
         // ---- B7 world (sinking to the surface)
-        g.fillStyle = rgbs(SEA7[1]); g.fillRect(0, 0, W, H);
-        g.drawImage(BASE, 0, cam.dy);
+        const dy = cam.dy; // BASE covers the canvas except a strip the camera has uncovered
+        if (dy > 0.5 || dy < -0.5) { g.fillStyle = rgbs(SEA7[1]); if (dy > 0) g.fillRect(0, 0, W, dy + 1); else g.fillRect(0, H + dy - 1, W, 1 - dy); }
+        g.drawImage(BASE, 0, dy);
         if (cam.yH > 4) {
           if (hc > -0.2) drawMilkyWay(g, T);
           drawStars(g, T, 1);
@@ -959,10 +983,17 @@
         drawReflections(g, T);
         drawFall(g, T);
         drawImpact(g, T);
-      } else {
-        g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
       }
-      drawUnder(g, T);
+      if (dive) { // the world is gone: the underwater body is painted at half resolution and laid over the canvas in one pass
+        const c = UO.cx;
+        c.setTransform(UO.kx, 0, 0, UO.ky, 0, 0);
+        c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+        c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
+        drawUnder(c, T);
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        g.imageSmoothingEnabled = true;
+        g.drawImage(UO.cv, 0, 0, W, H);
+      } else drawUnder(g, T);
       drawRings(g, T);
       drawWaterline(g, T);
       // ---- the end: pure black + the point of light

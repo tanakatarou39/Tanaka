@@ -29,14 +29,14 @@
   const SKY_STOPS = [0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1];
   // sampled from s3's last seconds (raw, no post-fx), then evolving: dawn haze -> azure -> slate
   const SKY = [
-    [73, ['#7390c1', '#9298b4', '#b8a4a5', '#e1b297', '#f7c097', '#face9d', '#fcdea4', '#fee5a7']],
-    [74, ['#708ebf', '#8896b6', '#a6a1ad', '#c5ada4', '#ddb99f', '#e8c6a0', '#f2d3a2', '#f8dba2']],
-    [75, ['#6c89b9', '#7e92b5', '#949db0', '#aba8ab', '#c0b3a6', '#d2bfa3', '#e4c9a1', '#efd0a0']],
-    [76, ['#6a87b6', '#7b90b2', '#8e9aaf', '#a2a5ac', '#b6b0a8', '#cabba5', '#dec6a1', '#e9cca0']],
-    [80, ['#5a86c8', '#6c92cb', '#86a3d0', '#a1b3d1', '#bfc2cd', '#dccec4', '#f2d9b8', '#fbdfb2']],
-    [86, ['#3f7cd2', '#5189d4', '#6e9ad6', '#8eaed9', '#afc2dd', '#d0d3de', '#efdcc6', '#fbe3b8']],
+    // 72-76: hold s3's dawn exactly (B3: blue top, peach middle, gold bottom); cooling only starts after the window
+    [72, ['#7390c1', '#9098b5', '#b3a2a7', '#d9ad99', '#f4b890', '#f6c194', '#facd9b', '#fcd49f']],
+    [76, ['#7490c1', '#8e97b6', '#afa1a9', '#d2ab9b', '#f3b58f', '#f6be93', '#f9ca99', '#fbd19d']],
+    [80, ['#6489c6', '#7f9ccb', '#a4afc8', '#cdbbbb', '#eec2a2', '#f5cfa6', '#f9dcae', '#fce3b2']],
+    [84, ['#5a86c8', '#6c92cb', '#86a3d0', '#a1b3d1', '#bfc2cd', '#dccec4', '#f2d9b8', '#fbdfb2']],
+    [87, ['#3f7cd2', '#5189d4', '#6e9ad6', '#8eaed9', '#afc2dd', '#d0d3de', '#efdcc6', '#fbe3b8']],
     [91, ['#4577c6', '#5a86c8', '#7898cb', '#98aece', '#b4c1d2', '#cdd0da', '#e2d9d0', '#ecdecb']],
-  ].map(([t, a]) => [t, a.map(rgb)]);
+].map(([t, a]) => [t, a.map(rgb)]);
   const SKY_STORM_TOP = rgb('#34465f'), SKY_STORM_BOT = rgb('#6d8199');
   const SKY97 = SKY_STOPS.map((f) => mixc(SKY_STORM_TOP, SKY_STORM_BOT, f));
   const skyOut = SKY_STOPS.map(() => [0, 0, 0]);
@@ -45,7 +45,7 @@
     let a, b, s;
     if (T <= rows[0][0]) { a = b = rows[0][1]; s = 0; }
     else if (T >= 91) {
-      a = rows[rows.length - 1][1]; b = SKY97; s = ss(91, 97.2, T);
+      a = rows[rows.length - 1][1]; b = SKY97; s = ss(91.5, 97.6, T);
     } else {
       let i = 0;
       while (T > rows[i + 1][0]) i++;
@@ -77,7 +77,7 @@
     SUN.y = smin(0.95, horizonY(T) - 0.05, 0.14);
     return SUN;
   }
-  const sunPow = (T) => (0.1 + 0.9 * sss(76, 83, T)) * (1 - ss(91, 97, T));
+  const sunPow = (T) => (0.85 + 0.15 * sss(76, 83, T)) * (1 - ss(91, 97, T));
   const dawn = (T) => K([[72, 1], [84, 1], [92, 0.45], [97, 0.1]], T);
   const storm = (T) => ss(91.5, 97.3, T);
 
@@ -90,8 +90,8 @@
   const NV = 6, NS = 5, PS = 176;
   let SPR = [];
   // colour ramps: [shadow, mid, lit] for cool (daylight) and warm (dawn, sun side); dim = under-bellies
-  const COOL_B = { sh: [156, 168, 204], mid: [226, 234, 250], lit: [255, 255, 255] };
-  const WARM_B = { sh: [172, 152, 190], mid: [255, 228, 196], lit: [255, 240, 192] };
+  const COOL_B = { sh: [176, 188, 222], mid: [232, 238, 252], lit: [255, 255, 255] };
+  const WARM_B = { sh: [194, 176, 208], mid: [255, 230, 202], lit: [255, 242, 200] };
   const COOL_D = { sh: [112, 128, 180], mid: [170, 186, 224], lit: [222, 232, 250] };
   const WARM_D = { sh: [130, 114, 168], mid: [214, 184, 178], lit: [246, 222, 190] };
   const mixSet = (a, b, t) => ({ lit: mixc(a.lit, b.lit, t), mid: mixc(a.mid, b.mid, t), sh: mixc(a.sh, b.sh, t) });
@@ -127,7 +127,7 @@
     };
     // coarse thickness (smooth) drives the big shading; fine thickness drives alpha + crisp rims
     const coarse = (x, y) => blobF(x, y) * 0.9 + (u.fbm2(x * 1.9 + ox, y * 1.9 + oy, 2) - 0.5) * 0.7 - 0.1;
-    const fine = (x, y) => blobF(x, y) * 0.85 + (u.fbm2(x * 3.1 + ox, y * 3.1 + oy, 5) - 0.5) * 0.85 + (u.fbm2(x * 7.5 + oy, y * 7.5 + ox, 3) - 0.5) * 0.16 - 0.12;
+    const fine = (x, y) => blobF(x, y) * 0.85 + (u.fbm2(x * 2.4 + ox, y * 2.4 + oy, 3) - 0.5) * 0.72 + (u.fbm2(x * 6 + oy, y * 6 + ox, 2) - 0.5) * 0.06 - 0.1;
     const bm = new Float32Array(PS * PS), am = new Uint8ClampedArray(PS * PS);
     for (let j = 0; j < PS; j++) {
       const y = ((j + 0.5) / PS) * 2 - 1;
@@ -136,14 +136,15 @@
         const E = fine(x, y);
         const idx = j * PS + i;
         const m = 1 - ss(0.66, 0.97, sqrt(x * x + y * y));
-        const a = ss(0.0, 0.34, E) * m;
+        const a = ss(-0.04, 0.46, E) * m;
         am[idx] = pow(a, 1.15) * 255;
         if (a < 0.004) { bm[idx] = 0.5; continue; }
         const Es = coarse(x, y);
         const Es1 = coarse(x + LDIR[0] * 0.13, y + LDIR[1] * 0.13);
         const Es2 = coarse(x + LDIR[0] * 0.3, y + LDIR[1] * 0.3);
         const El = fine(x + LDIR[0] * 0.05, y + LDIR[1] * 0.05);
-        let b = 0.84 + 1.2 * (Es - Es1) + 0.55 * (Es - Es2) + 0.55 * (E - El) - 0.2 * clamp(Es, 0, 1.2) + 0.2 * (-y) + 0.06 * (-x);
+        let b = 0.86 + 0.9 * (Es - Es1) + 0.45 * (Es - Es2) + 0.3 * (E - El) - 0.16 * clamp(Es, 0, 1.2) + 0.2 * (-y) + 0.06 * (-x);
+        b = 0.5 + (b - 0.5) * 0.8; // lower contrast: soft, luminous volumes
         bm[idx] = b < 0 ? 0 : b > 1 ? 1 : b;
       }
     }
@@ -152,12 +153,12 @@
     for (let pass = 0; pass < 2; pass++) {
       for (let j = 0; j < PS; j++) for (let i = 0; i < PS; i++) {
         let acc = 0, n = 0;
-        for (let k = -2; k <= 2; k++) { const ii = i + k; if (ii < 0 || ii >= PS) continue; acc += bm[j * PS + ii]; n++; }
+        for (let k = -4; k <= 4; k++) { const ii = i + k; if (ii < 0 || ii >= PS) continue; acc += bm[j * PS + ii]; n++; }
         tmp[j * PS + i] = acc / n;
       }
       for (let j = 0; j < PS; j++) for (let i = 0; i < PS; i++) {
         let acc = 0, n = 0;
-        for (let k = -2; k <= 2; k++) { const jj = j + k; if (jj < 0 || jj >= PS) continue; acc += tmp[jj * PS + i]; n++; }
+        for (let k = -4; k <= 4; k++) { const jj = j + k; if (jj < 0 || jj >= PS) continue; acc += tmp[jj * PS + i]; n++; }
         bm[j * PS + i] = acc / n;
       }
     }
@@ -168,7 +169,7 @@
     const img = c.createImageData(PS, PS), d = img.data;
     const { bm, am } = maps;
     for (let i = 0; i < PS * PS; i++) {
-      const li = (((0.2 + 0.8 * bm[i]) * (LUTN - 1)) | 0) * 3;
+      const li = (((0.3 + 0.7 * bm[i]) * (LUTN - 1)) | 0) * 3;
       d[i * 4] = lut[li]; d[i * 4 + 1] = lut[li + 1]; d[i * 4 + 2] = lut[li + 2]; d[i * 4 + 3] = am[i];
     }
     c.putImageData(img, 0, 0);
@@ -195,24 +196,24 @@
   });
   const shadeSprite = () => u.sprite('s4_shade', 64, 64, (c) => {
     const g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
-    g.addColorStop(0, 'rgba(112,124,176,0.95)'); g.addColorStop(0.5, 'rgba(120,132,184,0.5)'); g.addColorStop(1, 'rgba(130,140,190,0)');
+    g.addColorStop(0, 'rgba(84,100,162,0.95)'); g.addColorStop(0.45, 'rgba(98,114,172,0.6)'); g.addColorStop(0.75, 'rgba(112,126,182,0.2)'); g.addColorStop(1, 'rgba(120,134,188,0)');
     c.fillStyle = g; c.fillRect(0, 0, 64, 64);
   });
-  const sparkSprite = (hue) => u.sprite('s4_spark' + hue, 64, 64, (c) => {
-    const g = c.createRadialGradient(32, 32, 0, 32, 32, 12);
-    g.addColorStop(0, `hsla(${hue},40%,99%,1)`); g.addColorStop(0.4, `hsla(${hue},80%,85%,0.5)`); g.addColorStop(1, `hsla(${hue},80%,75%,0)`);
+  const sparkSprite = (hue) => u.sprite('s4_spark2' + hue, 64, 64, (c) => {
+    const g = c.createRadialGradient(32, 32, 0, 32, 32, 14);
+    g.addColorStop(0, `hsla(${hue},40%,99%,1)`); g.addColorStop(0.3, `hsla(${hue},70%,92%,0.7)`); g.addColorStop(0.65, `hsla(${hue},80%,82%,0.18)`); g.addColorStop(1, `hsla(${hue},80%,75%,0)`);
     c.fillStyle = g; c.fillRect(0, 0, 64, 64);
     for (let k = 0; k < 2; k++) {
       c.save(); c.translate(32, 32); c.rotate(k * Math.PI / 2);
-      const lg = c.createLinearGradient(-30, 0, 30, 0);
-      lg.addColorStop(0, `hsla(${hue},60%,95%,0)`); lg.addColorStop(0.5, `hsla(${hue},60%,97%,0.9)`); lg.addColorStop(1, `hsla(${hue},60%,95%,0)`);
-      c.fillStyle = lg; c.fillRect(-30, -0.9, 60, 1.8);
+      const lg = c.createLinearGradient(-15, 0, 15, 0);
+      lg.addColorStop(0, `hsla(${hue},60%,95%,0)`); lg.addColorStop(0.5, `hsla(${hue},60%,97%,0.34)`); lg.addColorStop(1, `hsla(${hue},60%,95%,0)`);
+      c.fillStyle = lg; c.fillRect(-15, -0.6, 30, 1.2);
       c.restore();
     }
   });
 
   /* ------------------------------------------------------------------ static data */
-  let motes = [], towers = [], nearBands = [], strands = [], heroPuffs = [], rain = [], birds = [], seaGl = [];
+  let motes = [], towers = [], nearBands = [], strands = [], heroPuffs = [], rain = [], birds = [], seaGl = [], vap = [], tendrils = [];
 
   const lightLvl = (sc, a, b) => (sc > b ? 2 : sc > a ? 1 : 0);
   function genCumulus(seed, n, hgt) {
@@ -288,7 +289,11 @@
     }
     heroPuffs.sort((a, b) => b.y - a.y);
     // rain streaks
-    rain = Array.from({ length: 56 }, () => ({ x: R(), y: R(), z: 0.4 + R() * 0.6, sp: 0.8 + R() * 0.5, l: 0.05 + R() * 0.06 }));
+    rain = Array.from({ length: 120 }, () => ({ x: R(), y: R(), z: 0.4 + R() * 0.6, sp: 0.8 + R() * 0.5, l: 0.05 + R() * 0.06, id: R() }));
+    // the hero's own rising vapour (B3) and the dark tendrils that stream past it in the storm
+    const V = u.rng(5150);
+    vap = Array.from({ length: VAPN }, () => ({ u: V(), dx: V() * 2 - 1, v: 0.8 + 0.5 * V(), sz: 0.6 + 0.8 * V(), ph: V() * TAU, w: 0.6 + 0.4 * V() }));
+    tendrils = Array.from({ length: 9 }, (_, i) => ({ x: (V() * 2 - 1) * (0.4 + 0.8 * V()), y: V() * 1.8 - 0.2, v: 0.7 + 0.8 * V(), w: 0.06 + 0.08 * V(), h: 0.3 + 0.35 * V(), a: 0.15 + 0.1 * V(), ph: V() * TAU }));
     // birds: a loose V flock
     birds = [];
     const B = u.rng(808);
@@ -302,7 +307,7 @@
   /* ------------------------------------------------------------------ per-size buffers */
   const CS = 0.5;
   const CV = {}; // cloud canvases
-  let FOG = null, SKYC = null;
+  let FOG = null, SKYC = null, BG = null, ORDER = [];
   let G_ENV = { W: 1, H: 1, S: 1 };
   const FR = { T: -1, yh: 1, zs: 0, xs: 0, dw: 1, sx: 0, sy: 0 };
   function frameCache(T, env) { FR.T = T; FR.yh = horizonY(T); FR.zs = seaScroll(T); FR.xs = seaDrift(T); FR.dw = dawn(T); const sp = sunPos(T); FR.sx = sp.x * env.W; FR.sy = sp.y * env.H; }
@@ -448,13 +453,13 @@
 
   /* ---- the sea of cloud: perspective height-field, lit from the low sun (low-res, upscaled) ---- */
   let SEAF = null;
-  const V0 = [140, 148, 202], V1 = [206, 210, 238], V2 = [252, 246, 238], WARMC = [255, 212, 148], STORMC = [112, 126, 152];
+  const V0 = [166, 172, 216], V1 = [214, 218, 242], V2 = [252, 246, 238], WARMC = [255, 212, 148], STORMC = [112, 126, 152];
   function cloudH(nx, nz, lod) {
     const b = u.fbm2(nx, nz, lod > 0.5 ? 3 : 2);
     if (lod < 0.05) return b;
     // humps with sharp creases between them (cumulus cauliflower)
-    const r1 = abs(2 * u.noise2(nx * 2.4 + 9.1, nz * 2.4 + 4.3) - 1);
-    const r2 = abs(2 * u.noise2(nx * 5.3 + 2.2, nz * 5.3 + 7.7) - 1);
+    const r1 = sqrt(pow(2 * u.noise2(nx * 2.4 + 9.1, nz * 2.4 + 4.3) - 1, 2) + 0.03);
+    const r2 = sqrt(pow(2 * u.noise2(nx * 5.3 + 2.2, nz * 5.3 + 7.7) - 1, 2) + 0.05);
     return b * 0.46 + (r1 * 0.34 + r2 * 0.2 * lod) * lod + (1 - lod) * 0.54 * 0.5;
   }
   function drawSeaField(g, T, env, sky, stm) {
@@ -471,18 +476,18 @@
     for (let j = 0; j < j0; j++) for (let i = 0; i < fw; i++) d[(j * fw + i) * 4 + 3] = 0;
     for (let j = j0; j < fh; j++) {
       const yn = (j + 0.5) / fh, dy = yn - yh;
-      const al = ss(0, 0.02, dy);
+      const al = ss(-0.004, 0.05, dy);
       const t = SK / (max(dy, 0) + SE);
       const Z = (t * ZK + zs) * 0.9;
       const lod = ss(0.015, 0.1, dy);
-      const hf = (1 - ss(0.0, 0.2, dy)) * 0.55;
+      const hf = (1 - ss(0.0, 0.26, dy)) * 0.7;
       const xk = asp * t * 1.6 * 0.9;
       for (let i = 0; i < fw; i++) {
         const xn = (i + 0.5) / fw;
         const nx = (xn - 0.5) * xk + xs * 0.9;
         const h = cloudH(nx, Z, lod);
         const hl = cloudH(nx + sdx, Z + sdz, lod);
-        let b = 0.68 + (h - 0.5) * 0.8 + (h - hl) * 5 * (0.35 + 0.65 * lod);
+        let b = 0.7 + (h - 0.5) * 0.62 + (h - hl) * 3.4 * (0.35 + 0.65 * lod);
         b = b < 0 ? 0 : b > 1 ? 1 : b;
         let r, gg, bl;
         if (b < 0.45) { const k = b / 0.45; r = V0[0] + (V1[0] - V0[0]) * k; gg = V0[1] + (V1[1] - V0[1]) * k; bl = V0[2] + (V1[2] - V0[2]) * k; }
@@ -524,6 +529,19 @@
       const st = forceStage != null ? forceStage : stageAt(cx90 + p.x * wpx, base90 + p.y * wpx, dwv, sx, sy, S, 0.2 * (-p.x) + 0.25 * min(1, -p.y / (wpx * 0.5)));
       puff(rec, px, py, p.r * wpx, st, p.v, p.b, 1, p.sy);
     }
+    // a soft gold core-light inside the sun-lit puffs of the warm (dawn) version
+    if (dwv >= 1 && forceStage == null) {
+      x.globalCompositeOperation = 'lighter';
+      const gs = u.glowSprite(44, 85, 76, 'soft');
+      for (let i = 0; i < cl.puffs.length; i += 2) {
+        const p = cl.puffs[i];
+        if (p.b < 1) continue;
+        const rr = p.r * wpx * 1.05;
+        x.globalAlpha = 0.17;
+        x.drawImage(gs, ox + p.x * wpx - rr, oy + p.y * wpx - rr, rr * 2, rr * 2);
+      }
+      x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+    }
     return { c, ox, oy, w: wC / CS, h: hC / CS };
   }
   function bakeAll(env) {
@@ -550,7 +568,7 @@
     if (dy < cv.y0) cv.y0 = dy;
     if (dy + dh > cv.y1) cv.y1 = dy + dh;
   }
-  function drawTowers(g, T, env, sky, stm) {
+  function drawTowers(g, T, env, sky, stm, hx, hy) {
     const { W, H, S } = env;
     const cv = CV.sea, x = cv;
     const yh = horizonY(T);
@@ -558,7 +576,7 @@
     clearCV(cv);
     let any = false;
     // far to near
-    const order = towers.slice().sort((a, b) => a.dy - b.dy);
+    const order = ORDER;
     const hzc = u.css(mixc(sky[7], [232, 214, 226], 0.3));
     for (let k = 0; k < (yh >= 1.0 ? 0 : order.length); k++) {
       const tw = order[k];
@@ -574,7 +592,7 @@
       if (wm > 0.02) placeImg(cv, tw.warm, cx, base, kk, al * wm);
       any = true;
     }
-    drawNear(cv, T, env);
+    drawNear(cv, T, env, hx, hy);
     if (stm > 0.005) tint(cv, 'rgb(100,116,142)', stm * 0.85);
     blit(g, cv, W, H, 1 - ss(93.6, 94.9, T));
   }
@@ -588,18 +606,26 @@
     resize(env) {
       const { W, H } = env;
       genSea(env);
-      mkCV('sea', W, H); mkCV('hero', W, H, 0.36); mkCV('front', W, H, 0.36);
+      // Everything soft (sky, sun, clouds, fog) is composed into ONE half-resolution opaque canvas and upscaled once:
+      // one smooth full-screen upscale costs ~4x less than six, and the clouds are soft anyway.
+      const bw = Math.ceil(W * CS), bh = Math.ceil(H * CS), bc = u.canvas(bw, bh);
+      BG = { c: bc, x: bc.getContext('2d', { alpha: false }), w: bw, h: bh, kx: bw / W, ky: bh / H };
+      mkCV('sea', W, H); mkCV('hero', W, H, 0.3);
       bakeAll(env);
       bakeSun(env.S);
       {
-        // a static, tiny noise layer breaks the 8-bit contour bands of the slow sky gradient once it is stretched
-        const c4 = u.canvas(128, 80), nz = u.canvas(128, 80), nx = nz.getContext('2d'), im = nx.createImageData(128, 80), rr = u.rng(99);
-        for (let i = 0; i < 128 * 80; i++) { const v = rr() < 0.5 ? 0 : 255; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 2 + rr() * 3; }
+        // the sky is a vertical gradient: a 1 x bh strip (written per frame) stretched sideways is almost free
+        const c4 = u.canvas(1, bh), x4 = c4.getContext('2d');
+        SKYC = { c: c4, x: x4, h: bh, img: x4.createImageData(1, bh) };
+        // fine static dither (black/white specks, alpha 2..6/255) breaks the contour bands of the slow gradients
+        const nz = u.canvas(bw, bh), nx = nz.getContext('2d'), im = nx.createImageData(bw, bh), rr = u.rng(99);
+        for (let i = 0; i < bw * bh; i++) { const v = rr() < 0.5 ? 0 : 255; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 2 + rr() * 4; }
         nx.putImageData(im, 0, 0);
-        SKYC = { c: c4, x: c4.getContext('2d'), h: 80, w: 128, n: nz };
+        SKYC.n = nz;
       }
+      ORDER = towers.slice().sort((a, b) => a.dy - b.dy);
       {
-        const fh = 100, fw = clamp(Math.round(fh * W / H), 120, 200);
+        const fh = 84, fw = clamp(Math.round(fh * W / H), 100, 170);
         const c2 = u.canvas(fw, fh), x2 = c2.getContext('2d');
         SEAF = { c: c2, x: x2, w: fw, h: fh, img: x2.createImageData(fw, fh) };
       }
@@ -621,60 +647,55 @@
       const sx = sp.x * W, sy = sp.y * H;
       const stm = storm(T);
       const sky = skyAt(T);
-
-      /* ---- sky ---- */
-      // multi-stop gradients are slow to rasterise: paint it into a tiny strip and stretch (it is smooth anyway)
-      {
-        const sx2 = SKYC.x;
-        const gr = sx2.createLinearGradient(0, 0, 0, SKYC.h);
-        for (let k = 0; k < 8; k++) gr.addColorStop(SKY_STOPS[k], u.css(sky[k]));
-        sx2.fillStyle = gr; sx2.fillRect(0, 0, SKYC.w, SKYC.h);
-        sx2.globalAlpha = 0.9; sx2.drawImage(SKYC.n, 0, 0); sx2.globalAlpha = 1;
-        g.drawImage(SKYC.c, 0, 0, SKYC.w, SKYC.h, 0, 0, W, H);
-      }
-
-      /* ---- sun glow, god rays ---- */
-
-      /* ---- far strands ---- */
-      drawStrands(g, T, W, H, S);
-
-      drawSun(g, T, W, H, S, sx, sy);
-
-      /* ---- cloud sea (height-field) + towers (sprites) ---- */
-      if (T < 98.3) {
-        drawSeaField(g, T, env, sky, stm);
-        drawTowers(g, T, env, sky, stm);
-      }
-
-      /* ---- glints in the clouds ---- */
-      drawSeaGlints(g, T, W, H, S);
-
-      /* ---- birds ---- */
-      drawBirds(g, T, W, H, S);
-
-      /* ---- the hero cloud (back) ---- */
       const hx = heroX(T) * W, hy = heroY(T) * H, hr = heroR(T) * S;
       const P = sss(85.5, 96, T);
-      drawHeroCloud(g, T, env, hx, hy, P, stm, false);
+      const b = BG.x;
+      heroState(T, pulseAt(T));
 
-      /* ---- converging drops + hero ---- */
-      const pulse = drawDrops(g, T, W, H, S, hx, hy);
-      drawHero(g, T, hx, hy, hr, pulse, P);
+      /* ================= half-res background: sky, sun, clouds, fog ================= */
+      b.setTransform(1, 0, 0, 1, 0, 0); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over';
+      paintSky(b, sky);
+      b.setTransform(BG.kx, 0, 0, BG.ky, 0, 0); // from here on: full-res coordinates
+      drawStrands(b, T, W, H, S, hx, hy);
+      drawSun(b, T, W, H, S, sx, sy);
+      if (T < 98.3) {
+        drawSeaField(b, T, env, sky, stm);
+        drawTowers(b, T, env, sky, stm, hx, hy);
+      }
+      drawHeroCloud(b, T, env, hx, hy, P, stm);
+      drawFog(b, T, env, hx, hy);
+      drawHeroHalo(b, hx, hy, hr);
+      b.setTransform(1, 0, 0, 1, 0, 0);
+      b.drawImage(SKYC.n, 0, 0);
+      g.drawImage(BG.c, 0, 0, BG.w, BG.h, 0, 0, W, H);
 
-      /* ---- hero cloud (front veil) + near layers ---- */
-      drawFront(g, T, env, hx, hy, P, stm);
-
-      /* ---- fog / engulf ---- */
-      drawFog(g, T, env, hx, hy);
-
-      /* ---- rain, lightning ---- */
+      /* ================= full-res sparkle layer: glints, birds, vapour, drops, hero ================= */
+      drawVapour(g, T, W, H, S, hx, hy);
+      drawSeaGlints(g, T, W, H, S);
+      drawBirds(g, T, W, H, S);
+      drawDrops(g, T, W, H, S, hx, hy);
+      drawHero(g, hx, hy, hr);
       drawRain(g, T, W, H, S);
-      drawFlash(g, T, W, H, S, hx, hy);
-
-      // the hero again, crisp on top of the fog (the cloud swallows everything but the drop)
-      if (T > 85) drawHero(g, T, hx, hy, hr, 0, P, ss(93, 94.5, T));
     },
   });
+
+  /* ------------------------------------------------------------------ sky strip */
+  function paintSky(b, sky) {
+    const h = SKYC.h, d = SKYC.img.data;
+    let k = 0;
+    for (let j = 0; j < h; j++) {
+      const t = (j + 0.5) / h;
+      while (k < 6 && t > SKY_STOPS[k + 1]) k++;
+      const t0 = SKY_STOPS[k], t1 = SKY_STOPS[k + 1];
+      const f = t <= t0 ? 0 : t >= t1 ? 1 : (t - t0) / (t1 - t0);
+      const a = sky[k], c = sky[k + 1];
+      const dz = (u.hash2(j, 5) - 0.5) * 1.1; // 1-level dither against banding
+      const o = j * 4;
+      d[o] = a[0] + (c[0] - a[0]) * f + dz; d[o + 1] = a[1] + (c[1] - a[1]) * f + dz; d[o + 2] = a[2] + (c[2] - a[2]) * f + dz; d[o + 3] = 255;
+    }
+    SKYC.x.putImageData(SKYC.img, 0, 0);
+    b.drawImage(SKYC.c, 0, 0, 1, h, 0, 0, BG.w, BG.h);
+  }
 
   /* ------------------------------------------------------------------ sun */
   // sun halo + crepuscular rays from cached sprites (source-over with warm alpha: cheap, reads as light)
@@ -712,7 +733,7 @@
       x.save();
       x.translate(ox, oy);
       x.rotate(ang + Math.PI / 2);          // beam sprite points "up", origin at its bottom centre
-      x.globalAlpha = a * 1.3;
+      x.globalAlpha = a * 0.8;
       x.drawImage(bs, -len * wd, -len, len * wd * 2, len);
       x.restore();
     }
@@ -727,7 +748,7 @@
   }
 
   /* ------------------------------------------------------------------ strands */
-  function drawStrands(g, T, W, H, S) {
+  function drawStrands(g, T, W, H, S, hx, hy) {
     const sp = wispSprite();
     const a0 = (1 - ss(88, 95, T));
     if (a0 < 0.01) return;
@@ -743,7 +764,9 @@
       const x = u.wrap(s.x + T * s.sp, -0.5, 1.5) * W;
       const w = s.w * W * (0.7 + s.q * 0.7), h = max(2, s.h * S * (1.2 + 0.8 * s.q));
       const fadeEdge = ss(-0.05, 0.08, y) * (1 - ss(0.9, 1.04, y));
-      g.globalAlpha = s.a * 0.5 * (0.75 + 0.25 * sin(T * 0.2 + s.ph)) * a0 * fadeEdge * (0.5 + 0.5 * ss(72, 77, T));
+      // never let a strand line up with the hero (it would read as a lens streak off the drop)
+      const clear = abs(y * H - hy) / S > 0.1 ? 1 : ss(0.025, 0.1, abs(y * H - hy) / S);
+      g.globalAlpha = s.a * 0.5 * (0.75 + 0.25 * sin(T * 0.2 + s.ph)) * a0 * fadeEdge * clear;
       g.drawImage(sp, x - w / 2, y * H - h / 2, w, h);
     }
     g.restore();
@@ -805,20 +828,21 @@
     const { S } = env;
     HCG.wx = (env.portrait ? 0.82 : 1) * (1 + 0.45 * clamp(env.aspect - 1.3, 0, 1.2));
     HCG.Rc = S * (0.04 + 0.5 * pow(P, 1.15)) + S * 1.3 * pow(ss(93.6, 98.4, T), 1.2);
-    HCG.fade = 1 - ss(96.8, 98.7, T);
+    HCG.fade = 1 - ss(95.4, 97.1, T);
     HCG.lift = -ss(94, 100, T) * 0.05 * S;
     return HCG;
   }
   function drawHeroCloud(g, T, env, hx, hy, P, stm) {
     const { W, H, S } = env;
-    if (P < 0.004 || T > 98.8) return;
+    if (P < 0.004 || T > 96.7) return;
     const cv = CV.hero, x = cv.x;
     clearCV(cv);
     const { Rc, wx, fade: fadeAll, lift } = heroGeom(T, env, P);
-    for (let i = 0; i < heroPuffs.length; i++) {
+    // once the cloud fills the view every puff is a screen-sized blend: draw every other one, a little denser
+    const stride = Rc > S * 0.45 ? 2 : 1, boost = stride > 1 ? 1.22 : 1;
+    for (let i = 0; i < heroPuffs.length; i += stride) {
       const p = heroPuffs[i];
-      if (p.front) continue;
-      drawHeroPuff(cv, p, T, hx, hy + lift, Rc, wx, P, fadeAll, W, H);
+      drawHeroPuff(cv, p, T, hx, hy + lift, Rc, wx, P, min(1, fadeAll * boost), W, H);
     }
     // sun-lit crown rim (additive, on the canvas so it stays cloud-shaped)
     const dw = dawn(T) * (1 - stm);
@@ -853,17 +877,14 @@
     }
     // a soft pocket of shade around the drop, so its light reads against the white cloud
     {
-      const sh = pow(P, 0.9) * (1 - ss(93.5, 96.5, T)) * 0.34;
+      const sh = pow(P, 0.8) * ss(85.5, 88.5, T) * (1 - ss(94, 96.5, T)) * 0.62;
       if (sh > 0.01) {
-        const rr = S * (0.06 + 0.15 * P);
+        const rr = S * (0.09 + 0.17 * P);
         g.globalAlpha = sh;
         g.drawImage(shadeSprite(), hx - rr, hy - rr, rr * 2, rr * 2);
         g.globalAlpha = 1;
       }
     }
-    // bright interior
-    const ia = (0.08 * pow(P, 0.8)) * (1 - ss(93, 97, T));
-    if (ia > 0.01) { const rr = S * (0.1 + 0.42 * P); g.globalAlpha = min(1, ia * 1.6); g.drawImage(u.glowSprite(44, 80, 84, 'soft'), hx - rr, hy - rr, rr * 2, rr * 2); g.globalAlpha = 1; }
   }
   function drawHeroPuff(cv, p, T, hx, hy, Rc, wx, P, fadeAll, W, H) {
     const gi = ss(p.rho * 0.62, p.rho * 0.62 + 0.38, P * 1.15);
@@ -874,30 +895,10 @@
     const r = p.r * Rc * (0.35 + 0.65 * gi) * (wx > 1 ? 1 + (wx - 1) * 0.35 : 1);
     if (px + r * 1.22 < 0 || px - r * 1.22 > W || py + r * 1.22 < 0 || py - r * 1.22 > H) return;
     const st = stageFor(px, py, T, 0.3 * (-p.x) + 0.3 * (-p.y));
-    puff(cv, px, py, r, st, p.v, p.rho < 0.4 ? min(p.b, 1) : p.b, 0.96 * gi * fadeAll, p.sy);
+    puff(cv, px, py, r, st, p.v, p.rho < 0.3 ? 0 : p.rho < 0.5 ? min(p.b, 1) : p.b, 0.96 * gi * fadeAll, p.sy);
   }
-  function drawFront(g, T, env, hx, hy, P, stm) {
-    const { W, H, S } = env;
-    const cv = CV.front;
-    if (!(P > 0.004 && T < 98.8)) return;
-    clearCV(cv);
-    const { Rc, wx, fade: fadeAll, lift } = heroGeom(T, env, P);
-    for (let i = 0; i < heroPuffs.length; i++) {
-      const p = heroPuffs[i];
-      if (!p.front || p.rho < 0.3) continue;
-      const gi = ss(p.rho * 0.62, p.rho * 0.62 + 0.38, P * 1.15);
-      if (gi < 0.012) continue;
-      const px = hx + p.x * Rc * wx + sin(T * 0.3 + p.ph) * 0.008 * Rc, py = hy + lift + p.y * Rc + sin(T * 0.37 + p.ph * 1.4) * 0.008 * Rc;
-      const r = p.r * Rc * (0.35 + 0.65 * gi);
-      if (px + r * 1.22 < 0 || px - r * 1.22 > W || py + r * 1.22 < 0 || py - r * 1.22 > H) continue;
-      puff(cv, px, py, r, stageFor(px, py, T, 0.3 * (-p.x) + 0.3 * (-p.y)), p.v, 1, 0.34 * gi * fadeAll, 1);
-    }
-    if (stm > 0.005) tint(cv, 'rgb(98,114,140)', stm * 0.8);
-    blit(g, cv, W, H, 1);
-  }
-
   // thin stratus sheets and cumulus we rise past (76-88): drawn into the cloud-sea canvas, behind the hero
-  function drawNear(cv, T, env) {
+  function drawNear(cv, T, env, hx, hy) {
     const { W, H, S } = env;
     if (T > 88.5) return;
     const cm = cam(T);
@@ -908,8 +909,14 @@
       const cy = (b.yc * H) + (cm - cam(b.Tc)) * S * b.pz;
       const wpx = b.w * S;
       const cx = b.xf * W + sin(T * 0.15 + b.ph) * 0.02 * W;
-      const fa = b.a * ss(75.5, 77.5, T) * (1 - ss(84, 88, T));
+      let fa = b.a * ss(76.8, 81.5, T) * (1 - ss(84, 88, T));
       if (fa < 0.01) continue;
+      // while the hero is still pinned in the clear dawn sky, keep passing clouds off the drop
+      if (T < 85) {
+        const ex = max(0, abs(cx - hx) - wpx * 0.5) / S, ey = max(0, abs(cy - hy) - wpx * 0.2) / S;
+        fa *= 1 - (1 - ss(0.02, 0.2, hypot(ex, ey))) * (1 - ss(80, 85, T));
+        if (fa < 0.01) continue;
+      }
       if (b.sheet) {
         const hh = wpx * 0.2;
         if (cy - hh > H || cy + hh < 0) continue;
@@ -930,10 +937,9 @@
   /* ------------------------------------------------------------------ drops */
   const hxy = { x: 0, y: 0 };
   function drawDrops(g, T, W, H, S, hx, hy) {
-    if (T > 96.5) return 0;
+    if (T > 96.5) return;
     g.save();
     g.globalCompositeOperation = 'lighter';
-    let pulse = 0;
     const spk = sparkSprite(46), spkC = sparkSprite(190);
     for (let pass = 0; pass < 2; pass++) {
       const list = pass === 0 ? motes : seaGl;
@@ -954,60 +960,103 @@
           continue;
         }
         const q = (T - m.s) / m.dur;
-        if (q > 1) { pulse += exp(-(T - m.s - m.dur) * 2.2); continue; }
-        // in flight along its spiral
+        if (q > 1) continue;
+        // in flight along its spiral: the comet tail of every drop goes into ONE batched path per hue (a handful of strokes per frame)
         dropPath(m, q, hx, hy, DP);
         const px = DP.x, py = DP.y;
         const arr = 1 - ss(0.9, 1, q);
         const grow = ss(0, 0.18, q);
-        const sz = S * (0.0044 + 0.0055 * m.z) * (1 + 0.9 * grow);
-        const spr = m.spr;
-        for (let k = 5; k >= 1; k--) {
-          const qq = q - k * 0.028;
-          if (qq <= 0) continue;
-          dropPath(m, qq, hx, hy, hxy);
-          const fk = 1 - k / 6;
-          const rr = sz * (0.6 + 0.9 * fk);
-          g.globalAlpha = 0.5 * fk * fk * grow * arr;
-          g.drawImage(spr, hxy.x - rr, hxy.y - rr, rr * 2, rr * 2);
+        // a soft comet tail: one fading glow blob behind the head
+        if (grow * arr > 0.1) {
+          const ga = grow * arr;
+          const rr = S * (0.0085 + 0.007 * m.z) * (0.6 + 0.4 * grow);
+          dropPath(m, max(0, q - 0.05), hx, hy, hxy);
+          g.globalAlpha = 0.6 * ga;
+          g.drawImage(m.spr, hxy.x - rr, hxy.y - rr, rr * 2, rr * 2);
         }
-        const rr = sz * 2.4;
-        g.globalAlpha = min(1, 0.55 * (0.35 + 0.65 * grow) * arr);
-        g.drawImage(spr, px - rr, py - rr, rr * 2, rr * 2);
-        if (grow > 0.2) {
-          const rs = S * 0.016 * (0.7 + 0.5 * m.z);
-          g.globalAlpha = 0.85 * grow * arr;
-          g.drawImage(m.cy > 100 ? spkC : spk, px - rs, py - rs, rs * 2, rs * 2);
-        }
+        const rs = S * (0.022 + 0.011 * m.z) * (0.45 + 0.55 * grow);
+        g.globalAlpha = min(1, 0.9 * (0.3 + 0.7 * grow) * arr);
+        g.drawImage(m.cy > 100 ? spkC : spk, px - rs, py - rs, rs * 2, rs * 2);
       }
     }
     g.restore();
-    return min(pulse, 6);
   }
 
   /* ------------------------------------------------------------------ hero */
-  function drawHero(g, T, hx, hy, hr, pulse, P, topA) {
-    const A = topA == null ? 1 : topA;
-    if (A < 0.01) return;
+  // the arrival pings (each drop that reaches the hero makes its glow swell for a moment)
+  function pulseAt(T) {
+    if (T > 96.5) return 0;
+    let p = 0;
+    for (let pass = 0; pass < 2; pass++) {
+      const list = pass === 0 ? motes : seaGl;
+      for (let i = 0; i < list.length; i++) {
+        const m = list[i];
+        if (!m.conv) continue;
+        const e = T - m.s - m.dur;
+        if (e > 0) p += exp(-e * 2.2);
+      }
+    }
+    return min(p, 6);
+  }
+  const HS = { m: 0, pul: 1, hue: 48, sat: 90, glow: 1, ao: 1, ad: 0 };
+  function heroState(T, pulse) {
     const m = ss(93, 97.5, T); // orb -> teardrop
-    const pul = 1 + 0.06 * sin(T * 2.4);
-    const hue = lerp(PIN_IN.hue, PIN_OUT.hue, ss(91, 97.5, T));
+    HS.m = m;
+    HS.pul = 1 + 0.06 * sin(T * 2.4);
+    HS.hue = lerp(PIN_IN.hue, PIN_OUT.hue, ss(91, 97.5, T));
     const kk = ss(91, 97.5, T);
-    const sat = lerp(90, 30, sin(Math.PI * kk));
-    // up in the open sky the drop is a small bright point, not a second sun; full strength again for the handoffs
-    const gdim = 1 - (0.38 + 0.12 * ss(84, 88, T)) * ss(76.5, 79, T) * (1 - ss(95, 98, T));
-    const glow = (1 + min(0.7, pulse * 0.09)) * gdim;
-    // extra warm glow while the cloud forms (bright core), fading before the B4 handoff
-    const extra = ss(84, 90, T) * (1 - ss(94, 97.2, T));
-    
-    const s = clamp(sat, 20, 95);
-    if (m < 0.999) hero.draw(g, hx, hy, hr, { hue, sat: s, form: 'orb', a: A, pulse: pul, glow });
-    if (m > 0.001) hero.draw(g, hx, hy, hr, { hue, sat: s, form: 'drop', a: m * A, pulse: pul, glow, angle: 0 });
+    HS.sat = clamp(lerp(90, 30, sin(Math.PI * kk)), 20, 95);
+    // in the open sky / against the white cloud the halo is eased right down (the core stays crisp); in the grey it settles at 0.7
+    const dd = lerp(0.5 + 0.18 * ss(84, 88, T), 0.3, ss(93.5, 98.4, T));
+    HS.glow = (1 + min(0.35, pulse * 0.05)) * (1 - dd * ss(76.5, 79, T));
+    HS.ao = m < 0.97 ? (m > 0.001 ? 1 - m * 0.6 : 1) : 0;
+    HS.ad = m > 0.001 ? m : 0;
+    return HS;
+  }
+  // the two big soft halos of the hero are drawn into the half-res background (same recipe as Anim.hero.draw): 4x cheaper
+  function drawHeroHalo(b, hx, hy, hr) {
+    const R = hr * HS.pul, a = HS.ao + HS.ad, gl = HS.glow;
+    u.glow(b, hx, hy, R * 18, HS.hue, HS.sat, 58, 0.2 * a * gl, 'soft');
+    u.glow(b, hx, hy, R * 7, HS.hue, HS.sat, 62, 0.5 * a * gl, 'soft');
+  }
+  function drawHero(g, hx, hy, hr) {
+    // glow: ~0 => hero.draw skips its two big halos (drawn above in the half-res layer); the crisp core is drawn here
+    if (HS.ao > 0) hero.draw(g, hx, hy, hr, { hue: HS.hue, sat: HS.sat, form: 'orb', a: HS.ao, pulse: HS.pul, glow: 0.0001 });
+    if (HS.ad > 0) hero.draw(g, hx, hy, hr, { hue: HS.hue, sat: HS.sat, form: 'drop', a: HS.ad, pulse: HS.pul, glow: 0.0001, angle: 0 });
+  }
+
+  /* ------------------------------------------------------------------ vapour column (B3): the hero's own rising motes */
+  const moteSprite = () => u.sprite('s4_mote', 32, 32, (c) => {
+    const g = c.createRadialGradient(16, 16, 0, 16, 16, 16);
+    g.addColorStop(0, 'rgba(255,252,240,1)'); g.addColorStop(0.28, 'rgba(255,244,214,0.9)'); g.addColorStop(0.55, 'rgba(255,228,170,0.28)'); g.addColorStop(1, 'rgba(255,220,150,0)');
+    c.fillStyle = g; c.fillRect(0, 0, 32, 32);
+  });
+  const VAPN = 90;
+  function drawVapour(g, T, W, H, S, hx, hy) {
+    const e = 1 - ss(76, 83, T);
+    if (e < 0.01) return;
+    const len = hy + S * 0.05;
+    const spr = moteSprite();
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < VAPN; i++) {
+      const m = vap[i];
+      const s = u.wrap(m.u + T * 0.05 * m.v * S / len, 0, 1);
+      const y = hy - s * len;
+      const x = hx + (m.dx * (0.02 + 0.075 * s) + sin(T * 0.7 + m.ph) * 0.008) * S;
+      const tw = 0.55 + 0.45 * sin(T * 1.9 + m.ph * 3);
+      const a = e * tw * (0.95 - 0.5 * s) * ss(0.0, 0.06, s) * (1 - ss(0.86, 1, s)) * m.w;
+      if (a < 0.02) continue;
+      const r = S * 0.0105 * m.sz * (1 - 0.3 * s);
+      g.globalAlpha = a > 1 ? 1 : a;
+      g.drawImage(spr, x - r, y - r, r * 2, r * 2);
+    }
+    g.restore();
   }
 
   /* ------------------------------------------------------------------ fog */
-  const FOGK_TOP = [[94.4, rgb('#dfe5ef')], [96.2, rgb('#8b9ab2')], [98.1, rgb('#34465f')]];
-  const FOGK_BOT = [[94.4, rgb('#eef0f3')], [96.2, rgb('#aab5c6')], [98.1, rgb('#6d8199')]];
+  const FOGK_TOP = [[94.0, rgb('#8d9db6')], [95.2, rgb('#7788a3')], [96.2, rgb('#5f7491')], [97.2, rgb('#485e7c')], [98.1, rgb('#34465f')]];
+  const FOGK_BOT = [[94.0, rgb('#a9b7ca')], [95.2, rgb('#9aa9bf')], [96.2, rgb('#8aa0b8')], [97.2, rgb('#7890aa')], [98.1, rgb('#6d8199')]];
   function ck(keys, T) {
     const n = keys.length;
     if (T <= keys[0][0]) return keys[0][1];
@@ -1015,24 +1064,25 @@
     let i = 0;
     while (T > keys[i + 1][0]) i++;
     let s = (T - keys[i][0]) / (keys[i + 1][0] - keys[i][0]);
-    s = s * s * (3 - 2 * s);
-    return mixc(keys[i][1], keys[i + 1][1], s);
+    return mixc(keys[i][1], keys[i + 1][1], s); // linear: no plateau at the keys, the darkening is one even ramp
   }
+  // silent lightning inside the cloud: a flicker, a double pulse, the big flash with a long afterglow, a late weak one
   function flashAmt(T) {
-    if (T < 98.5 || T > 101) return 0;
+    if (T < 98.2 || T > 101.6) return 0;
     const pl = (t0, w) => (T < t0 ? exp(-pow((T - t0) / 0.035, 2)) : exp(-(T - t0) / w));
-    return min(1, 0.5 * pl(98.93, 0.09) + 0.7 * pl(99.27, 0.2) + 0.12 * pl(99.27, 0.8));
+    return min(1, 0.4 * pl(98.4, 0.07) + 0.55 * pl(98.72, 0.1) + 1.0 * pl(99.05, 0.2) + 0.2 * pl(99.05, 0.9) + 0.4 * pl(100.5, 0.16));
   }
   function drawFog(g, T, env, hx, hy) {
     const { W, H, S } = env;
-    const prog = ss(94.6, 98.0, T);
+    const prog = ss(94.0, 97.4, T);
     if (prog < 0.003 || !FOG) return;
     const top = ck(FOGK_TOP, T), bot = ck(FOGK_BOT, T);
     const { w, h, img } = FOG, d = img.data;
     const asp = W / H;
     const fl = flashAmt(T);
+    const bil = ss(95.5, 98.2, T);
     const fxn = (hx / W + 0.12) * asp * 1.0, fyn = 0.3;
-    const drift = T * 0.022;
+    const drift = T * 0.026, drift2 = T * 0.05;
     for (let j = 0; j < h; j++) {
       const ny = j / (h - 1);
       for (let i = 0; i < w; i++) {
@@ -1040,49 +1090,73 @@
         const v = u.fbm2(nx * 1.6 + 3.1 + T * 0.006, ny * 1.6 + drift, 2);
         const v2 = u.noise2(nx * 0.9 + 11 - T * 0.004, ny * 0.9 + drift * 0.7);
         const a = clamp((prog * 2.3 - (ny * 0.7 + (1 - v) * 0.6)) / 0.5, 0, 1);
-        const lum = 0.86 + 0.28 * v + 0.1 * (v2 - 0.5);
+        // great dark masses rolling upward past the hero: the cloud has started to fall
+        const bm = ss(0.4, 0.72, u.fbm2(nx * 0.8 + 5.2, ny * 0.8 + drift2, 3));
+        const lum = 0.86 + 0.28 * v + 0.1 * (v2 - 0.5) + bil * 0.36 * (0.2 - bm);
         let r = lerp(top[0], bot[0], ny) * lum, gg = lerp(top[1], bot[1], ny) * lum, b = lerp(top[2], bot[2], ny) * lum;
         if (fl > 0.002) {
           const dx = nx - fxn, dy = (ny - fyn) / asp * 1.2;
-          const f = fl * exp(-(dx * dx + dy * dy) * 2.6) * (0.12 + 1.7 * v * v * v);
-          r += 62 * f; gg += 70 * f; b += 104 * f;
+          const f = fl * exp(-(dx * dx + dy * dy) * 2.4) * (0.3 + 1.2 * v * v + 0.4 * bm);
+          r += 40 * f; gg += 46 * f; b += 84 * f;
         }
         const o = (j * w + i) * 4;
         d[o] = r > 255 ? 255 : r; d[o + 1] = gg > 255 ? 255 : gg; d[o + 2] = b > 255 ? 255 : b; d[o + 3] = a * 255;
       }
     }
     FOG.x.putImageData(img, 0, 0);
-    g.save();
     g.imageSmoothingEnabled = true;
     g.drawImage(FOG.c, 0, 0, W, H);
-    g.restore();
+    // a slow breathing glow about the drop, and dark vapour tendrils streaming past it
+    const ga = ss(95, 97.8, T) * (0.05 + 0.07 * (0.5 + 0.5 * sin(T * 1.25)));
+    if (ga > 0.01) { const rr = S * 0.3; g.globalCompositeOperation = 'lighter'; g.globalAlpha = ga; g.drawImage(u.glowSprite(208, 55, 72, 'soft'), hx - rr, hy - rr, rr * 2, rr * 2); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; }
+    const te = ss(96.6, 99, T);
+    if (te > 0.01) {
+      const ts = tendrilSprite();
+      for (let i = 0; i < tendrils.length; i++) {
+        const t = tendrils[i];
+        const ty = u.wrap(t.y - T * 0.045 * t.v * S / H, -0.4, 1.4);
+        const tx = hx + (t.x * 0.55 + sin(T * 0.25 + t.ph) * 0.04) * S + (t.x > 0 ? 0.05 : -0.05) * S;
+        const tw = S * t.w, th = S * t.h;
+        g.globalAlpha = te * t.a * (0.8 + 0.2 * sin(T * 0.5 + t.ph));
+        g.drawImage(ts, tx - tw / 2, ty * H - th / 2, tw, th);
+      }
+      g.globalAlpha = 1;
+    }
+    // flash bloom covering a good part of the frame
+    if (fl > 0.01) {
+      const fx = hx + S * 0.22, fy = hy - S * 0.2, R = S * 1.05;
+      const gr = g.createRadialGradient(fx, fy, 0, fx, fy, R);
+      gr.addColorStop(0, `rgba(215,225,255,${0.4 * fl})`); gr.addColorStop(0.4, `rgba(175,192,245,${0.22 * fl})`); gr.addColorStop(1, 'rgba(150,170,230,0)');
+      g.globalCompositeOperation = 'lighter';
+      g.fillStyle = gr;
+      g.fillRect(fx - R, fy - R, R * 2, R * 2);
+      g.globalCompositeOperation = 'source-over';
+    }
   }
+  const tendrilSprite = () => u.sprite('s4_tendril', 48, 160, (c, w, h) => {
+    c.save(); c.translate(w / 2, h / 2); c.scale(w / h, 1);
+    const g = c.createRadialGradient(0, 0, 0, 0, 0, h / 2);
+    g.addColorStop(0, 'rgba(26,40,66,0.9)'); g.addColorStop(0.45, 'rgba(30,44,70,0.4)'); g.addColorStop(1, 'rgba(30,44,70,0)');
+    c.fillStyle = g; c.fillRect(-h / 2, -h / 2, h, h); c.restore();
+  });
 
-  /* ------------------------------------------------------------------ rain + lightning */
+  /* ------------------------------------------------------------------ rain */
   function drawRain(g, T, W, H, S) {
-    const e = ss(96.2, 101, T) * 0.085;
+    const e = 0.03 * ss(95.5, 98, T) + 0.1 * ss(98, 102, T);
     if (e < 0.004) return;
     g.save();
     g.fillStyle = '#d6e2f2';
-    for (let i = 0; i < rain.length; i++) {
+    const n = rain.length;
+    for (let i = 0; i < n; i++) {
       const r = rain[i];
+      // the streaks come in one by one: a drop's own start time, so the shower builds
+      const vis = ss(95.8 + r.id * 4.6, 96.8 + r.id * 4.6, T);
+      if (vis < 0.02) continue;
       const y = u.wrap(r.y + T * r.sp * 0.55 * S / H, -0.15, 1.1);
       const l = r.l * S * r.z;
-      g.globalAlpha = e * r.z;
+      g.globalAlpha = e * r.z * vis;
       g.fillRect(r.x * W, y * H, max(1, S * 0.0016 * r.z), l);
     }
-    g.restore();
-  }
-  function drawFlash(g, T, W, H, S, hx, hy) {
-    const f = flashAmt(T);
-    if (f < 0.01) return;
-    g.save();
-    const fx = hx + S * 0.2, fy = hy - S * 0.16;
-    const R = S * 0.8;
-    const gr = g.createRadialGradient(fx, fy, 0, fx, fy, R);
-    gr.addColorStop(0, `rgba(205,215,255,${0.30 * f})`); gr.addColorStop(0.35, `rgba(170,185,240,${0.14 * f})`); gr.addColorStop(1, 'rgba(150,170,230,0)');
-    g.fillStyle = gr;
-    g.fillRect(fx - R, fy - R, R * 2, R * 2);
     g.restore();
   }
 })();
