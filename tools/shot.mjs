@@ -21,7 +21,7 @@ const { browser, page, logs, w, h } = await open({ size: a.size || '1280x720', d
 if (a.single) {
   for (const T of times) {
     await page.evaluate((t) => { window.__anim.renderAt(t, true); }, T);
-    if (!a.cap) await page.addStyleTag({ content: '#captions,#bar,#start{display:none!important}' });
+    await page.addStyleTag({ content: '#bar,#start{display:none!important}' + (a.cap ? '' : '#captions{display:none!important}') });
     const file = times.length === 1 ? out : out.replace(/(\.png)?$/, `_${T.toFixed(2)}.png`);
     await page.screenshot({ path: file });
     console.log('wrote', file);
