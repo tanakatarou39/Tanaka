@@ -336,6 +336,17 @@
     E.stats.lastMs = performance.now() - t0;
   };
 
+  /** debug: render ONE scene alone (no cross-fade) for time T, incl. post-fx. */
+  E.renderSolo = (id, T) => {
+    const sc = Anim.timeline.byId[id], d = E.ctx;
+    const base = Anim.timeline.fx(T);
+    const fx = { bloom: base.bloom, vignette: base.vignette, grain: base.grain, fade: 1 };
+    drawScene(d, { id, start: sc.start, end: sc.end, w: 1 }, T);
+    const f = sceneFx({ id, start: sc.start }, T);
+    if (f) Object.assign(fx, f);
+    if (!E.noFx) E.post(d, fx, T);
+  };
+
   E.post = (d, fx, T) => {
     const W = E.W, H = E.H;
     d.save();

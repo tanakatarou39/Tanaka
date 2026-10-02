@@ -9,7 +9,9 @@
   let muted = false;
   const canvas = $('c');
   E.attach(canvas);
-  if (qs.has('maxpx')) E.maxPixels = parseFloat(qs.get('maxpx'));
+  // pixel budget: phones/tablets get a lower cap (canvas memory + fill-rate); desktops up to ~Full HD
+  const smallScreen = (G.matchMedia && G.matchMedia('(pointer: coarse)').matches) || Math.min(screen.width, screen.height) < 700;
+  E.maxPixels = qs.has('maxpx') ? parseFloat(qs.get('maxpx')) : (smallScreen ? 1.05e6 : 2.1e6);
 
   function fit() {
     const w = G.innerWidth, h = G.innerHeight, dpr = G.devicePixelRatio || 1;
@@ -52,17 +54,43 @@
     setMuted(m) { muted = m; Anim.ui.setMuted(m); if (Anim.audio.supported) Anim.audio.setMuted(m); },
   };
 
-  /* adaptive resolution: keep the frame loop near 60 fps on weak devices */
-  const q = { acc: 0, n: 0, cool: 0 };
-  function adapt(dt) {
+  /* Quality control. Changing the canvas size makes every scene rebuild its buffers (a visible hitch), so
+   * we calibrate ONCE while the start card is showing, and only fall back (at most twice) if playback is
+   * clearly struggling afterwards. */
+  async function calibrate() {
     if (qs.has('q')) return;
+    const heavy = [46, 60, 90, 100, 145, 168, 175];
+    const run = () => {
+      const ms = [];
+      for (const T of heavy) for (let i = 0; i < 3; i++) {
+        const t0 = performance.now();
+        E.renderAt(T + i * 0.05);
+        E.ctx.getImageData(0, 0, 1, 1); // force the GPU to finish so we measure real cost
+        ms.push(performance.now() - t0);
+      }
+      ms.sort((a, b) => a - b);
+      return ms[Math.floor(ms.length * 0.6)];
+    };
+    run(); // warm up (lazy sprites, JIT)
+    const cost = run();
+    G.__calibration = { cost, scale: E.scale };
+    if (cost > 19 && E.scale > 0.5) {
+      const s = Math.max(0.5, E.scale * Math.sqrt(15 / cost));
+      E.setSize(E.cssW, E.cssH, E.dpr, s);
+      await E.prepare((p) => { $('prep').style.setProperty('--p', (p * 100) + '%'); });
+      G.__calibration.scale = E.scale;
+    }
+  }
+  const q = { acc: 0, n: 0, drops: 0 };
+  function adapt(dt) {
+    if (qs.has('q') || q.drops >= 2) return;
     q.acc += dt; q.n++;
-    if (q.cool > 0) q.cool--;
-    if (q.n < 45) return;
+    if (q.n < 120) return;
     const avg = q.acc / q.n; q.acc = 0; q.n = 0;
-    if (q.cool > 0) return;
-    if (avg > 0.0225 && E.scale > 0.5) { E.setSize(E.cssW, E.cssH, E.dpr, Math.max(0.5, E.scale * 0.82)); q.cool = 2; }
-    else if (avg < 0.0125 && E.scale < 1) { E.setSize(E.cssW, E.cssH, E.dpr, Math.min(1, E.scale * 1.12)); q.cool = 4; }
+    if (avg > 0.042 && E.scale > 0.5) {
+      q.drops++;
+      E.setSize(E.cssW, E.cssH, E.dpr, Math.max(0.5, E.scale * 0.75));
+    }
   }
 
   function frame(now) {
@@ -85,12 +113,25 @@
   }
 
   document.addEventListener('visibilitychange', () => { if (document.hidden && clock.playing) api.pause(); });
-  G.addEventListener('resize', () => { fit(); clock.dirty = true; });
+  // after a window resize / rotation: rebuild every scene's buffers while paused, then carry on
+  let resizeTimer = 0;
+  G.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(async () => {
+      const was = clock.playing;
+      if (was) api.pause();
+      fit();
+      await E.prepare();
+      clock.dirty = true;
+      if (was) api.play();
+    }, 300);
+  });
 
   async function boot() {
     Anim.ui.init(api);
     fit();
     await E.prepare((p) => { $('prep').style.setProperty('--p', (p * 100) + '%'); });
+    await calibrate();
     try { await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1500))]); } catch (e) {}
     document.body.classList.add('ready');
     clock.dirty = true;
@@ -99,9 +140,8 @@
     const beginWith = (sound) => {
       document.body.classList.add('started');
       api.setMuted(!sound);
-      if (sound && Anim.audio.supported) Anim.audio.start(clock.T);
-      clock.playing = false; api.play();
-      if (!sound || !Anim.audio.supported) { /* silent playback */ }
+      clock.playing = false;
+      api.play(); // starts the audio too (inside this click = user gesture)
     };
     $('go').addEventListener('click', () => beginWith(true));
     $('goquiet').addEventListener('click', () => beginWith(false));
@@ -118,6 +158,7 @@
 
   G.__anim = {
     api, clock, engine: E,
+    renderSolo(id, T) { clock.T = T; E.renderSolo(id, T); },
     renderAt(T, withUI) { clock.T = T; E.renderAt(T); if (withUI) Anim.ui.update(T); },
     setSize(w, h) { canvas.style.width = w + 'px'; canvas.style.height = h + 'px'; E.setSize(w, h, qs.has('dpr') ? parseFloat(qs.get('dpr')) : 1, qs.has('q') ? parseFloat(qs.get('q')) : 1); },
   };
