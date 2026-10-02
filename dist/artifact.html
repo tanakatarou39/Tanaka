@@ -21,13 +21,17 @@
   #c { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
 
   /* captions: phrases never break mid-word; a soft dark scrim + tight shadow keep them legible over bright scenes */
-  #captions { position: fixed; left: 0; right: 0; bottom: calc(12vh + env(safe-area-inset-bottom, 0px)); padding: 0 5vw; text-align: center; pointer-events: none; }
-  #captions .box { position: relative; display: inline-block; max-width: 100%; padding: 0.7em 1.3em 0.6em; isolation: isolate; }
+  #captions { position: fixed; left: 0; right: 0; bottom: calc(12vh + env(safe-area-inset-bottom, 0px)); padding: 0 max(5vw, env(safe-area-inset-left, 0px)) 0 max(5vw, env(safe-area-inset-right, 0px)); text-align: center; pointer-events: none; }
+  #captions .box { position: relative; display: inline-block; max-width: 100%; box-sizing: border-box; padding: 0.7em 1.3em 0.6em; isolation: isolate; }
   #captions .box::before { content: ""; position: absolute; inset: -0.7em -1.5em; z-index: -1; border-radius: 50%; opacity: var(--scrim, 0); background: radial-gradient(closest-side, rgba(3, 10, 26, 0.42), rgba(3, 10, 26, 0.24) 50%, rgba(3, 10, 26, 0.07) 78%, rgba(3, 10, 26, 0)); }
   #captions .jp { font-size: clamp(17px, 2.5vmin + 1.3vw, 33px); letter-spacing: 0.12em; line-height: 1.75; font-weight: 500; color: #fff; text-shadow: 0 1px 2px rgba(0, 8, 24, 0.85), 0 0 10px rgba(0, 8, 24, 0.6), 0 0 28px rgba(0, 8, 24, 0.45); }
   #captions .ph { display: inline-block; white-space: nowrap; }
   #captions .jp .c { display: inline-block; opacity: 0; will-change: opacity, transform, filter; }
-  #captions .en { margin-top: 0.25em; font-family: var(--font-en); font-style: italic; font-weight: 400; font-size: clamp(15px, 1.3vmin + 0.9vw, 22px); letter-spacing: 0.05em; color: #eef7ff; opacity: 0; text-shadow: 0 1px 2px rgba(0, 8, 24, 0.85), 0 0 12px rgba(0, 8, 24, 0.6); }
+  #captions .en { margin: 0.25em auto 0; max-width: 34em; text-wrap: balance; font-family: var(--font-en); font-style: italic; font-weight: 500; font-size: clamp(15px, 1.3vmin + 0.9vw, 22px); letter-spacing: 0.05em; color: #fff; opacity: 0; text-shadow: 0 0 3px rgba(0, 8, 24, 0.9), 0 1px 3px rgba(0, 8, 24, 0.85), 0 0 14px rgba(0, 8, 24, 0.7); }
+  /* bright scenes (dawn, clouds, meadow, snow): wider cool-navy scrim + heavier shadow */
+  #captions.bright .box::before { inset: -1em -2.2em; background: radial-gradient(closest-side, rgba(8, 22, 56, 0.62), rgba(8, 22, 56, 0.42) 50%, rgba(8, 22, 56, 0.14) 78%, rgba(8, 22, 56, 0)); }
+  #captions.bright .jp { text-shadow: 0 0 3px rgba(4, 14, 40, 0.95), 0 1px 3px rgba(4, 14, 40, 0.9), 0 0 16px rgba(4, 14, 40, 0.75); }
+  #captions.bright .en { text-shadow: 0 0 4px rgba(4, 14, 40, 0.98), 0 1px 3px rgba(4, 14, 40, 0.95), 0 0 16px rgba(4, 14, 40, 0.8); }
   #captions.cap-title { bottom: auto; top: 31%; transform: translateY(-50%); }
   #captions.cap-title .box::before { display: none; }
   #captions.cap-title .jp { font-size: clamp(34px, 7vmin + 2vw, 92px); letter-spacing: 0.32em; padding-left: 0.32em; font-weight: 500; text-shadow: 0 0 28px rgba(140, 220, 255, 0.85), 0 0 80px rgba(80, 170, 255, 0.55); }
@@ -37,8 +41,17 @@
   @media (max-aspect-ratio: 1/1) {
     #captions { bottom: calc(14vh + env(safe-area-inset-bottom, 0px)); padding: 0 4vw; }
     #captions .jp { font-size: clamp(16px, 4.8vw, 25px); letter-spacing: 0.05em; }
-    #captions.cap-title .jp { font-size: clamp(30px, 11vw, 64px); letter-spacing: 0.22em; padding-left: 0.22em; }
-    #captions.cap-title .en { letter-spacing: 0.08em; }
+    #captions.cap-title .box { padding-left: 0; padding-right: 0; }
+    #captions.cap-title .jp { font-size: clamp(26px, 9vw, 64px); letter-spacing: 0.16em; padding-left: 0.16em; }
+    #captions.cap-title .en { letter-spacing: 0.06em; max-width: 90vw; }
+    #captions .en { max-width: 86vw; }
+  }
+
+  @media (max-height: 480px) and (orientation: landscape) {
+    #captions { bottom: calc(19vh + env(safe-area-inset-bottom, 0px)); }
+    #captions.cap-title { top: 24%; }
+    #captions.cap-title .jp { font-size: clamp(26px, 8vh, 48px); }
+    #captions.cap-title .en { margin-top: 0.6em; font-size: clamp(13px, 4vh, 18px); }
   }
 
   /* start card */
@@ -56,24 +69,25 @@
   #start .hint { font-size: 12px; color: var(--ink-dim); letter-spacing: 0.12em; opacity: 0.8; }
   #start .btns, #start .hint { opacity: 0; transition: opacity 0.8s; pointer-events: none; }
   body.ready #start .btns, body.ready #start .hint { opacity: 1; pointer-events: auto; }
+  @media (hover: none) { #start .hint .kb { display: none; } }
   #prep { width: 120px; height: 1px; background: var(--line); position: relative; transition: opacity 0.6s; }
   #prep::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--p, 0%); background: var(--glow); box-shadow: 0 0 8px var(--glow); }
   body.ready #prep { opacity: 0; }
 
   /* transport */
-  #bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 18px 18px calc(14px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to top, rgba(2, 4, 10, 0.72), rgba(2, 4, 10, 0)); opacity: 0; transition: opacity 0.5s; z-index: 3; }
+  #bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 14px max(14px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px)); background: linear-gradient(to top, rgba(2, 4, 10, 0.72), rgba(2, 4, 10, 0)); opacity: 0; transition: opacity 0.5s; z-index: 3; }
   body.active #bar, body:not(.started) #bar { opacity: 1; }
   body:not(.started) #bar { display: none; }
-  #bar button { all: unset; box-sizing: border-box; width: 38px; height: 38px; display: grid; place-items: center; cursor: pointer; border-radius: 50%; color: var(--ink); flex: none; }
+  #bar button { all: unset; box-sizing: border-box; width: 44px; height: 44px; display: grid; place-items: center; cursor: pointer; border-radius: 50%; color: var(--ink); flex: none; }
   #bar button:hover, #bar button:focus-visible { background: rgba(255, 255, 255, 0.12); }
   #bar svg { width: 20px; height: 20px; fill: currentColor; }
   #play[data-state="pause"] .i-play, #play[data-state="play"] .i-pause { display: none; }
   #snd[data-state="on"] .i-off, #snd[data-state="off"] .i-on { display: none; }
   #time { font-family: var(--font-en); font-size: 15px; letter-spacing: 0.08em; color: var(--ink-dim); font-variant-numeric: tabular-nums; flex: none; min-width: 5.6em; text-align: center; }
-  .seekwrap { position: relative; flex: 1; min-width: 0; height: 38px; display: grid; align-items: center; }
+  .seekwrap { position: relative; flex: 1; min-width: 0; height: 44px; display: grid; align-items: center; }
   #ticks { position: absolute; left: 0; right: 0; top: 50%; height: 0; pointer-events: none; }
   #ticks i { position: absolute; width: 1px; height: 10px; margin-top: -5px; background: rgba(255, 255, 255, 0.35); }
-  #seek { -webkit-appearance: none; appearance: none; width: 100%; height: 20px; margin: 0; background: transparent; cursor: pointer; }
+  #seek { -webkit-appearance: none; appearance: none; width: 100%; height: 44px; margin: 0; background: transparent; cursor: pointer; touch-action: none; }
   #seek::-webkit-slider-runnable-track { height: 2px; border-radius: 2px; background: linear-gradient(to right, var(--glow) var(--p, 0%), rgba(255, 255, 255, 0.22) var(--p, 0%)); }
   #seek::-moz-range-track { height: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.22); }
   #seek::-moz-range-progress { height: 2px; background: var(--glow); }
@@ -96,7 +110,7 @@
       <button id="go" type="button">音を出して はじめる</button>
       <button id="goquiet" type="button" class="quiet">音なしで みる</button>
     </div>
-    <div class="hint">約3分 ・ スペースキーで一時停止 ・ ← → で5秒移動</div>
+    <div class="hint">約3分<span class="kb"> ・ スペースキーで一時停止 ・ ← → で5秒移動</span></div>
   </div>
 </div>
 
@@ -544,23 +558,23 @@
     { t0: 8.0, t1: 15.8, kind: 'title', jp: 'ひとしずくの旅', en: 'The Journey of a Single Drop of Light' },
     { t0: 16.6, t1: 22.8, jp: '音のない、いちばん深い場所で。', en: 'In the deepest place, where there is no sound,' },
     { t0: 23.4, t1: 29.8, jp: 'ひとしずくの光が、ゆっくりと目をさました。', en: 'a single drop of light slowly awoke.' },
-    { t0: 32.0, t1: 39.5, jp: '大きな影が、静かに通りすぎていく。', en: 'A vast shadow drifts past, without a sound.' },
+    { t0: 32.0, t1: 39.5, jp: '大きな影が、静かに通りすぎていく。', en: 'A vast shadow drifted past, without a sound.' },
     { t0: 41.0, t1: 48.5, jp: '上へ、上へ。あかるい方へ。', en: 'Up, and further up, toward the light.' },
-    { t0: 58.0, t1: 64.5, jp: '水面のむこうに、朝があった。', en: 'Beyond the surface, there was morning.' },
-    { t0: 65.0, t1: 71.5, jp: 'ひとしずくは光にとけて、空へのぼる。', en: 'Melting into the light, it rose into the sky.' },
-    { t0: 77.0, t1: 84.0, jp: '空では、たくさんのしずくが待っていた。', en: 'Up there, countless drops were waiting.' },
-    { t0: 85.0, t1: 92.5, jp: 'ひとつ、またひとつ。集まって、雲になった。', en: 'One by one they gathered, and became a cloud.' },
-    { t0: 93.5, t1: 100.4, jp: '雲は、すこしずつ重くなっていく。', en: 'The cloud grew heavier, little by little.' },
+    { t0: 58.0, t1: 64.5, bright: true, jp: '水面のむこうに、朝があった。', en: 'Beyond the surface, there was morning.' },
+    { t0: 65.0, t1: 71.5, bright: true, jp: 'ひとしずくは光にとけて、空へのぼる。', en: 'Melting into the light, it rose into the sky.' },
+    { t0: 77.0, t1: 84.0, bright: true, jp: '空では、たくさんのしずくが待っていた。', en: 'Up there, countless drops were waiting.' },
+    { t0: 85.0, t1: 92.5, bright: true, jp: 'ひとつ、またひとつ。集まって、雲になった。', en: 'One by one they gathered, and became a cloud.' },
+    { t0: 93.5, t1: 100.4, bright: true, jp: '雲は、すこしずつ重くなっていく。', en: 'The cloud grew heavier, little by little.' },
     { t0: 103.0, t1: 110.0, jp: 'そして、雨になって、落ちていく。', en: 'And then it fell, as rain.' },
     { t0: 111.0, t1: 119.0, jp: '山をこえ、森をぬけて、大地のなかへ。', en: 'Over the mountains, through the forest, into the earth.' },
-    { t0: 122.8, t1: 127.6, jp: 'そこには、眠りつづける小さな種があった。', en: 'There, a small seed had been sleeping.' },
-    { t0: 128.2, t1: 134.6, jp: 'ひとしずくに触れて、種は目をさます。', en: 'Touched by the drop, the seed awoke.' },
-    { t0: 140.6, t1: 148.4, jp: '春、夏、秋、冬。いくつもの季節をこえて、', en: 'Spring, summer, autumn, winter — season after season,' },
-    { t0: 149.0, t1: 154.6, jp: '木は、空にむかってのびていった。', en: 'the tree reached up toward the sky.' },
-    { t0: 155.6, t1: 160.4, jp: '夜が来て、木は光を空へ返した。', en: 'When night came, the tree gave its light back to the sky.' },
-    { t0: 161.0, t1: 166.0, jp: 'ひとしずくは、星になった。', en: 'The drop became a star.' },
-    { t0: 167.0, t1: 172.0, jp: '星はやがて、海へと帰っていく。', en: 'And in time, the star returns to the sea.' },
-    { t0: 173.2, t1: 179.2, kind: 'end', jp: 'ひとしずくの旅は、また、はじまる。', en: 'The journey begins again.' },
+    { t0: 121.6, t1: 127.4, jp: 'そこには、眠りつづける小さな種があった。', en: 'There, a small seed had been sleeping.' },
+    { t0: 128.2, t1: 134.6, bright: true, jp: 'ひとしずくに触れて、種は目をさます。', en: 'Touched by the drop, the seed awoke.' },
+    { t0: 140.6, t1: 148.4, bright: true, jp: '春、夏、秋、冬。いくつもの季節をこえて、', en: 'Spring, summer, autumn, winter — season after season,' },
+    { t0: 148.9, t1: 153.6, bright: true, jp: '木は、空にむかってのびていった。', en: 'the tree reached up toward the sky.' },
+    { t0: 154.0, t1: 160.8, bright: true, jp: '夜が来て、木は光を空へ返した。', en: 'At night, the tree gave its light back to the sky.' },
+    { t0: 161.4, t1: 166.4, jp: 'ひとしずくは、星になった。', en: 'The drop became a star.' },
+    { t0: 167.0, t1: 172.6, jp: '星はやがて、海へと帰っていく。', en: 'And in time, the star returned to the sea.' },
+    { t0: 173.2, t1: 179.2, kind: 'end', jp: 'ひとしずくの旅は、またはじまる。', en: 'The journey begins again.' },
   ];
 
   const byId = {};
@@ -595,7 +609,7 @@
       vignette: 0.55,
       grain: 0.022,
       // the film starts and ends on the same dim point of light (not black), so the loop reads as one continuous cycle
-      fade: (0.35 + 0.65 * u.smoothstep(0, 2.5, T)) * (1 - 0.65 * u.smoothstep(177.8, 180, T)),
+      fade: (0.55 + 0.45 * u.smoothstep(0, 2.5, T)) * (1 - 0.45 * u.smoothstep(177.8, 180, T)),
     };
   }
 
@@ -1060,7 +1074,7 @@
 
       /* ---- the hero ---- */
       {
-        const rS = u.lerp(0.4, 1, sstep(2, 9, T));
+        const rS = u.lerp(0.55, 1, sstep(2, 9, T));   // 0.55 = the seam point (matches the end of s8)
         const wob = 1 + 0.06 * Math.sin(T * 2.4) * sstep(11, 14, T);
         const pulse = rS * (1 + 0.9 * bt) * wob;
         hero.draw(g, cx, cy, pin.r * S, {
@@ -4298,11 +4312,15 @@
     let s = (T - keys[i][0]) / (keys[i + 1][0] - keys[i][0]);
     return mixc(keys[i][1], keys[i + 1][1], s); // linear: no plateau at the keys, the darkening is one even ramp
   }
-  // silent lightning inside the cloud: a flicker, a double pulse, the big flash with a long afterglow, a late weak one
+  // silent lightning inside the cloud: ONE smooth flash (~0.25 s up, ~0.5 s down) with a long soft afterglow, no flicker.
+  // NOTE: s5_rain.js carries a numerically identical copy (the B4 window contains it) - keep them in sync.
   function flashAmt(T) {
-    if (T < 98.2 || T > 101.6) return 0;
-    const pl = (t0, w) => (T < t0 ? exp(-pow((T - t0) / 0.035, 2)) : exp(-(T - t0) / w));
-    return min(1, 0.4 * pl(98.4, 0.07) + 0.55 * pl(98.72, 0.1) + 1.0 * pl(99.05, 0.2) + 0.2 * pl(99.05, 0.9) + 0.4 * pl(100.5, 0.16));
+    if (T < 98.65 || T > 101.7) return 0;
+    const t0 = 98.7, tp = 99.35; // start / peak
+    let v;
+    if (T < tp) { const q = (T - t0) / (tp - t0); v = q <= 0 ? 0 : q * q * (3 - 2 * q); }
+    else { const dt = T - tp; v = 0.58 * exp(-pow(dt / 0.5, 1.7)) + 0.42 * exp(-pow(dt / 1.2, 1.4)); }
+    return 0.45 * v * (1 - ss(100.9, 101.7, T));
   }
   function drawFog(g, T, env, hx, hy) {
     const { W, H, S } = env;
@@ -4348,8 +4366,8 @@
         const t = tendrils[i];
         const ty = u.wrap(t.y - T * 0.045 * t.v * S / H, -0.4, 1.4);
         const tx = hx + (t.x * 0.55 + sin(T * 0.25 + t.ph) * 0.04) * S + (t.x > 0 ? 0.05 : -0.05) * S;
-        const tw = S * t.w, th = S * t.h;
-        g.globalAlpha = te * t.a * (0.8 + 0.2 * sin(T * 0.5 + t.ph));
+        const tw = S * t.w * 1.9, th = S * t.h;
+        g.globalAlpha = 0.5 * te * t.a * (0.8 + 0.2 * sin(T * 0.5 + t.ph));
         g.drawImage(ts, tx - tw / 2, ty * H - th / 2, tw, th);
       }
       g.globalAlpha = 1;
@@ -4368,13 +4386,13 @@
   const tendrilSprite = () => u.sprite('s4_tendril', 48, 160, (c, w, h) => {
     c.save(); c.translate(w / 2, h / 2); c.scale(w / h, 1);
     const g = c.createRadialGradient(0, 0, 0, 0, 0, h / 2);
-    g.addColorStop(0, 'rgba(26,40,66,0.9)'); g.addColorStop(0.45, 'rgba(30,44,70,0.4)'); g.addColorStop(1, 'rgba(30,44,70,0)');
+    g.addColorStop(0, 'rgba(26,40,66,0.8)'); g.addColorStop(0.3, 'rgba(28,42,68,0.5)'); g.addColorStop(0.65, 'rgba(30,44,70,0.17)'); g.addColorStop(1, 'rgba(30,44,70,0)');
     c.fillStyle = g; c.fillRect(-h / 2, -h / 2, h, h); c.restore();
   });
 
   /* ------------------------------------------------------------------ rain */
   function drawRain(g, T, W, H, S) {
-    const e = 0.03 * ss(95.5, 98, T) + 0.1 * ss(98, 102, T);
+    const e = 0.012 * ss(95.5, 98, T) + 0.085 * ss(98, 101.5, T); // faint start of the rain: fades in over ~3 s from 98
     if (e < 0.004) return;
     g.save();
     g.fillStyle = '#d6e2f2';
@@ -4387,7 +4405,7 @@
       const y = u.wrap(r.y + T * r.sp * 0.55 * S / H, -0.15, 1.1);
       const l = r.l * S * r.z;
       g.globalAlpha = e * r.z * vis;
-      g.fillRect(r.x * W, y * H, max(1, S * 0.0016 * r.z), l);
+      g.fillRect(r.x * W, y * H, max(1.6, S * 0.0022 * r.z), l);
     }
     g.restore();
   }
@@ -4652,9 +4670,13 @@
 
   /* ------------------------------------------------------------------ fog / lightning (matches s4 at B4) */
   function flashAmt(T) {
-    if (T < 98.5 || T > 101) return 0;
-    const pl = (t0, w) => (T < t0 ? exp(-pow((T - t0) / 0.035, 2)) : exp(-(T - t0) / w));
-    return min(1, 0.5 * pl(98.93, 0.09) + 0.7 * pl(99.27, 0.2) + 0.12 * pl(99.27, 0.8));
+    // identical to s4_sky.js flashAmt (B4 window): ONE smooth flash, ~0.25 s up / ~0.5 s down, long soft afterglow
+    if (T < 98.65 || T > 101.7) return 0;
+    const t0 = 98.7, tp = 99.35;
+    let v;
+    if (T < tp) { const q = (T - t0) / (tp - t0); v = q <= 0 ? 0 : q * q * (3 - 2 * q); }
+    else { const dt = T - tp; v = 0.58 * exp(-pow(dt / 0.5, 1.7)) + 0.42 * exp(-pow(dt / 1.2, 1.4)); }
+    return 0.45 * v * (1 - ss(100.9, 101.7, T));
   }
   const YE = [[101.8, 1.7], [103.0, 1.38], [103.8, 1.08], [104.7, 0.82], [105.6, 0.6], [106.7, 0.4], [107.9, 0.27], [109.2, 0.15], [111.0, -0.05], [112.6, -0.5]];
   const fogEdge = (T) => KS(YE, T);
@@ -4671,6 +4693,8 @@
     const open = ss(102.4, 103.7, T);
     // large slow billows: visible fbm contrast (+-6 %) that ramps in from 98 and rises ~0.02 S/s, plus two darker lobes drifting up beside the drop
     const bamp = ss(98.0, 101.0, T) * 0.26, hxn = (hx / W) * asp, up = T * 0.02;
+    // B4 (98-102): the fog field is s4's own (same billows, same flash response); it hands over to the lobed look as the cloud opens
+    const k4 = ss(101.2, 103.4, T), drift2 = T * 0.05, drift4 = T * 0.026, bil4 = ss(95.5, 98.2, T);
     const lobe1y = u.wrap(0.78 - (T - 98) * 0.024, -0.35, 1.25), lobe2y = u.wrap(1.12 - (T - 98) * 0.017, -0.35, 1.25);
     for (let j = 0; j < h; j++) {
       const ny = j / (h - 1);
@@ -4679,7 +4703,7 @@
         const v = u.fbm2(nx * 1.6 + 3.1 + T * 0.006, ny * 1.6 + drift, 2);
         const v2 = u.noise2(nx * 0.9 + 11 - T * 0.004, ny * 0.9 + drift * 0.7);
         const o = (j * w + i) * 4;
-        let a = 1, under = 0;
+        let a = 1, under = 0, fS4 = 0;
         if (open > 0) {
           const edge = Ye - 0.26 * (xr - 0.5) * open + (0.36 * (v - 0.5) + 0.14 * (v2 - 0.5)) * open;
           const dist = edge - ny;
@@ -4692,6 +4716,13 @@
           const vb = u.fbm2(nx * 1.7 + 21, (ny + up) * 1.7 + 4, 3);
           const l1x = nx - (hxn - 0.34 * asp * 0.7), l1y = (ny - lobe1y) * 1.3, l2x = nx - (hxn + 0.42 * asp * 0.7), l2y = (ny - lobe2y) * 1.3;
           lum += bamp * ((vb - 0.5) * 0.9 - 0.2 * exp(-(l1x * l1x + l1y * l1y) * 7) - 0.16 * exp(-(l2x * l2x + l2y * l2y) * 6));
+        }
+        if (k4 < 1) {
+          const v4 = u.fbm2(nx * 1.6 + 3.1 + T * 0.006, ny * 1.6 + drift4, 2), v24 = u.noise2(nx * 0.9 + 11 - T * 0.004, ny * 0.9 + drift4 * 0.7);
+          const bm = ss(0.4, 0.72, u.fbm2(nx * 0.8 + 5.2, ny * 0.8 + drift2, 3));
+          const lum4 = 0.86 + 0.28 * v4 + 0.1 * (v24 - 0.5) + bil4 * 0.36 * (0.2 - bm);
+          lum = lum4 + (lum - lum4) * k4;
+          if (fl > 0.002) fS4 = fl * (0.3 + 1.2 * v4 * v4 + 0.4 * bm);
         }
         if (open > 0) lum *= 1 + open * 0.5 * (v - 0.5);
         let r = lerp(FOG_TOP[0], FOG_BOT[0], ny) * lum, gg = lerp(FOG_TOP[1], FOG_BOT[1], ny) * lum, b = lerp(FOG_TOP[2], FOG_BOT[2], ny) * lum;
@@ -4706,8 +4737,9 @@
         }
         if (fl > 0.002) {
           const dx = nx - fxn, dy = (ny - fyn) / asp * 1.2;
-          const f = fl * exp(-(dx * dx + dy * dy) * 2.6) * (0.12 + 1.7 * v * v * v);
-          r += 62 * f; gg += 70 * f; b += 104 * f;
+          const g4 = exp(-(dx * dx + dy * dy) * 2.4);
+          const f = g4 * (fS4 * (1 - k4) + k4 * fl * (0.12 + 1.7 * v * v * v));
+          r += 40 * f * (1 - k4) + 62 * f * k4; gg += 46 * f * (1 - k4) + 70 * f * k4; b += 84 * f * (1 - k4) + 104 * f * k4;
         }
         d[o] = r > 255 ? 255 : r; d[o + 1] = gg > 255 ? 255 : gg; d[o + 2] = b > 255 ? 255 : b; d[o + 3] = a * 255;
       }
@@ -4721,9 +4753,11 @@
     g.imageSmoothingEnabled = false;
     g.drawImage(FOG.m, 0, 0, FOG.mw, rowsMax * FOG.mh / h, 0, 0, W, rowsMax * H / h);
     if (fl > 0.01) {
-      const fx = hx + S * 0.2, fy = hy - S * 0.16, R = S * 0.8;
+      // same flash bloom as s4 (B4 window)
+      const fx = hx + S * 0.22, fy = hy - S * 0.2, R = S * 1.05;
       const gr = g.createRadialGradient(fx, fy, 0, fx, fy, R);
-      gr.addColorStop(0, `rgba(205,215,255,${0.30 * fl})`); gr.addColorStop(0.35, `rgba(170,185,240,${0.14 * fl})`); gr.addColorStop(1, 'rgba(150,170,230,0)');
+      gr.addColorStop(0, `rgba(215,225,255,${0.4 * fl})`); gr.addColorStop(0.4, `rgba(175,192,245,${0.22 * fl})`); gr.addColorStop(1, 'rgba(150,170,230,0)');
+      g.globalCompositeOperation = 'lighter';
       g.fillStyle = gr; g.fillRect(fx - R, fy - R, R * 2, R * 2);
     }
     g.restore();
@@ -4895,38 +4929,55 @@
     const x = cv.getContext('2d'), w = cv.width, h = cv.height;
     const img = x.getImageData(0, 0, w, h), d = img.data;
     const con = o.contrast == null ? 1 : o.contrast;
-    const M2 = 2.15;
-    let gx0 = 1e9, gx1 = -1e9, gy0 = 1e9, gy1 = -1e9;
-    for (const [cx, cy] of [[0, 0], [w, 0], [0, h], [w, h]]) {
-      const cs = o.cs(cy), gx = (cx * 0.88 - cy * 0.48) / cs + 11.3, gy = (cx * 0.48 + cy * 0.88) / cs + 5.7;
-      gx0 = min(gx0, gx); gx1 = max(gx1, gx); gy0 = min(gy0, gy); gy1 = max(gy1, gy);
-    }
-    gx0 -= 1.2; gy0 -= 1.2; gx1 += 1.2; gy1 += 1.2;
+    const M2 = 2.15, M3 = 0.42;
+    // the grid is rotated by a slowly varying angle and scaled by a slowly varying factor (both low-frequency noise of the position),
+    // so no two parts of the hill share the same cell size / orientation; a third, coarse octave of crowns (tree clumps) and a
+    // low-frequency brightness/hue field then break up whatever repetition is left.  Bounds below allow for the worst-case warp.
+    const csMin = o.cs(0), ext = (w + h) / csMin + 4.5;
+    const gx0 = 11.3 - ext, gx1 = 11.3 + ext, gy0 = 5.7 - ext, gy1 = 5.7 + ext;
     const ox = floor(gx0) - 2, oy = floor(gy0) - 2, nx = floor(gx1) - ox + 4, ny = floor(gy1) - oy + 4;
     const t1 = wlTable(ox, oy, nx, ny, 0);
     const ox2 = floor(gx0 * M2) - 2, oy2 = floor(gy0 * M2) - 2, nx2 = floor(gx1 * M2) - ox2 + 4, ny2 = floor(gy1 * M2) - oy2 + 4;
     const t2 = wlTable(ox2, oy2, nx2, ny2, 5000);
+    const ox3 = floor(gx0 * M3) - 2, oy3 = floor(gy0 * M3) - 2, nx3 = floor(gx1 * M3) - ox3 + 4, ny3 = floor(gy1 * M3) - oy3 + 4;
+    const t3 = wlTable(ox3, oy3, nx3, ny3, 9000);
     const R = 0.9, iR = 1 / R, Lx = 0.988, Ly = -0.18;
+    const nsc = 1 / o.sk; // canvas px per S unit: all the low-frequency fields below are in S units
     for (let y = 0; y < h; y++) {
-      const cs = o.cs(y), col = o.cols(y);
+      const cs0 = o.cs(y), col = o.cols(y);
       const dr = col[0], dg = col[1], db = col[2], lr = col[3], lg = col[4], lb = col[5];
       for (let px = 0; px < w; px++) {
         const o4 = (y * w + px) * 4;
         if (d[o4 + 3] === 0) continue;
-        let gx = (px * 0.88 - y * 0.48) / cs + 11.3, gy = (px * 0.48 + y * 0.88) / cs + 5.7;
-        gx += 0.55 * (u.noise2(gx * 0.55 + 3, gy * 0.55 + 1) - 0.5); gy += 0.55 * (u.noise2(gx * 0.55 + 9, gy * 0.55 + 6) - 0.5);
+        const qx = px * nsc, qy = y * nsc;
+        const mA = u.noise2(qx * 2.2 + 2.1, qy * 2.2 + 7.4), mB = u.noise2(qx * 1.9 + 41.3, qy * 1.9 + 3.9);
+        let gx = (px * 0.88 - y * 0.48) / cs0 + 11.3, gy = (px * 0.48 + y * 0.88) / cs0 + 5.7;
+        gx += 0.7 * (u.noise2(gx * 0.55 + 3, gy * 0.55 + 1) - 0.5) + 1.5 * (u.noise2(gx * 0.09 + 13, gy * 0.09 + 5) - 0.5);
+        gy += 0.7 * (u.noise2(gx * 0.55 + 9, gy * 0.55 + 6) - 0.5) + 1.5 * (u.noise2(gx * 0.09 + 27, gy * 0.09 + 19) - 0.5);
         wl(t1, gx - ox, gy - oy);
         let r1 = sqrt(WL_d1) * iR, hgt = r1 < 1 ? 1 - r1 * r1 : 0;
         let lit = (WL_vx * Lx + WL_vy * Ly) * iR, edge = clamp((sqrt(WL_d2) - sqrt(WL_d1)) * 5, 0, 1), bb = WL_bb;
-        const sh1 = (0.26 + 0.44 * hgt + 0.3 * lit * (0.3 + r1) + bb * 0.22) * (0.62 + 0.38 * edge);
+        // crease darkening varies across the hill (less where the light is flat) so the cell borders never read as a net
+        const ek = 0.2 + 0.26 * mA; // mA: low-frequency noise, also varies the crease strength
+        const sh1 = (0.26 + 0.44 * hgt + 0.3 * lit * (0.3 + r1) + bb * 0.22) * ((1 - ek) + ek * edge);
         wl(t2, gx * M2 - ox2, gy * M2 - oy2);
         r1 = sqrt(WL_d1) * iR; hgt = r1 < 1 ? 1 - r1 * r1 : 0;
         lit = (WL_vx * Lx + WL_vy * Ly) * iR;
         const sh2 = (0.3 + 0.4 * hgt + 0.3 * lit * (0.3 + r1) + WL_bb * 0.3) * (0.7 + 0.3 * clamp((sqrt(WL_d2) - sqrt(WL_d1)) * 5, 0, 1));
-        let sh = (sh1 * 0.66 + sh2 * 0.34 - 0.5) * con + 0.5;
+        wl(t3, gx * M3 - ox3, gy * M3 - oy3);
+        r1 = sqrt(WL_d1) * iR * 0.8; hgt = r1 < 1 ? 1 - r1 * r1 : 0;
+        lit = (WL_vx * Lx + WL_vy * Ly) * iR;
+        const sh3 = 0.34 + 0.34 * hgt + 0.22 * lit * (0.3 + r1) + WL_bb * 0.5;
+        // tree clumps (coarse crowns) + a broad light/shade field
+        const lf = u.fbm2(qx * 2.6 + 5.5, qy * 2.6 + 1.7, 3) - 0.5;
+        // where mB is high the fine crowns dominate, where it is low the coarse clumps do: the apparent cell size drifts across the hill
+        const wk = (mB - 0.5) * 0.5;
+        let sh = ((sh1 * (0.5 + wk * 0.6) + sh2 * (0.27 + wk * 0.4) + sh3 * (0.23 - wk)) - 0.5) * con + 0.5 + lf * 0.5;
         sh += (RT[((px * 7 + y * 13) & 65535) * 3] - 0.5) * 0.06;
         sh = sh < 0 ? 0 : sh > 1 ? 1 : sh;
-        d[o4] = dr + (lr - dr) * sh; d[o4 + 1] = dg + (lg - dg) * sh; d[o4 + 2] = db + (lb - db) * sh;
+        // hue drift across the hill: yellower where lf is high (sunlit meadow patches), bluer where it is low
+        const hk = lf * 0.34;
+        d[o4] = (dr + (lr - dr) * sh) * (1 + hk * 0.55); d[o4 + 1] = (dg + (lg - dg) * sh) * (1 + hk * 0.18); d[o4 + 2] = (db + (lb - db) * sh) * (1 - hk * 0.45);
       }
     }
     x.putImageData(img, 0, 0);
@@ -5176,6 +5227,7 @@
         return [a[0], a[1], a[2], b[0], b[1], b[2]];
       },
       contrast: 0.85,
+      sk: S * sxk,
     });
     x.setTransform(sxk, 0, 0, syk, 0, 0);
     // everything well below the band becomes solid deep green
@@ -5609,7 +5661,7 @@
 
       if (fogEdge(T) > -0.45) drawFog(g, T, env, hx, hy);
 
-      const aRainIn = lerp(0.1, 1, u.smootherstep(100.8, 105.0, T));
+      const aRainIn = lerp(0.1, 1, u.smootherstep(100.8, 105.0, T)) * (0.22 + 0.78 * ss(98.4, 103.2, T)); // starts as faint as s4's first streaks (B4), unchanged from 103.2
       drawRainLayer(g, T, env, 1, aRainIn * (1 - ss(116.4, 118.4, T)));
 
       // the big near leaves sweep by behind the drop (it is the one thing that must never be hidden)
@@ -6112,11 +6164,43 @@
 // every season keeps ONE dominant sky for ~3 s (spring: pink dawn -> bright day -> rose dusk; summer: bright blue; autumn: gold; winter: pale
 // blue-white; then the final dusk). The nights between two days are a quick, violet "dip" (the sky never goes darker than dusk-violet until
 // the very last dusk), so the light changes slowly instead of strobing.
-const TODT = [[122, 1.235], [131.0, 1.235], [134.0, 1.275], [136.0, 1.33], [138.3, 1.45], [140.0, 1.62], [140.7, 1.72], [141.1, 1.77],
-  [141.95, 2.235], [143.1, 2.5], [144.6, 2.745],
-  [145.35, 3.235], [146.4, 3.5], [148.0, 3.745],
-  [148.65, 4.235], [149.45, 4.5], [150.7, 4.75], [152.6, 5.0], [160, 5.0]];
-const todAt = (T) => u.keys(TODT, T, 'spline');
+const TODT = [[122, 1.235], [131.0, 1.235], [134.0, 1.275], [136.0, 1.33], [138.3, 1.45], [139.2, 1.575], [140.0, 1.68],
+  [141.15, 1.80], [141.45, 2.20], [142.6, 2.30], [143.5, 2.70],                    // dusk (slow) -> night (fast) -> dawn (slow) -> racing day
+  [144.65, 2.80], [144.95, 3.20], [146.1, 3.30], [147.0, 3.70],
+  [148.15, 3.80], [148.45, 4.20], [149.6, 4.30], [150.0, 4.52], [150.35, 4.72], [150.9, 4.82], [151.5, 4.90], [152.0, 4.954], [152.6, 5.0], [160, 5.0]];
+// monotone (PCHIP) interpolation: the clock never runs backwards and the dusk / dawn passages keep their slow rate
+const TODM = (() => {
+  const n = TODT.length, d = [], m = [];
+  for (let i = 0; i < n - 1; i++) d.push((TODT[i + 1][1] - TODT[i][1]) / (TODT[i + 1][0] - TODT[i][0]));
+  m[0] = d[0]; m[n - 1] = d[n - 2];
+  for (let i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (2 * d[i - 1] * d[i]) / (d[i - 1] + d[i]);
+  return m;
+})();
+const todAt = (T) => {
+  const n = TODT.length;
+  if (T <= TODT[0][0]) return TODT[0][1];
+  if (T >= TODT[n - 1][0]) return TODT[n - 1][1];
+  let i = 0; while (T > TODT[i + 1][0]) i++;
+  const t0 = TODT[i][0], t1 = TODT[i + 1][0], h = t1 - t0, s = (T - t0) / h, s2 = s * s, s3 = s2 * s;
+  return (2 * s3 - 3 * s2 + 1) * TODT[i][1] + (s3 - 2 * s2 + s) * h * TODM[i] + (-2 * s3 + 3 * s2) * TODT[i + 1][1] + (s3 - s2) * h * TODM[i + 1];
+};
+// the light of the day, low-passed (9 taps, +-0.6 s, triangular): [sun elevation elT, light elevation el] - a pure function of T
+const ELENV = [[149.3, 0.8], [149.6, 0.35], [149.9, 0.10], [150.25, -0.04], [151.4, -0.20], [152.1, -0.45], [152.4, -0.95], [152.5, -1], [160, -1]];
+const _lt = [0, 0];
+function lightAt(T) {
+  let a = 0, b = 0, ws = 0;
+  for (let k = -4; k <= 4; k++) {
+    const t = T + k * 0.15, w = 5 - abs(k);
+    const s = sin(TAU * (todAt(t) - 0.25)), nd = ss(149.5, 152.5, t);
+    let el = lerp(max(s, -0.1), s, nd);
+    { // the last dusk: the light drains out over ~1.9 s (an afterglow, independent of how fast the sun itself sets)
+      el = lerp(el, u.keys(ELENV, t, 'spline'), ss(149.2, 149.7, t));
+    }
+    a += w * s; b += w * el; ws += w;
+  }
+  _lt[0] = a / ws; _lt[1] = b / ws;
+  return _lt;
+}
 
 /* ------------------------------------------------------------------ colour tables */
   // sky by sun elevation (-1..1): night, twilight, dawn/dusk, low sun, day
@@ -6341,6 +6425,37 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     const BL = { n: nbl, x: new Float32Array(nbl), y: new Float32Array(nbl), b: new Float32Array(nbl), sz: new Float32Array(nbl), r: new Float32Array(nbl), r2: new Float32Array(nbl), r3: new Float32Array(nbl) };
     const r4 = u.rng(4141);
     BV.forEach((v, i) => { BL.x[i] = v.x; BL.y[i] = v.y; BL.b[i] = v.b; BL.sz[i] = v.sz; BL.r[i] = v.r; BL.r2[i] = r4(); BL.r3[i] = r4(); });
+    // early crown: while the branches are still young, clusters sit on the first limbs of BOTH sides of the trunk (the sapling's
+    // blades hand over to them; they thin out again once the real crown has closed). Own rng + own arrays: nothing else changes.
+    const EL = [], EB = [];
+    {
+      const re = u.rng(31337), rr = (a, b) => a + (b - a) * re();
+      const cand = [];
+      for (const b of BR) { if (b.depth < 1) continue; for (let j = 1; j < b.x.length; j++) cand.push({ x: b.x[j], y: b.y[j], t: b.t[j] / tmax }); }
+      const NE = Math.round(16 * Math.sqrt(areaK));
+      for (const side of [-1, 1]) {
+        const cs = cand.filter((c) => c.x * side > 0.025 && c.y > 0.1).sort((a, b) => a.t - b.t);
+        if (!cs.length) continue;
+        const pick = (b0) => {
+          const pool = cs.filter((c) => c.t <= b0 && c.t > b0 - 0.16);
+          let best = null, bs = -1e9;
+          for (let q = 0; q < 3; q++) {
+            const c = pool.length ? pool[floor(re() * pool.length)] : cs[min(cs.length - 1, floor(re() * 3))];
+            const sc = c.y + 0.6 * abs(c.x) + re() * 0.05;
+            if (sc > bs) { bs = sc; best = c; }
+          }
+          return best;
+        };
+        for (let k = 0; k < NE; k++) {
+          const b0 = 0.44 + 0.30 * (k + re() * 0.9) / NE, a = pick(b0), bb = max(b0, a.t + 0.006), z = re() * 0.9;
+          EL.push({ x: a.x + rr(-0.014, 0.014), y: a.y + rr(-0.01, 0.016), b: bb, sz: rr(0.074, 0.098), r: re(), r2: re(), r3: re(), z: z < 0.34 ? 0 : z < 0.72 ? 1 : 2 });
+        }
+        for (let k = 0; k < Math.round(NE * 0.8); k++) {
+          const b0 = 0.45 + 0.29 * (k + re() * 0.9) / (NE * 0.8), a = pick(b0), bb = max(b0, a.t + 0.01);
+          EB.push({ x: a.x + rr(-0.014, 0.014), y: a.y + rr(-0.008, 0.018), b: bb, sz: rr(0.05, 0.068), r: re(), r2: re() });
+        }
+      }
+    }
     // order back->front by layer (z), keep deterministic
     LV.sort((a, b) => a.z - b.z);
     const nl = LV.length;
@@ -6360,7 +6475,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     for (let i = 0; i < nl; i++) { if (L.z[i] === 0) c0 = i + 1; if (L.z[i] <= 1) c1 = i + 1; }
     L.zs = [0, c0, c1, nl];
 
-    return { hT, crown, P, L, BL, APH, APX, Htot, np, nl, trunkLen, nb: BR.length, WS };
+    return { hT, crown, P, L, BL, EL, EB, APH, APX, Htot, np, nl, trunkLen, nb: BR.length, WS };
   }
   // growth clock for an apex height (units): first gamma whose apex height reaches h
   function invApex(h) {
@@ -6594,6 +6709,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     return CAM.gf + (1 - CAM.gf) * (1 - pow(1 - s, CAM.p));
   }
 
+  const _skyB = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
   const NIGHT_B6 = [0.04, 0.046, 0.13], NIGHT_LAPSE = [0.3, 0.36, 0.62];
   const F = {
     T: 0, G: 0, k: 1, ks: 1, cx: 0, gam: 0, apexH: 0, apexX: 0, tipX: 0, tipY: 0, sv: 0, tod: 0, el: 0, A: 1, nd: 0, warm: 0, hy: 0,
@@ -6617,13 +6733,14 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     // day clock
     const tod = todAt(T); F.tod = tod % 1;
     const phi = TAU * (tod - 0.25);
-    F.elT = sin(phi);
     F.nd = ss(149.5, 152.5, T);
-    // light / sky use an elevation that dips no lower than dusk-violet while the days race (true night only at the very end)
-    F.el = lerp(max(F.elT, -0.12), F.elT, F.nd);
+    // light / sky use an elevation that dips no lower than dusk-violet while the days race (true night only at the very end);
+    // it is low-passed so that every dusk -> night -> dawn swing is a slow fade, never a cut
+    const lt = lightAt(T);
+    F.elT = lt[0]; F.el = lt[1];
     const el = F.el;
     const floorA = lerp(0.42, 0.02, F.nd);
-    F.A = lerp(floorA, 1, ss(-0.12, 0.32, el));
+    F.A = lerp(floorA, 1, lerp(ss(-0.12, 0.32, el), 1 - (0.7 * clamp((T - 149.9) / 2.2) + 0.3 * ss(149.9, 152.1, T)), ss(149.2, 149.9, T)));
     F.warm = (1 - ss(0.0, 0.5, el)) * ss(-0.25, 0.02, el);
     const nm = mixc(NIGHT_LAPSE, NIGHT_B6, F.nd);
     const dm = mixc([1, 1, 1], [1.14, 0.9, 0.72], F.warm);
@@ -6633,7 +6750,11 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     { const wind = (1 + 0.7 * SW[2] + 0.7 * SW[3]) * (0.4 + 0.6 * ss(133, 138, T)), osc = sin(T * 0.8) + 0.55 * sin(T * 1.9 + 1.0), c = ss(CACHE_T - 1.1, CACHE_T, T);
       F.swA = 0.0085 * osc * wind * (1 - c); F.swX = 0.0016 * osc * wind * c; }
     // sky
-    lerpTab(F.tod < 0.5 ? SKY_RISE : SKY_SET, el, F.sky);
+    { // morning palette (tod 0..0.5) <-> evening palette (0.5..1): cross-faded around noon and midnight, never switched
+      const wS = ss(0.35, -0.35, sin(TAU * tod));
+      lerpTab(SKY_RISE, el, F.sky);
+      if (wS > 0.002) { lerpTab(SKY_SET, el, _skyB); for (let c = 0; c < 3; c++) F.sky[c] = mixc(F.sky[c], _skyB[c], wS); }
+    }
     const nightness = ss(-0.05, -0.38, el) * (1 - F.nd);
     for (let c = 0; c < 3; c++) F.sky[c] = mixc(F.sky[c], SKY_LAPSE_NIGHT[c], nightness * 0.9);
     const day = ss(-0.1, 0.4, el);
@@ -6656,7 +6777,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     // sun / moon on their arcs
     const R = (F.hy - 0.13 * H) * (0.8 + 0.2 * SW[1] - 0.1 * SW[3]);
     F.sunX = W * (0.5 - 0.47 * cos(phi)); F.sunY = F.hy - sin(phi) * R;
-    F.sunA = ss(-0.12, 0.05, F.elT);
+    F.sunA = ss(-0.24, 0.1, F.elT);
     const phm = phi + PI;
     F.moonX = W * (0.5 - 0.42 * cos(phm)); F.moonY = F.hy - sin(phm) * R * 0.95;
     F.moonA = 0; // no moon: the nights of the time-lapse are short violet dips; the last night belongs to the stars
@@ -6790,7 +6911,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       const Dd = todAt(F.T) - 1.2;
       const wDay = ss(0.28, 0.8, F.A) * (1 - 0.7 * F.warm), wDusk = F.warm * ss(0.3, 0.8, F.A) * 1.0 + F.warm * (1 - ss(0.3, 0.8, F.A)) * 0.6, wNight = 1 - ss(0.2, 0.7, F.A);
       const ws = [wDay, wDusk, wNight];
-      const cwMin = Math.min(wDay, wDusk, wNight) < 0.9 * Math.max(wDay, wDusk, wNight) ? ws.slice().sort((p, q) => p - q)[1] - 1e-6 : 0;
+      const cwMin = 0;   // all three tints are blended (a hard 'two strongest only' cut made the clouds flip colour at dusk / dawn)
       for (const c of PART.clouds) {
         const wdt = W * 0.3 * c.s * (W / H > 1.2 ? 1 : 1.5);
         const hgt = wdt * 140 / 320;
@@ -7308,7 +7429,8 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       const r = L.r[i], r2 = L.r2[i];
       let alive, pcv;
       if (L.juv[i]) {
-        alive = 1 - ss(140.8 + r * 1.4, 142.4 + r * 1.4, T);   // the young blades stay until the crown has closed (no bare-tree gap)
+        const yn = clamp(L.y[i] / TR.Htot / 0.3);
+        alive = 1 - ss(138.5 + 0.9 * yn + r * 0.25, 139.5 + 1.0 * yn + r * 0.25, T);   // the sapling's blades thin out from the bottom up as the branches sprout (gone by ~140.5)
         if (alive < 0.02) continue;
         const y = L.y[i], sg = L.juv[i];
         const x = L.x[i] + swayX(y);
@@ -7348,7 +7470,33 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     g.imageSmoothingEnabled = true;
   }
 
+  // early symmetric crown clusters (see buildTree): pass 0 = behind the branches, pass 1 = in front
+  function drawEarlyLeaves(g, env, pass) {
+    const T = F.T, gam = F.gam;
+    if (T < 138.2 || T > 143.9) return;
+    const E = TR.EL, ks = F.ks, G = F.G, cx = F.cx, lvF = F.lvF;
+    const ea = 1 - ss(0.74, 0.88, gam), spring1 = 0.72 + 0.28 * ss(136, 142, T);
+    if (ea < 0.02) return;
+    g.imageSmoothingEnabled = true;
+    for (let i = 0; i < E.length; i++) {
+      const e = E[i];
+      if ((pass === 0) !== (e.z === 0) || gam < e.b) continue;
+      const grow = ss(e.b, e.b + 0.06, gam);
+      const sz = e.sz * (0.35 + 0.65 * grow) * ea * spring1 * ks;
+      if (sz < 2) continue;
+      const y = e.y, x = e.x + swayX(y) + sin(T * 2.1 + e.r * TAU) * 0.002;
+      const px = cx + x * ks, py = G - y * ks;
+      const o = (e.r2 - 0.5) * 3.0, pcv = ss(139.6 + o, 141.6 + o, T);
+      const ci = clamp(Math.round((pcv * (NC - 1)) / 4), 0, NC - 1);
+      let sd = e.z; if (e.r3 > 0.82) sd = min(2, sd + 1); else if (e.r3 < 0.16) sd = max(0, sd - 1);
+      const lv = min(NLV, floor(lvF + e.r3));
+      const dx = Math.round(px - sz * 0.5), dy = Math.round(py - sz * 0.5), dsz = Math.round(sz);
+      if (e.r2 > 0.5) g.drawImage(SPR.leaf[lv][ci][sd], dx, dy, dsz, dsz);
+      else g.drawImage(SPR.leaf[lv][ci][sd], dx + dsz, dy, -dsz, dsz);
+    }
+  }
   // blossoms (drawn with their own light: they keep a glow at night)
+  function blossomEnvR(r, T) { return ss(137.9 + r * 1.2, 139.4 + r * 1.2, T) * (1 - ss(141.6 + r * 1.6, 143.0 + r * 1.6, T)); }
   function blossomEnv(i, T) {
     const r = TR.BL.r[i];
     const b1 = ss(137.9 + r * 1.2, 139.4 + r * 1.2, T) * (1 - ss(141.6 + r * 1.6, 143.0 + r * 1.6, T));
@@ -7378,6 +7526,24 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       const sm = abs(sz / cs - 1) > 0.12;
       if (sm !== smoothB) { smoothB = sm; g.imageSmoothingEnabled = sm; }
       g.drawImage(SPR.blos[v][floor(r2 * 3) % 3][ci], Math.round(px - cs * 0.5), Math.round(py - cs * 0.5), cs, cs);
+    }
+    { // early symmetric blossoms
+      const E = TR.EB, ea = 1 - ss(0.74, 0.88, gam);
+      for (let i = 0; i < E.length && ea > 0.02; i++) {
+        const q = E[i];
+        if (gam < q.b) continue;
+        const e = blossomEnvR(q.r, T) * ea;
+        if (e < 0.02) continue;
+        const y = q.y, x = q.x + swayX(y) + sin(T * 2.3 + q.r * TAU) * 0.002;
+        const sz = q.sz * (0.4 + 0.6 * e) * ks * ss(q.b, q.b + 0.06, gam);
+        if (sz < 2) continue;
+        const v = F.A > 0.58 + 0.28 * q.r2 ? 0 : 1;
+        g.globalAlpha = min(1, e * 1.2);
+        let ci = Math.round(Math.log(sz / 28) / 0.1157); ci = ci < 0 ? 0 : ci > 13 ? 13 : ci;
+        const cs = BCLS[ci], sm = abs(sz / cs - 1) > 0.12;
+        if (sm !== smoothB) { smoothB = sm; g.imageSmoothingEnabled = sm; }
+        g.drawImage(SPR.blos[v][floor(q.r * 3) % 3][ci], Math.round(x * ks + cx - cs * 0.5), Math.round(G - y * ks - cs * 0.5), cs, cs);
+      }
     }
     g.imageSmoothingEnabled = true;
     g.globalAlpha = 1;
@@ -7414,6 +7580,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     g.fillStyle = grd; g.fillRect(cx - shadowR, G + 0.012 * S - shadowR, shadowR * 2, shadowR * 2);
     g.restore();
     drawLeaves(g, env, 0, 1);
+    drawEarlyLeaves(g, env, 0);
     if ((T >= CACHE_T || F.gam >= 0.985) && SK) {
       // cached skeleton (the last 1.5 % of the growth is invisible), leaned by the wind (shear) / shifted; light = blend of the neighbouring variants
       const lum = F.lum;
@@ -7434,6 +7601,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       strokeBranches(g, { gam: F.gam, ks, bx: cx, by: G, swA: F.swA, swX: F.swX, LM: F.LM, snowOnly: false, snow: F.snow, sunSide: F.sunX < F.cx ? -1 : 1, fh });
     }
     drawLeaves(g, env, 1, 3);
+    drawEarlyLeaves(g, env, 1);
   }
 
   /* ================================================================== particles (all analytic) */
@@ -9258,7 +9426,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
  * 173–175.5 the camera tips down: the horizon leaves the top, the ellipses open into circles, the light sinks under the water.
  * 175.4–178 the camera dives with the drop: a silver, shimmering sheet closes overhead and retreats upward; the water goes
  *          from deep blue to black; the drop shrinks.
- * 178.4–180 only the single point of light at (.5,.5) (r .0048 S, hue 190 = the first frame of s1) — the film loops.
+ * 178.4–180 only the single point of light at (.5,.5) (r .0066 S, hue 190 = the first frame of s1) — the film loops.
  *
  * Pure function of T. Static art (sky/sea base, Milky Way, star lists) is built in init()/resize().
  */
@@ -9277,6 +9445,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
   /* ------------------------------------------------------------------ timing */
   const FALL0 = 169.8;       // the star lets go
   const IMPACT = 171.0;      // it touches the water
+  const glintEnv = (T) => ss(-0.14, 0.012, T - IMPACT) * exp(-pow(max(0, T - IMPACT) / 0.27, 1.4));   // the impact glint: rises into the touch, gone by ~171.6
   const LYF = 0.885;         // impact level (fraction of H) on the mirror sea
   const HZF = 0.78;          // horizon (fraction of H) — matches s7
   const RT = [171.0, 171.62, 172.3, 173.05]; // ring start times
@@ -9352,6 +9521,43 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       gBlue: u.glowSprite(214, 90, 62, 'soft'), coreWhite: u.glowSprite(220, 40, 92, 'core'),
       gCyan: u.glowSprite(195, 75, 70, 'soft'), gSilver: u.glowSprite(205, 45, 80, 'soft'), coreCyan: u.glowSprite(200, 60, 90, 'core'),
     };
+    // the impact flare: a feathered 4-point glint (radial falloff, no hard edge) — cool white at the heart, blue at the tips; peak 0.85
+    SP.flare = spr('flare', 256, 256, (c, w, h) => {
+      const im = c.createImageData(w, h), d = im.data;
+      for (let j = 0; j < h; j++) {
+        for (let i = 0; i < w; i++) {
+          const x = (i + 0.5) / w * 2 - 1, y = (j + 0.5) / h * 2 - 1;
+          const r = hypot(x, y), ax = abs(x), ay = abs(y);
+          const win = (1 - ss(0.6, 1, r));                           // feather every arm out before the sprite edge
+          const core = 0.5 * exp(-pow(r / 0.085, 1.5)) + 0.22 * exp(-r / 0.22);
+          const armH = 0.5 * exp(-ax / 0.3) * exp(-pow(y / (0.022 + 0.04 * ax), 2));
+          const armV = 0.42 * exp(-ay / 0.17) * exp(-pow(x / (0.02 + 0.034 * ay), 2));
+          const dh = abs(x - y) * 0.7071, dv = abs(x + y) * 0.7071;   // faint diagonals
+          const diag = 0.1 * (exp(-hypot(x, y) / 0.1) * (exp(-pow(dh / 0.02, 2)) + exp(-pow(dv / 0.02, 2))));
+          let I = (core + armH + armV + diag) * win + (u.hash2(i, j) - 0.5) * 0.004;
+          I = clamp(I * 0.85, 0, 0.85);
+          const k = pow(I / 0.85, 1.6);                               // hot (white) heart -> blue edges
+          const q = (j * w + i) * 4;
+          d[q] = lerp(120, 238, k); d[q + 1] = lerp(168, 246, k); d[q + 2] = 255; d[q + 3] = I * 255;
+        }
+      }
+      c.putImageData(im, 0, 0);
+    });
+    // a longer, fainter horizontal lens streak
+    SP.lens = spr('lens', 512, 32, (c, w, h) => {
+      const im = c.createImageData(w, h), d = im.data;
+      for (let j = 0; j < h; j++) {
+        for (let i = 0; i < w; i++) {
+          const x = (i + 0.5) / w * 2 - 1, y = (j + 0.5) / h * 2 - 1;
+          const ax = abs(x);
+          let I = exp(-ax / 0.22) * (1 - ss(0.5, 1, ax)) * exp(-pow(y / (0.16 + 0.1 * ax), 2)) + (u.hash2(i, j) - 0.5) * 0.004;
+          I = clamp(I * 0.8, 0, 0.8);
+          const q = (j * w + i) * 4;
+          d[q] = lerp(110, 215, I); d[q + 1] = lerp(160, 232, I); d[q + 2] = 255; d[q + 3] = I * 255;
+        }
+      }
+      c.putImageData(im, 0, 0);
+    });
     SP.petal = spr('petal', 32, 18, (c) => {
       c.translate(16, 9);
       const gr = c.createRadialGradient(-3, -1, 1, 0, 0, 14);
@@ -9751,10 +9957,11 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       const al = ss(FALL0 + 0.25, FALL0 + 0.9, T) * (0.55 + 0.45 * near);
       if (yr < H + 0.3 * S) {
         const len = S * 0.22 * (0.6 + 0.8 * near);
-        g.globalAlpha = 0.75 * al;
+        const dim = 1 - 0.95 * glintEnv(T);   // the glint carries the heart of the moment
+        g.globalAlpha = 0.5 * al * dim;
         g.drawImage(SP.streak, _sp[0] - S * 0.03, yr - len / 2, S * 0.06, len);
-        gl(g, SP.gCold, _sp[0], yr, S * 0.07, 0.5 * al);
-        gl(g, SP.coreWhite, _sp[0], yr, S * 0.022, 0.8 * al * near);
+        gl(g, SP.gCold, _sp[0], yr, S * 0.07, 0.4 * al * dim);
+        gl(g, SP.coreWhite, _sp[0], yr, S * 0.022, 0.5 * al * near * dim);
       }
     }
     g.restore();
@@ -9856,7 +10063,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     const tx = X[NT], ty = Y[NT];
     if (hypot(hx - tx, hy - ty) > 3) {
       const gr = g.createLinearGradient(hx, hy, tx, ty);
-      const a0 = 0.95 * speed;
+      const a0 = 0.95 * speed * (1 - 0.95 * glintEnv(T));
       gr.addColorStop(0, `rgba(235,244,255,${a0})`); gr.addColorStop(0.18, `rgba(170,205,255,${a0 * 0.55})`);
       gr.addColorStop(0.6, `rgba(100,150,240,${a0 * 0.18})`); gr.addColorStop(1, 'rgba(70,110,230,0)');
       g.strokeStyle = gr;
@@ -9870,7 +10077,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       // dust of light along the tail
       for (let j = 1; j < NT; j += 1) {
         const f = j / NT;
-        const al = (1 - f) * (1 - f) * 0.5 * speed;
+        const al = (1 - f) * (1 - f) * 0.5 * speed * (1 - 0.95 * glintEnv(T));
         gl(g, SP.gCold, X[j], Y[j], S * (0.03 - 0.018 * f), al);
       }
       // sparkling motes shed behind the star
@@ -9921,13 +10128,22 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     // --- flash + flat splash light on the water
     const fl = exp(-a / 0.28) * ss(-0.02, 0.02, a);
     if (fl > 0.04) {
-      gl(g, SP.gCold, cx, cy, S * 0.34 * z, 0.62 * fl);
-      gl(g, SP.coreWhite, cx, cy, S * 0.1 * z, 0.8 * fl);
+      gl(g, SP.gCold, cx, cy, S * 0.34 * z, 0.26 * fl);
+      gl(g, SP.coreWhite, cx, cy, S * 0.1 * z, 0.03 * fl);
       g.save();
       g.translate(cx, cy); g.scale(1, 0.14 * (eps / 0.2 > 1.5 ? 1.5 : 1));
-      g.globalAlpha = min(1, 0.9 * fl);
+      g.globalAlpha = min(1, 0.2 * fl);
       g.drawImage(SP.gSilver, -S * 0.9, -S * 0.9, S * 1.8, S * 1.8);
       g.restore();
+    }
+    // --- the glint: a feathered 4-point flare (a longer, fainter lens streak across it), brief, light not a polygon
+    const gt = glintEnv(T);
+    if (gt > 0.01) {
+      const gs = S * z * (0.36 + 0.07 * (1 - exp(-max(0, a) / 0.12)));
+      g.globalAlpha = 0.58 * gt;
+      g.drawImage(SP.flare, cx - gs, cy - gs, gs * 2, gs * 2);
+      g.globalAlpha = 0.17 * gt;
+      g.drawImage(SP.lens, cx - S * 0.52 * z, cy - S * 0.03 * z, S * 1.04 * z, S * 0.06 * z);
     }
     // --- spire of light rising from the surface
     if (a > 0 && a < 1.8) {
@@ -9935,7 +10151,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       const w = S * (0.026 * exp(-a * 1.2) + 0.006);
       const al = exp(-a / 0.5) * ss(0, 0.05, a);
       if (al > 0.01 && h > 2) {
-        g.globalAlpha = min(1, 0.95 * al);
+        g.globalAlpha = min(1, 0.95 * al * (1 - 0.75 * glintEnv(T)));
         g.drawImage(SP.beam, cx - w / 2, cy - h, w, h);
         gl(g, SP.gCold, cx, cy - h * 0.2, S * 0.05, 0.4 * al);
       }
@@ -9952,7 +10168,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       const gx = cx + hx * S * z, gy = cy + hz * S * z * eps;
       if (t < tl) {
         const Y = gy - hgt * S * z;
-        const al = ss(0, 0.06, t) * (0.7 + 0.3 * sin(T * 7 + i));
+        const al = ss(0, 0.06, t) * (0.7 + 0.3 * sin(T * 7 + i)) * (0.4 + 0.6 * ss(0, 0.3, t)) * (1 - 0.6 * glintEnv(T));   // they leave the glint one by one, not as one white clump
         // short trail
         for (let q = 1; q <= 3; q++) {
           const tq = t - q * 0.035; if (tq < 0) break;
@@ -10003,7 +10219,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       const uu = (T - FALL0) / (IMPACT - FALL0);
       return { x: _sp[0], y: _sp[1], r: S * PIN_IN.r, hue: PIN_IN.hue, form: 'star', a: 1, pulse: 1 + 0.06 * sin(T * 2.4), glow: 1 + 0.5 * ss(0.5, 1, uu), flare: 1 - ss(0.0, 0.85, uu) };
     }
-    const rr = KS([[IMPACT, 0.017], [172.5, 0.0135], [175.5, 0.0125], [177, 0.0095], [178.3, 0.0048], [180, 0.0048]], T);
+    const rr = KS([[IMPACT, 0.017], [172.5, 0.0135], [175.5, 0.0125], [177, 0.0095], [178.3, 0.0066], [180, 0.0066]], T);
     const hue = KS([[IMPACT, 212], [174, 203], [177, 196], [178.4, 190]], T);
     const calm = ss(176.5, 178.2, T);
     const pulse = (1 + 0.05 * sin(T * 2.4)) * (1 - 0.0 * calm);
@@ -10012,8 +10228,9 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
   }
   function drawHero(g, T) {
     const h = heroState(T);
+    const gA = 1 - 0.9 * glintEnv(T);
     if (T < IMPACT) {
-      hero.draw(g, h.x, h.y, h.r, { hue: h.hue, form: h.form, a: h.a, pulse: h.pulse, glow: h.glow, flare: h.flare });
+      hero.draw(g, h.x, h.y, h.r, { hue: h.hue, form: h.form, a: h.a * gA, pulse: h.pulse, glow: h.glow, flare: h.flare });
       return;
     }
     // surface-bound: a flattened halo shows the drop lying in the water (fades as the camera tips down)
@@ -10026,7 +10243,8 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
       g.drawImage(SP.gCyan, -R.S * 0.2, -R.S * 0.2, R.S * 0.4, R.S * 0.4);
       g.restore();
     }
-    hero.draw(g, h.x, h.y, h.r, { hue: h.hue, form: 'orb', a: h.a, pulse: h.pulse, glow: h.glow, flare: 0 });
+    // while the glint is up the drop's own white-hot core steps back so the heart of the flare is light, not a clipped disc
+    hero.draw(g, h.x, h.y, h.r, { hue: h.hue, form: 'orb', a: h.a * gA, pulse: h.pulse, glow: h.glow, flare: 0 });
   }
 
   /* ================================================================== the dive */
@@ -11652,7 +11870,7 @@ const todAt = (T) => u.keys(TODT, T, 'spline');
     if (i < 0) return;
     const c = Anim.timeline.cues[i];
     const kind = c.kind || 'line';
-    capEl.className = 'cap-' + kind;
+    capEl.className = 'cap-' + kind + (c.bright ? ' bright' : '');
     boxEl = document.createElement('div'); boxEl.className = 'box';
     jpEl = document.createElement('div'); jpEl.className = 'jp';
     // group characters into phrases (split after 、 and 。) so line breaks only happen between phrases
