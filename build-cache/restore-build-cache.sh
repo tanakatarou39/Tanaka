@@ -1,15 +1,15 @@
 #!/bin/sh
-# Restore the prebuilt Wine / vkd3d trees from the GitHub release into /home/user,
-# so that only the files changed since then need to be rebuilt.
+# Restore the prebuilt Wine / vkd3d trees into /home/user, so that only the files
+# changed since then need to be rebuilt. The archives (tar + zstd, split in 95 MB
+# parts) are on the build-cache-data branch of tanakatarou39/Tanaka.
 #
-#   sh restore-build-cache.sh [tag]
+#   sh restore-build-cache.sh [dest]
 #
-# The trees must stay at /home/user/<name>: the build directories refer to them.
+# The build trees refer to the source trees next to them (../wine-src), keep them together.
 set -e
 
-TAG=${1:-build-cache-2026-10-28}
-REPO=tanakatarou39/Tanaka
-DEST=/home/user
+DEST=${1:-/home/user}
+REPO=https://github.com/tanakatarou39/Tanaka.git
 WORK=$(mktemp -d)
 
 # build dependencies (Ubuntu 24.04)
@@ -20,28 +20,23 @@ if command -v apt-get >/dev/null; then
         libvulkan-dev libx11-dev libfreetype-dev xvfb >/dev/null
 fi
 
-cd "$WORK"
-if command -v gh >/dev/null && gh release view "$TAG" -R "$REPO" >/dev/null 2>&1; then
-    gh release download "$TAG" -R "$REPO" -p '*.zst*' -p 'SHA256SUMS'
-else
-    for f in $(curl -fsSL "https://api.github.com/repos/$REPO/releases/tags/$TAG" |
-               sed -n 's/.*"browser_download_url": *"\([^"]*\)".*/\1/p'); do
-        curl -fL --retry 4 -O "$f"
-    done
-fi
+git clone -q --depth 1 --branch build-cache-data "$REPO" "$WORK/data"
+cd "$WORK/data"
 sha256sum -c SHA256SUMS
 
+mkdir -p "$DEST"
 for name in wine-src-build vkd3d-work; do
-    ls "$name".tar.zst.part-* >/dev/null 2>&1 || continue
-    echo "extracting $name"
+    echo "extracting $name into $DEST"
     cat "$name".tar.zst.part-* | zstd -d --long=27 -q | tar -xf - -C "$DEST"
 done
+cd /
 rm -rf "$WORK"
 
 cat <<MSG
 Restored into $DEST:
-  wine-src    upstream Wine (branch d3dkmt-priority), wine-build: 64-bit build of it
-  vkd3d       vkd3d (branch fx2-state-assignments), build/ and build-mingw/
+  wine-src    upstream Wine 0738d52 + the D3DKMT patches (branch d3dkmt-priority)
+  wine-build  64-bit build of wine-src
+  vkd3d       vkd3d (branch fx2-state-assignments), with build/ and build-mingw/
 To update Wine without a full rebuild:
   cd $DEST/wine-src && git pull --rebase origin master && cd ../wine-build && make -j\$(nproc)
 MSG
