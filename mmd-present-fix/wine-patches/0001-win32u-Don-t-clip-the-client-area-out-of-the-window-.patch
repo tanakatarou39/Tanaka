@@ -1,0 +1,35 @@
+From fed218a118d281e6ea9bc764cbee9bee78a1bac1 Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 07:04:12 +0000
+Subject: [PATCH 1/4] win32u: Don't clip the client area out of the window
+ surface without PutImage.
+
+Drivers without PutImage draw the client surfaces over the window surface,
+which then shows what GDI draws in the parts of the client area that the
+client surfaces don't present to, as on Windows. Clipping it out only made
+these parts transparent, and black.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ dlls/win32u/window.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/dlls/win32u/window.c b/dlls/win32u/window.c
+index 4f0610c..b4b503d 100644
+--- a/dlls/win32u/window.c
++++ b/dlls/win32u/window.c
+@@ -2379,7 +2379,9 @@ static BOOL apply_window_pos( HWND hwnd, HWND insert_after, UINT swp_flags, stru
+         }
+         if (new_surface) req->paint_flags |= SET_WINPOS_PAINT_SURFACE;
+         if (is_layered) req->paint_flags |= SET_WINPOS_LAYERED_WINDOW;
+-        if (win->clip_clients) req->paint_flags |= SET_WINPOS_PIXEL_FORMAT;
++        /* drivers without PutImage draw the client surfaces over the window surface, where it
++         * shows what GDI draws in the parts of the client area they don't present to */
++        if (win->clip_clients && user_driver->dc_funcs.pPutImage) req->paint_flags |= SET_WINPOS_PIXEL_FORMAT;
+ 
+         if ((ret = !wine_server_call( req )))
+         {
+-- 
+2.43.0
+

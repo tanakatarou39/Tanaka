@@ -1,0 +1,217 @@
+visual.c:29265: Driver string: "nvd3dum.dll"
+visual.c:29266: Description string: "NVIDIA GeForce GTX 470"
+visual.c:29269: Device name string: "\\.\DISPLAY1"
+visual.c:29271: Driver version 9.21.13.9135
+visual.c:4470: Test marked todo: Test 7, got unexpected hr 0.
+visual.c:4470: Test marked todo: Test 9, got unexpected hr 0.
+visual.c:4470: Test marked todo: Test 15, got unexpected hr 0.
+visual.c:4470: Test marked todo: Test 17, got unexpected hr 0.
+visual.c:4470: Test marked todo: Test 23, got unexpected hr 0.
+visual.c:4470: Test marked todo: Test 25, got unexpected hr 0.
+visual.c:4470: Test marked todo: Test 31, got unexpected hr 0.
+visual.c:4520: Tests skipped: Multisampling not supported for D3DFMT_A8R8G8B8.
+visual.c:1435: sRGB writing to D3DFMT_A8R8G8B8 is supported.
+visual.c:8850: Test marked todo: Test 14 shading has color0 000dca28, expected 00ff0000.
+visual.c:8852: Test marked todo: Test 14 shading has color1 000d45c7, expected 0000ff00.
+visual.c:8420: Tests skipped: A1R5G5R5 textures with SRGBREAD are not supported.
+visual.c:8420: Tests skipped: X1R5G5R5 textures with SRGBREAD are not supported.
+visual.c:9888: Tests skipped: Card has unconditional NP2 support, skipping conditional NP2 tests
+visual.c:11488: Test marked todo: Setup 0: test 3 (expected size 0): Got unexpected color 0x0000ff00 at (64, 64).
+visual.c:11488: Test marked todo: Setup 1: test 3 (expected size 0): Got unexpected color 0x0000ff00 at (64, 64).
+visual.c:11488: Test marked todo: Setup 2: test 3 (expected size 0): Got unexpected color 0x0000ff00 at (64, 64).
+visual.c:11488: Test marked todo: Setup 3: test 3 (expected size 0): Got unexpected color 0x0000ff00 at (64, 64).
+visual.c:11488: Test marked todo: Setup 4: test 3 (expected size 0): Got unexpected color 0x0000ff00 at (64, 64).
+visual.c:11488: Test marked todo: Setup 5: test 3 (expected size 0): Got unexpected color 0x00ff0000 at (64, 64).
+visual.c:11488: Test marked todo: Setup 6: test 3 (expected size 0): Got unexpected color 0x0000ff00 at (64, 64).
+visual.c:11488: Test marked todo: Setup 7: test 3 (expected size 0): Got unexpected color 0x00ff0000 at (64, 64).
+visual.c:11488: Test marked todo: Setup 8: test 3 (expected size 0): Got unexpected color 0x0000ff00 at (64, 64).
+visual.c:11488: Test marked todo: Setup 9: test 3 (expected size 0): Got unexpected color 0x00ff0000 at (64, 64).
+visual.c:11488: Test marked todo: Setup 10: test 7 (expected size 0): Got unexpected color 0x0000ff00 at (64, 64).
+visual.c:11488: Test marked todo: Setup 11: test 7 (expected size 0): Got unexpected color 0x0000ff00 at (64, 64).
+visual.c:11488: Test marked todo: Setup 12: test 7 (expected size 0): Got unexpected color 0x0000ff00 at (64, 64).
+visual.c:7587: Test marked todo: Test blendweight returned color 0x00000000, expected 0x00191919 (todo).
+visual.c:7587: Test marked todo: Test blendindices returned color 0x00000000, expected 0x00333333 (todo).
+visual.c:7587: Test marked todo: Test normal returned color 0x00000000, expected 0x004c4c4c (todo).
+visual.c:7587: Test marked todo: Test tangent returned color 0x00000000, expected 0x00999999 (todo).
+visual.c:7587: Test marked todo: Test binormal returned color 0x00000000, expected 0x00b2b2b2 (todo).
+visual.c:7587: Test marked todo: Test fog returned color 0x00000000, expected 0x00666666 (todo).
+visual.c:7587: Test marked todo: Test depth returned color 0x00000000, expected 0x00cccccc (todo).
+visual.c:15514: Tests skipped: No DF24 support, skipping Fetch4 test.
+visual.c:16097: Test marked todo: D3DFMT_D16_LOCKABLE: ps 3: Expected color 0x00000000 at (400, 60), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D16_LOCKABLE: ps 3: Expected color 0xffffffff at (560, 180), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D16_LOCKABLE: ps 3: Expected color 0xffffffff at (560, 300), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D16_LOCKABLE: ps 3: Expected color 0xffffffff at (400, 420), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D16_LOCKABLE: ps 3: Expected color 0xffffffff at (240, 420), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D16_LOCKABLE: ps 3: Expected color 0x00000000 at (80, 300), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D16_LOCKABLE: ps 3: Expected color 0x00000000 at (80, 180), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D16_LOCKABLE: ps 3: Expected color 0x00000000 at (240, 60), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24S8: ps 3: Expected color 0x00000000 at (400, 60), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24S8: ps 3: Expected color 0xffffffff at (560, 180), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24S8: ps 3: Expected color 0xffffffff at (560, 300), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24S8: ps 3: Expected color 0xffffffff at (400, 420), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24S8: ps 3: Expected color 0xffffffff at (240, 420), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24S8: ps 3: Expected color 0x00000000 at (80, 300), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24S8: ps 3: Expected color 0x00000000 at (80, 180), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24S8: ps 3: Expected color 0x00000000 at (240, 60), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24X8: ps 3: Expected color 0x00000000 at (400, 60), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24X8: ps 3: Expected color 0xffffffff at (560, 180), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24X8: ps 3: Expected color 0xffffffff at (560, 300), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24X8: ps 3: Expected color 0xffffffff at (400, 420), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24X8: ps 3: Expected color 0xffffffff at (240, 420), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24X8: ps 3: Expected color 0x00000000 at (80, 300), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24X8: ps 3: Expected color 0x00000000 at (80, 180), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24X8: ps 3: Expected color 0x00000000 at (240, 60), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D16: ps 3: Expected color 0x00000000 at (400, 60), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D16: ps 3: Expected color 0xffffffff at (560, 180), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D16: ps 3: Expected color 0xffffffff at (560, 300), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D16: ps 3: Expected color 0xffffffff at (400, 420), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D16: ps 3: Expected color 0xffffffff at (240, 420), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D16: ps 3: Expected color 0x00000000 at (80, 300), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D16: ps 3: Expected color 0x00000000 at (80, 180), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D16: ps 3: Expected color 0x00000000 at (240, 60), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D32F_LOCKABLE: ps 3: Expected color 0x00000000 at (400, 60), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D32F_LOCKABLE: ps 3: Expected color 0xffffffff at (560, 180), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D32F_LOCKABLE: ps 3: Expected color 0xffffffff at (560, 300), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D32F_LOCKABLE: ps 3: Expected color 0xffffffff at (400, 420), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D32F_LOCKABLE: ps 3: Expected color 0xffffffff at (240, 420), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D32F_LOCKABLE: ps 3: Expected color 0x00000000 at (80, 300), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D32F_LOCKABLE: ps 3: Expected color 0x00000000 at (80, 180), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D32F_LOCKABLE: ps 3: Expected color 0x00000000 at (240, 60), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24FS8: ps 3: Expected color 0x00000000 at (400, 60), got 0xff000000.
+visual.c:16097: Test marked todo: D3DFMT_D24FS8: ps 3: Expected color 0xffffffff at (560, 180), got 0xff000000.
+visual.c:16097: Line has been silenced after 42 occurrences
+visual.c:14355: Tests skipped: No NVDB (depth bounds test) support, skipping tests.
+visual.c:17121: Tests skipped: Multisampling not supported for D3DFMT_A8R8G8B8, skipping tests.
+visual.c:17187: Tests skipped: Multisampling not supported for D3DFMT_A8R8G8B8.
+visual.c:18390: Test marked todo: Expected left color 0x0000ff00, got 0x00ff0000, case 4.
+visual.c:18390: Test marked todo: Expected left color 0x0000ff00, got 0x00ff0000, case 5.
+visual.c:18390: Test marked todo: Expected left color 0x0000ff00, got 0x00ff0000, case 6.
+visual.c:18390: Test marked todo: Expected left color 0x0000ff00, got 0x00ff0000, case 7.
+visual.c:17290: Tests skipped: Multisampling not supported for D3DFMT_A8R8G8B8, skipping multisampled depth buffer test.
+visual.c:17607: Tests skipped: Multisampling not supported for D3DFMT_A8R8G8B8, skipping RESZ test.
+visual.c:19943: Test marked todo: Got unexpected color 0x0000ea15, case 2.
+visual.c:19943: Test marked todo: Got unexpected color 0x0000ea15, case 3.
+visual.c:20851: Tests skipped: Multisampling not supported for D3DFMT_A8R8G8B8, skipping multisample mismatch test.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 0, 9.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 0, 11.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 0, 12.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 0, 13.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 0, 14.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 0, 15.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 1, 9.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 1, 12.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 1, 13.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 1, 14.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 1, 15.
+visual.c:21664: Tests skipped: Volume ATI2N textures are not supported, skipping some tests.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 2, 9.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 2, 11.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 2, 12.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 2, 13.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 2, 14.
+visual.c:21811: Test marked todo: Failed to update texture, hr 0x8876086c, case 2, 15.
+visual.c:21929: Tests skipped: Depth format 71 not supported, skipping.
+visual.c:22131: Tests skipped: Multisampling not supported for D3DFMT_A8R8G8B8, skipping multisample flip test.
+visual.c:22508: Tests skipped: Multisampling not supported for D3DFMT_A8R8G8B8, skipping multisample init test.
+visual.c:23732: Line antialiasing support: 0.
+visual.c:24617: Test marked todo: Got unexpected hr 0x8876086c.
+visual.c:24630: Test marked todo: Got unexpected hr 0.
+visual.c:24637: Test marked todo: Expected color 0x00000000, got 0x00ff0000 (sw shader in hw mode).
+visual.c:24674: Test marked todo: Expected color 0x00ffffff, got 0x00ff0000 (sw shader in sw mode).
+visual.c:24691: Test marked todo: Got unexpected hr 0x8876086c.
+visual.c:24725: Test marked todo: Expected color 0x0000ffff, got 0x00ff00ff (shader in sw mode).
+visual.c:26186: Test marked todo: test 3d_2d, expected 0x00303030, got 0x00202020.
+visual.c:26503: Test marked todo: Got unexpected color 0x00ffffff.
+visual.c:26557: Tests skipped: Multisampling not supported for D3DFMT_A8R8G8B8.
+visual.c:26754: Tests skipped: Multisampling not supported for D3DFMT_A8R8G8B8.
+visual.c:28072: Test marked todo: Got hr 0 for 114 to 111.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x3, vs_mode 1, ortho_fog 0: (300, 220): Expected fog 6.00000024e-002; got colour {0.00000000e+000, 3.00000310e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x3, vs_mode 1, ortho_fog 0: (340, 220): Expected fog 6.00000024e-002; got colour {0.00000000e+000, 3.00000310e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x3, vs_mode 1, ortho_fog 0: (300, 260): Expected fog 1.50000006e-001; got colour {0.00000000e+000, 7.49999881e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x3, vs_mode 1, ortho_fog 0: (340, 260): Expected fog 1.50000006e-001; got colour {0.00000000e+000, 7.49999881e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x3, vs_mode 1, ortho_fog 1: (300, 220): Expected fog 6.00000024e-002; got colour {0.00000000e+000, 3.00000310e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x3, vs_mode 1, ortho_fog 1: (340, 220): Expected fog 6.00000024e-002; got colour {0.00000000e+000, 3.00000310e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x3, vs_mode 1, ortho_fog 1: (300, 260): Expected fog 1.50000006e-001; got colour {0.00000000e+000, 7.49999881e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x3, vs_mode 1, ortho_fog 1: (340, 260): Expected fog 1.50000006e-001; got colour {0.00000000e+000, 7.49999881e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x1, vs_mode 1, ortho_fog 0: (300, 220): Expected fog 4.51188385e-001; got colour {0.00000000e+000, 2.59181738e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x1, vs_mode 1, ortho_fog 0: (340, 220): Expected fog 4.51188385e-001; got colour {0.00000000e+000, 2.59181738e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x1, vs_mode 1, ortho_fog 0: (300, 260): Expected fog 7.76869833e-001; got colour {0.00000000e+000, 5.27633429e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x1, vs_mode 1, ortho_fog 0: (340, 260): Expected fog 7.76869833e-001; got colour {0.00000000e+000, 5.27633429e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x1, vs_mode 1, ortho_fog 1: (300, 220): Expected fog 4.51188385e-001; got colour {0.00000000e+000, 2.59181738e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x1, vs_mode 1, ortho_fog 1: (340, 220): Expected fog 4.51188385e-001; got colour {0.00000000e+000, 2.59181738e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x1, vs_mode 1, ortho_fog 1: (300, 260): Expected fog 7.76869833e-001; got colour {0.00000000e+000, 5.27633429e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x1, vs_mode 1, ortho_fog 1: (340, 260): Expected fog 7.76869833e-001; got colour {0.00000000e+000, 5.27633429e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x2, vs_mode 1, ortho_fog 0: (300, 220): Expected fog 3.02323699e-001; got colour {0.00000000e+000, 8.60687494e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x2, vs_mode 1, ortho_fog 0: (340, 220): Expected fog 3.02323699e-001; got colour {0.00000000e+000, 8.60687494e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x2, vs_mode 1, ortho_fog 0: (300, 260): Expected fog 8.94600749e-001; got colour {0.00000000e+000, 4.30217147e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x2, vs_mode 1, ortho_fog 0: (340, 260): Expected fog 8.94600749e-001; got colour {0.00000000e+000, 4.30217147e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x2, vs_mode 1, ortho_fog 1: (300, 220): Expected fog 3.02323699e-001; got colour {0.00000000e+000, 8.60687494e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x2, vs_mode 1, ortho_fog 1: (340, 220): Expected fog 3.02323699e-001; got colour {0.00000000e+000, 8.60687494e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x2, vs_mode 1, ortho_fog 1: (300, 260): Expected fog 8.94600749e-001; got colour {0.00000000e+000, 4.30217147e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0, vertex mode 0x2, vs_mode 1, ortho_fog 1: (340, 260): Expected fog 8.94600749e-001; got colour {0.00000000e+000, 4.30217147e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0, vs_mode 0, ortho_fog 0: (300, 220): Expected fog 2.00000003e-001; got colour {0.00000000e+000, 1.99999809e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0, vs_mode 0, ortho_fog 0: (340, 220): Expected fog 1.11111119e-001; got colour {0.00000000e+000, 1.99999809e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0, vs_mode 0, ortho_fog 0: (300, 260): Expected fog 2.00000003e-001; got colour {0.00000000e+000, 5.00000119e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0, vs_mode 0, ortho_fog 0: (340, 260): Expected fog 1.11111119e-001; got colour {0.00000000e+000, 5.00000119e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0, vs_mode 1, ortho_fog 0: (300, 220): Expected fog 2.01999992e-001; got colour {0.00000000e+000, 3.00000310e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0, vs_mode 1, ortho_fog 0: (340, 220): Expected fog 2.01999992e-001; got colour {0.00000000e+000, 3.00000310e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0, vs_mode 1, ortho_fog 0: (300, 260): Expected fog 2.01999992e-001; got colour {0.00000000e+000, 7.49999881e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0, vs_mode 1, ortho_fog 0: (340, 260): Expected fog 2.01999992e-001; got colour {0.00000000e+000, 7.49999881e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0, vs_mode 1, ortho_fog 1: (300, 220): Expected fog 3.99999991e-002 or 6.00000024e-002; got colour {0.00000000e+000, 1.00000501e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0, vs_mode 1, ortho_fog 1: (340, 220): Expected fog 3.99999991e-002 or 6.00000024e-002; got colour {0.00000000e+000, 1.00000501e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0, vs_mode 1, ortho_fog 1: (300, 260): Expected fog 8.50000009e-002 or 1.50000006e-001; got colour {0.00000000e+000, 9.99999642e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0, vs_mode 1, ortho_fog 1: (340, 260): Expected fog 8.50000009e-002 or 1.50000006e-001; got colour {0.00000000e+000, 9.99999642e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0x3, vs_mode 0, ortho_fog 0: (300, 220): Expected fog 2.00000003e-001; got colour {0.00000000e+000, 1.99999809e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0x3, vs_mode 0, ortho_fog 0: (340, 220): Expected fog 1.11111119e-001; got colour {0.00000000e+000, 1.99999809e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0x3, vs_mode 0, ortho_fog 0: (300, 260): Expected fog 2.00000003e-001; got colour {0.00000000e+000, 5.00000119e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0x3, vs_mode 0, ortho_fog 0: (340, 260): Expected fog 1.11111119e-001; got colour {0.00000000e+000, 5.00000119e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0x3, vs_mode 1, ortho_fog 0: (300, 220): Expected fog 2.01999992e-001; got colour {0.00000000e+000, 3.00000310e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0x3, vs_mode 1, ortho_fog 0: (340, 220): Expected fog 2.01999992e-001; got colour {0.00000000e+000, 3.00000310e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0x3, vs_mode 1, ortho_fog 0: (300, 260): Expected fog 2.01999992e-001; got colour {0.00000000e+000, 7.49999881e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0x3, vs_mode 1, ortho_fog 0: (340, 260): Expected fog 2.01999992e-001; got colour {0.00000000e+000, 7.49999881e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0x3, vs_mode 1, ortho_fog 1: (300, 220): Expected fog 3.99999991e-002 or 6.00000024e-002; got colour {0.00000000e+000, 1.00000501e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0x3, vs_mode 1, ortho_fog 1: (340, 220): Expected fog 3.99999991e-002 or 6.00000024e-002; got colour {0.00000000e+000, 1.00000501e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0x3, vs_mode 1, ortho_fog 1: (300, 260): Expected fog 8.50000009e-002 or 1.50000006e-001; got colour {0.00000000e+000, 9.99999642e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0x3, vs_mode 1, ortho_fog 1: (340, 260): Expected fog 8.50000009e-002 or 1.50000006e-001; got colour {0.00000000e+000, 9.99999642e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0x1, vs_mode 0, ortho_fog 0: (300, 220): Expected fog 2.00000003e-001; got colour {0.00000000e+000, 1.99999809e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Test marked todo: pixel mode 0x3, vertex mode 0x1, vs_mode 0, ortho_fog 0: (340, 220): Expected fog 1.11111119e-001; got colour {0.00000000e+000, 1.99999809e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28529: Line has been silenced after 42 occurrences
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0x1, vs_mode 1, ortho_fog 1: (300, 220): Expected fog 3.99999991e-002 or 6.00000024e-002; got colour {0.00000000e+000, 1.00000501e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0x1, vs_mode 1, ortho_fog 1: (340, 220): Expected fog 3.99999991e-002 or 6.00000024e-002; got colour {0.00000000e+000, 1.00000501e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0x1, vs_mode 1, ortho_fog 1: (300, 260): Expected fog 8.50000009e-002 or 1.50000006e-001; got colour {0.00000000e+000, 9.99999642e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0x1, vs_mode 1, ortho_fog 1: (340, 260): Expected fog 8.50000009e-002 or 1.50000006e-001; got colour {0.00000000e+000, 9.99999642e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0x2, vs_mode 1, ortho_fog 1: (300, 220): Expected fog 3.99999991e-002 or 6.00000024e-002; got colour {0.00000000e+000, 1.00000501e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0x2, vs_mode 1, ortho_fog 1: (340, 220): Expected fog 3.99999991e-002 or 6.00000024e-002; got colour {0.00000000e+000, 1.00000501e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0x2, vs_mode 1, ortho_fog 1: (300, 260): Expected fog 8.50000009e-002 or 1.50000006e-001; got colour {0.00000000e+000, 9.99999642e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x3, vertex mode 0x2, vs_mode 1, ortho_fog 1: (340, 260): Expected fog 8.50000009e-002 or 1.50000006e-001; got colour {0.00000000e+000, 9.99999642e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0, vs_mode 1, ortho_fog 1: (300, 220): Expected fog 3.29679966e-001 or 4.51188385e-001; got colour {0.00000000e+000, 9.51625705e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0, vs_mode 1, ortho_fog 1: (340, 220): Expected fog 3.29679966e-001 or 4.51188385e-001; got colour {0.00000000e+000, 9.51625705e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0, vs_mode 1, ortho_fog 1: (300, 260): Expected fog 5.72585106e-001 or 7.76869833e-001; got colour {0.00000000e+000, 6.32120490e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0, vs_mode 1, ortho_fog 1: (340, 260): Expected fog 5.72585106e-001 or 7.76869833e-001; got colour {0.00000000e+000, 6.32120490e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0x3, vs_mode 1, ortho_fog 1: (300, 220): Expected fog 3.29679966e-001 or 4.51188385e-001; got colour {0.00000000e+000, 9.51625705e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0x3, vs_mode 1, ortho_fog 1: (340, 220): Expected fog 3.29679966e-001 or 4.51188385e-001; got colour {0.00000000e+000, 9.51625705e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0x3, vs_mode 1, ortho_fog 1: (300, 260): Expected fog 5.72585106e-001 or 7.76869833e-001; got colour {0.00000000e+000, 6.32120490e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0x3, vs_mode 1, ortho_fog 1: (340, 260): Expected fog 5.72585106e-001 or 7.76869833e-001; got colour {0.00000000e+000, 6.32120490e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0x1, vs_mode 1, ortho_fog 1: (300, 220): Expected fog 3.29679966e-001 or 4.51188385e-001; got colour {0.00000000e+000, 9.51625705e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0x1, vs_mode 1, ortho_fog 1: (340, 220): Expected fog 3.29679966e-001 or 4.51188385e-001; got colour {0.00000000e+000, 9.51625705e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0x1, vs_mode 1, ortho_fog 1: (300, 260): Expected fog 5.72585106e-001 or 7.76869833e-001; got colour {0.00000000e+000, 6.32120490e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0x1, vs_mode 1, ortho_fog 1: (340, 260): Expected fog 5.72585106e-001 or 7.76869833e-001; got colour {0.00000000e+000, 6.32120490e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0x2, vs_mode 1, ortho_fog 1: (300, 220): Expected fog 3.29679966e-001 or 4.51188385e-001; got colour {0.00000000e+000, 9.51625705e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0x2, vs_mode 1, ortho_fog 1: (340, 220): Expected fog 3.29679966e-001 or 4.51188385e-001; got colour {0.00000000e+000, 9.51625705e-002, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0x2, vs_mode 1, ortho_fog 1: (300, 260): Expected fog 5.72585106e-001 or 7.76869833e-001; got colour {0.00000000e+000, 6.32120490e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x1, vertex mode 0x2, vs_mode 1, ortho_fog 1: (340, 260): Expected fog 5.72585106e-001 or 7.76869833e-001; got colour {0.00000000e+000, 6.32120490e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x2, vertex mode 0, vs_mode 1, ortho_fog 1: (300, 220): Expected fog 1.47856236e-001 or 3.02323699e-001; got colour {0.00000000e+000, 9.95010138e-003, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x2, vertex mode 0, vs_mode 1, ortho_fog 1: (340, 220): Expected fog 1.47856236e-001 or 3.02323699e-001; got colour {0.00000000e+000, 9.95010138e-003, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x2, vertex mode 0, vs_mode 1, ortho_fog 1: (300, 260): Expected fog 5.14463127e-001 or 8.94600749e-001; got colour {0.00000000e+000, 6.32120490e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x2, vertex mode 0, vs_mode 1, ortho_fog 1: (340, 260): Expected fog 5.14463127e-001 or 8.94600749e-001; got colour {0.00000000e+000, 6.32120490e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x2, vertex mode 0x3, vs_mode 1, ortho_fog 1: (300, 220): Expected fog 1.47856236e-001 or 3.02323699e-001; got colour {0.00000000e+000, 9.95010138e-003, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x2, vertex mode 0x3, vs_mode 1, ortho_fog 1: (340, 220): Expected fog 1.47856236e-001 or 3.02323699e-001; got colour {0.00000000e+000, 9.95010138e-003, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x2, vertex mode 0x3, vs_mode 1, ortho_fog 1: (300, 260): Expected fog 5.14463127e-001 or 8.94600749e-001; got colour {0.00000000e+000, 6.32120490e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x2, vertex mode 0x3, vs_mode 1, ortho_fog 1: (340, 260): Expected fog 5.14463127e-001 or 8.94600749e-001; got colour {0.00000000e+000, 6.32120490e-001, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x2, vertex mode 0x1, vs_mode 1, ortho_fog 1: (300, 220): Expected fog 1.47856236e-001 or 3.02323699e-001; got colour {0.00000000e+000, 9.95010138e-003, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Test marked todo: pixel mode 0x2, vertex mode 0x1, vs_mode 1, ortho_fog 1: (340, 220): Expected fog 1.47856236e-001 or 3.02323699e-001; got colour {0.00000000e+000, 9.95010138e-003, 1.00000000e+000, 1.00000000e+000}.
+visual.c:28523: Line has been silenced after 42 occurrences
+visual.c:28918: Test marked todo: attrib count 1, vs_mode 1, ps_mode 0, flags 0x102: Expected colour {0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000}; got {9.95000005e-001, 9.95000005e-001, 0.00000000e+000, 0.00000000e+000}.
+visual.c:28918: Test marked todo: attrib count 1, vs_mode 1, ps_mode 1, flags 0x102: Expected colour {0.00000000e+000, 0.00000000e+000, 0.00000000e+000, 0.00000000e+000}; got {9.95000005e-001, 9.95000005e-001, 0.00000000e+000, 0.00000000e+000}.
+0410:visual: Silenced 90 todos, 0 skips and 0 traces.
+0410:visual: 210796 tests executed (189 marked as todo, 0 as flaky, 0 failures), 17 skipped.

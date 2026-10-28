@@ -1,0 +1,63 @@
+From cc9204e864e9b3bfba816d61f5596a6b3884e994 Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 07:04:12 +0000
+Subject: [PATCH 3/4] winex11: Only show the presented part of client surfaces.
+
+Render them offscreen then, and only copy that part to the window.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ dlls/winex11.drv/init.c | 21 +++++++++++++++++----
+ 1 file changed, 17 insertions(+), 4 deletions(-)
+
+diff --git a/dlls/winex11.drv/init.c b/dlls/winex11.drv/init.c
+index cf032cb..1277a96 100644
+--- a/dlls/winex11.drv/init.c
++++ b/dlls/winex11.drv/init.c
+@@ -220,9 +220,10 @@ static BOOL needs_client_window_clipping( HWND hwnd )
+     return ret > 0;
+ }
+ 
+-static BOOL needs_offscreen_rendering( HWND hwnd, BOOL raw )
++static BOOL needs_offscreen_rendering( HWND hwnd, const struct client_surface *client )
+ {
+-    if (!raw && NtUserGetDpiForWindow( hwnd ) != NtUserGetWinMonitorDpi( hwnd, MDT_RAW_DPI )) return TRUE; /* needs DPI scaling */
++    if (!client->raw && NtUserGetDpiForWindow( hwnd ) != NtUserGetWinMonitorDpi( hwnd, MDT_RAW_DPI )) return TRUE; /* needs DPI scaling */
++    if (!EqualRect( &client->presented_rect, &client->virtual_rect )) return TRUE; /* only partly presented, needs compositing */
+     if (NtUserGetAncestor( hwnd, GA_PARENT ) != NtUserGetDesktopWindow()) return TRUE; /* child window, needs compositing */
+     if (NtUserGetWindowRelative( hwnd, GW_CHILD )) return needs_client_window_clipping( hwnd ); /* window has children, needs compositing */
+     return FALSE;
+@@ -312,7 +313,7 @@ static void client_surface_update_geometry( HWND hwnd, struct x11drv_client_surf
+ 
+ static void client_surface_update_offscreen( HWND hwnd, struct x11drv_client_surface *surface )
+ {
+-    BOOL offscreen = needs_offscreen_rendering( hwnd, surface->client.raw );
++    BOOL offscreen = needs_offscreen_rendering( hwnd, &surface->client );
+     struct x11drv_win_data *data;
+ 
+     if (InterlockedExchange( &surface->client.offscreen, offscreen ) == offscreen)
+@@ -399,7 +400,19 @@ static void X11DRV_client_surface_present( struct client_surface *client, HDC hd
+ 
+     if (get_dc_drawable( surface->hdc_dst, &rect ) != window || !EqualRect( &rect, &rect_dst ))
+         set_dc_drawable( surface->hdc_dst, window, &rect_dst, IncludeInferiors );
+-    if (region) NtGdiExtSelectClipRgn( surface->hdc_dst, region, RGN_COPY );
++    NtGdiExtSelectClipRgn( surface->hdc_dst, region, RGN_COPY );
++    if (!EqualRect( &client->presented_rect, &client->virtual_rect ))
++    {
++        /* only show the part presented to, in the monitor coordinates of the destination */
++        const RECT *virt = &client->virtual_rect, *presented = &client->presented_rect;
++        int virt_w = max( 1, virt->right - virt->left ), virt_h = max( 1, virt->bottom - virt->top );
++        int dst_w = rect_dst.right - rect_dst.left, dst_h = rect_dst.bottom - rect_dst.top;
++
++        NtGdiIntersectClipRect( surface->hdc_dst, (LONGLONG)(presented->left - virt->left) * dst_w / virt_w,
++                                (LONGLONG)(presented->top - virt->top) * dst_h / virt_h,
++                                (LONGLONG)(presented->right - virt->left) * dst_w / virt_w,
++                                (LONGLONG)(presented->bottom - virt->top) * dst_h / virt_h );
++    }
+ 
+     NtGdiStretchBlt( surface->hdc_dst, 0, 0, rect_dst.right - rect_dst.left, rect_dst.bottom - rect_dst.top,
+                      surface->hdc_src, 0, 0, rect_src.right - rect_src.left, rect_src.bottom - rect_src.top, SRCCOPY, 0 );
+-- 
+2.43.0
+

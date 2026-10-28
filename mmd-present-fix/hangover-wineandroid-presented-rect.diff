@@ -1,0 +1,32 @@
+diff -ruN a/wine/dlls/wineandroid.drv/client.c b/wine/dlls/wineandroid.drv/client.c
+--- a/wine/dlls/wineandroid.drv/client.c	2026-10-28 07:06:00.347612894 +0000
++++ b/wine/dlls/wineandroid.drv/client.c	2026-10-28 07:06:00.349959416 +0000
+@@ -282,14 +282,17 @@
+ 
+ /* The parts of the surface that no window of its toplevel covers (its children, the siblings
+  * above it and above each of its ancestors), in the coordinates of the surface rect sent to the
+- * server, at most max: ADISP_CLIP_NONE when nothing covers it, see get_region_clip. */
++ * server, at most max: ADISP_CLIP_NONE when nothing covers it, see get_region_clip. Only the
++ * part presented to shows, the window surface shows what GDI drew in the rest (a D3D9 Present
++ * with a destination rect), none of it when nothing is presented (a GDI present). */
+ static UINT get_client_clip( struct android_client_surface *surface, struct adisp_rect *rects, UINT max )
+ {
+     HWND hwnd = surface->base.hwnd, toplevel = surface->base.toplevel, win, other;
+     RECT vrect = surface->base.virtual_rect, mrect = surface->base.monitor_rect;
++    RECT presented = surface->base.presented_rect;
+     UINT dpi = NtUserGetDpiForWindow( hwnd ), count;
+     int vw = vrect.right - vrect.left, vh = vrect.bottom - vrect.top;
+-    BOOL covered = FALSE;
++    BOOL covered = !EqualRect( &presented, &vrect );
+     POINT origin;
+     HRGN rgn;
+ 
+@@ -301,7 +304,7 @@
+     origin.x -= vrect.left;
+     origin.y -= vrect.top;
+ 
+-    rgn = NtGdiCreateRectRgn( vrect.left, vrect.top, vrect.right, vrect.bottom );
++    rgn = NtGdiCreateRectRgn( presented.left, presented.top, presented.right, presented.bottom );
+     for (other = NtUserGetWindowRelative( hwnd, GW_CHILD ); other; other = NtUserGetWindowRelative( other, GW_HWNDNEXT ))
+         covered |= subtract_window( rgn, other, &origin, dpi );
+     for (win = hwnd; win && win != toplevel; win = NtUserGetAncestor( win, GA_PARENT ))

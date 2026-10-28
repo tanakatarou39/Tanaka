@@ -1,0 +1,81 @@
+mode discard full: 14 checks, 0 failures
+FAIL band 0 left                (100, 50): got 000000 expected 0000ff
+FAIL band 0 right               (750, 50): got 000000 expected 0000ff
+FAIL band 0 above-right         (750, 10): got 000000 expected 0000ff
+FAIL band 0 above presented     (500, 10): got 000000 expected 0000ff
+FAIL band 1 left                (100,170): got 000000 expected ff0000
+FAIL band 2 left                (100,290): got 000000 expected 00ffff
+FAIL band 2 below presented     (500,320): got 000000 expected 00ffff
+FAIL band 3 timeline            (400,420): got 000000 expected ff00ff
+FAIL band 3 timeline left       ( 20,420): got 000000 expected ff00ff
+FAIL band 3 bottom-right        (780,470): got 000000 expected ff00ff
+mode discard : 14 checks, 10 failures
+FAIL band 0 left                (100, 50): got 000000 expected 0000ff
+FAIL band 0 right               (750, 50): got 000000 expected 0000ff
+FAIL band 0 above-right         (750, 10): got 000000 expected 0000ff
+FAIL band 0 above presented     (500, 10): got 000000 expected 0000ff
+FAIL band 1 left                (100,170): got 000000 expected ff0000
+FAIL band 2 left                (100,290): got 000000 expected 00ffff
+FAIL band 2 below presented     (500,320): got 000000 expected 00ffff
+FAIL band 3 timeline            (400,420): got 000000 expected ff00ff
+FAIL band 3 timeline left       ( 20,420): got 000000 expected ff00ff
+FAIL band 3 bottom-right        (780,470): got 000000 expected ff00ff
+mode discard nochild: 13 checks, 10 failures
+mode discard switch: 14 checks, 0 failures
+FAIL band 0 left                (100, 50): got 000000 expected 0000ff
+FAIL band 0 right               (750, 50): got 000000 expected 0000ff
+FAIL band 0 above-right         (750, 10): got 000000 expected 0000ff
+FAIL band 0 above presented     (500, 10): got 000000 expected 0000ff
+FAIL band 1 left                (100,170): got 000000 expected ff0000
+FAIL band 2 left                (100,290): got 000000 expected 00ffff
+FAIL band 2 below presented     (500,320): got 000000 expected 00ffff
+FAIL band 3 timeline            (400,420): got 000000 expected ff00ff
+FAIL band 3 timeline left       ( 20,420): got 000000 expected ff00ff
+FAIL band 3 bottom-right        (780,470): got 000000 expected ff00ff
+mode discard stretch: 14 checks, 10 failures
+mode flip full: 14 checks, 0 failures
+FAIL band 0 left                (100, 50): got 000000 expected 0000ff
+FAIL band 0 right               (750, 50): got 000000 expected 0000ff
+FAIL band 0 above-right         (750, 10): got 000000 expected 0000ff
+FAIL band 0 above presented     (500, 10): got 000000 expected 0000ff
+FAIL band 1 left                (100,170): got 000000 expected ff0000
+FAIL band 2 left                (100,290): got 000000 expected 00ffff
+FAIL band 2 below presented     (500,320): got 000000 expected 00ffff
+FAIL band 3 timeline            (400,420): got 000000 expected ff00ff
+FAIL band 3 timeline left       ( 20,420): got 000000 expected ff00ff
+FAIL band 3 bottom-right        (780,470): got 000000 expected ff00ff
+mode flip : 14 checks, 10 failures
+FAIL band 0 left                (100, 50): got 000000 expected 0000ff
+FAIL band 0 right               (750, 50): got 000000 expected 0000ff
+FAIL band 0 above-right         (750, 10): got 000000 expected 0000ff
+FAIL band 0 above presented     (500, 10): got 000000 expected 0000ff
+FAIL band 1 left                (100,170): got 000000 expected ff0000
+FAIL band 2 left                (100,290): got 000000 expected 00ffff
+FAIL band 2 below presented     (500,320): got 000000 expected 00ffff
+FAIL band 3 timeline            (400,420): got 000000 expected ff00ff
+FAIL band 3 timeline left       ( 20,420): got 000000 expected ff00ff
+FAIL band 3 bottom-right        (780,470): got 000000 expected ff00ff
+mode flip nochild: 13 checks, 10 failures
+mode flip switch: 14 checks, 0 failures
+FAIL band 0 left                (100, 50): got 000000 expected 0000ff
+FAIL band 0 right               (750, 50): got 000000 expected 0000ff
+FAIL band 0 above-right         (750, 10): got 000000 expected 0000ff
+FAIL band 0 above presented     (500, 10): got 000000 expected 0000ff
+FAIL band 1 left                (100,170): got 000000 expected ff0000
+FAIL band 2 left                (100,290): got 000000 expected 00ffff
+FAIL band 2 below presented     (500,320): got 000000 expected 00ffff
+FAIL band 3 timeline            (400,420): got 000000 expected ff00ff
+FAIL band 3 timeline left       ( 20,420): got 000000 expected ff00ff
+FAIL band 3 bottom-right        (780,470): got 000000 expected ff00ff
+mode flip stretch: 14 checks, 10 failures
+mode copy full: 14 checks, 0 failures
+FAIL presented rect             (500,150): got ff0000 expected 00ff00
+FAIL presented rect corner      (310, 35): got 0000ff expected 00ff00
+FAIL presented rect corner      (690,290): got 00ffff expected 00ff00
+mode copy : 14 checks, 3 failures
+mode copy nochild: 13 checks, 0 failures
+mode copy switch: 14 checks, 0 failures
+FAIL presented rect             (500,150): got ff0000 expected 00ff00
+FAIL presented rect corner      (310, 35): got 0000ff expected 00ff00
+FAIL presented rect corner      (690,290): got 00ffff expected 00ff00
+mode copy stretch: 14 checks, 3 failures

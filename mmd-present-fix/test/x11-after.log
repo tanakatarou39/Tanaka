@@ -1,0 +1,21 @@
+mode discard full: 14 checks, 0 failures
+mode discard : 14 checks, 0 failures
+mode discard nochild: 13 checks, 0 failures
+mode discard switch: 14 checks, 0 failures
+mode discard stretch: 14 checks, 0 failures
+mode flip full: 14 checks, 0 failures
+mode flip : 14 checks, 0 failures
+mode flip nochild: 13 checks, 0 failures
+mode flip switch: 14 checks, 0 failures
+mode flip stretch: 14 checks, 0 failures
+mode copy full: 14 checks, 0 failures
+FAIL presented rect             (500,150): got ff0000 expected 00ff00
+FAIL presented rect corner      (310, 35): got 0000ff expected 00ff00
+FAIL presented rect corner      (690,290): got 00ffff expected 00ff00
+mode copy : 14 checks, 3 failures
+mode copy nochild: 13 checks, 0 failures
+mode copy switch: 14 checks, 0 failures
+FAIL presented rect             (500,150): got ff0000 expected 00ff00
+FAIL presented rect corner      (310, 35): got 0000ff expected 00ff00
+FAIL presented rect corner      (690,290): got 00ffff expected 00ff00
+mode copy stretch: 14 checks, 3 failures

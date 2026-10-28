@@ -1,0 +1,229 @@
+From 1edbb379fe7502815f6a3ece9177d13799cd798b Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 07:04:12 +0000
+Subject: [PATCH 2/4] win32u: Add the part of the client area presented to to
+ client surfaces.
+
+A D3D9 Present with a destination rect only replaces that part of the
+window, GDI keeps drawing the rest of it. D3D sets it with a new
+D3DKMT_ESCAPE_SET_PRESENTED_RECT_WINE escape, and the drivers get it in the
+client surface presented_rect, in the coordinates of virtual_rect.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ dlls/win32u/d3dkmt.c         | 11 ++++++
+ dlls/win32u/ntuser_private.h |  2 ++
+ dlls/win32u/win32u_private.h |  1 +
+ dlls/win32u/window.c         | 68 +++++++++++++++++++++++++++++++-----
+ include/ddk/d3dkmthk.h       |  1 +
+ include/wine/gdi_driver.h    |  3 +-
+ 6 files changed, 77 insertions(+), 9 deletions(-)
+
+diff --git a/dlls/win32u/d3dkmt.c b/dlls/win32u/d3dkmt.c
+index 9df987c..f1e5cb1 100644
+--- a/dlls/win32u/d3dkmt.c
++++ b/dlls/win32u/d3dkmt.c
+@@ -701,6 +701,17 @@ NTSTATUS WINAPI NtGdiDdDDIEscape( const D3DKMT_ESCAPE *desc )
+         return STATUS_SUCCESS;
+     }
+ 
++    case D3DKMT_ESCAPE_SET_PRESENTED_RECT_WINE:
++    {
++        HWND hwnd = UlongToHandle( desc->hContext );
++        const RECT *rect = desc->pPrivateDriverData;
++
++        if (rect && desc->PrivateDriverDataSize != sizeof(*rect)) return STATUS_INVALID_PARAMETER;
++
++        TRACE( "hwnd %p, rect %s\n", hwnd, wine_dbgstr_rect( rect ) );
++        return set_presented_rect( hwnd, rect ) ? STATUS_SUCCESS : STATUS_INVALID_PARAMETER;
++    }
++
+     default:
+         FIXME( "(%p): stub\n", desc );
+         return STATUS_NO_MEMORY;
+diff --git a/dlls/win32u/ntuser_private.h b/dlls/win32u/ntuser_private.h
+index 3a9dfa2..03e7121 100644
+--- a/dlls/win32u/ntuser_private.h
++++ b/dlls/win32u/ntuser_private.h
+@@ -50,6 +50,8 @@ typedef struct tagWND
+     struct window_rects rects;        /* window rects in window DPI, relative to the parent client area */
+     RECT               normal_rect;   /* Normal window rect saved when maximized/minimized */
+     RECT               present_rect;  /* present rect for exclusive fullscreen mode */
++    RECT               presented_rect; /* part of the client rect presented to, if partial_present */
++    BOOL               partial_present; /* a swapchain only presents to a part of the client rect */
+     POINT              min_pos;       /* Position for minimized window */
+     POINT              max_pos;       /* Position for maximized window */
+     WCHAR             *text;          /* Window text */
+diff --git a/dlls/win32u/win32u_private.h b/dlls/win32u/win32u_private.h
+index f143546..f296958 100644
+--- a/dlls/win32u/win32u_private.h
++++ b/dlls/win32u/win32u_private.h
+@@ -295,6 +295,7 @@ extern void destroy_thread_windows(void);
+ extern LRESULT destroy_window( HWND hwnd );
+ extern BOOL get_client_rect( HWND hwnd, RECT *rect, struct ratio dpi );
+ extern BOOL get_present_rect( HWND hwnd, RECT *rect, struct ratio dpi );
++extern BOOL set_presented_rect( HWND hwnd, const RECT *rect );
+ extern HWND get_desktop_window(void);
+ extern struct ratio get_dpi_for_window( HWND hwnd );
+ extern HWND get_full_window_handle( HWND hwnd );
+diff --git a/dlls/win32u/window.c b/dlls/win32u/window.c
+index b4b503d..61a28c4 100644
+--- a/dlls/win32u/window.c
++++ b/dlls/win32u/window.c
+@@ -332,18 +332,37 @@ void detach_client_surfaces( HWND hwnd )
+     pthread_mutex_unlock( &surfaces_lock );
+ }
+ 
+-static RECT get_client_surface_rects( HWND toplevel, HWND hwnd, RECT *monitor_rect )
++static BOOL get_presented_rect( HWND hwnd, RECT *rect, struct ratio dpi )
++{
++    struct ratio dpi_from = get_dpi_for_window( hwnd );
++    BOOL ret = FALSE;
++    WND *win;
++
++    if (!(win = get_win_ptr( hwnd )) || win == WND_OTHER_PROCESS || win == WND_DESKTOP) return FALSE;
++    if ((ret = win->partial_present)) *rect = map_dpi_rect( win->presented_rect, dpi_from, dpi );
++    release_win_ptr( win );
++
++    return ret;
++}
++
++static RECT get_client_surface_rects( HWND toplevel, HWND hwnd, RECT *monitor_rect, RECT *presented_rect )
+ {
+     struct ratio dpi = get_dpi_for_window( hwnd ), raw_dpi;
+     struct window_rects rects, monitor_rects;
+-    RECT rect = {0};
++    RECT rect = {0}, presented;
++    BOOL partial = FALSE;
+ 
+     if (!toplevel) toplevel = NtUserGetAncestor( hwnd, GA_ROOT );
+     get_window_rects( toplevel, COORDS_PARENT, &rects, dpi );
+     monitor_rects = map_window_rects_virt_to_raw( rects, dpi );
+ 
+     if (get_present_rect( hwnd, &rect, dpi )) OffsetRect( &rect, -rects.client.left, -rects.client.top );
+-    else if (get_client_rect( hwnd, &rect, dpi )) map_window_points( hwnd, toplevel, (POINT *)&rect, 2, dpi );
++    else if (get_client_rect( hwnd, &rect, dpi ))
++    {
++        map_window_points( hwnd, toplevel, (POINT *)&rect, 2, dpi );
++        if (presented_rect && (partial = get_presented_rect( hwnd, &presented, dpi )))
++            OffsetRect( &presented, rect.left, rect.top );
++    }
+ 
+     get_win_monitor_dpi( hwnd, &raw_dpi );
+     *monitor_rect = map_dpi_rect( rect, dpi, raw_dpi );
+@@ -354,6 +373,14 @@ static RECT get_client_surface_rects( HWND toplevel, HWND hwnd, RECT *monitor_re
+     OffsetRect( &rect, rects.client.left - rects.visible.left,
+                 rects.client.top - rects.visible.top );
+ 
++    if (!presented_rect) return rect;
++    if (!partial) *presented_rect = rect;
++    else
++    {
++        OffsetRect( &presented, rects.client.left - rects.visible.left,
++                    rects.client.top - rects.visible.top );
++        intersect_rect( presented_rect, &presented, &rect );
++    }
+     return rect;
+ }
+ 
+@@ -363,10 +390,12 @@ static void client_surface_update_locked( struct client_surface *surface )
+     HWND toplevel = surface->toplevel;
+ 
+     surface->toplevel = NtUserGetAncestor( surface->hwnd, GA_ROOT );
+-    surface->virtual_rect = get_client_surface_rects( surface->toplevel, surface->hwnd, &surface->monitor_rect );
++    surface->virtual_rect = get_client_surface_rects( surface->toplevel, surface->hwnd, &surface->monitor_rect,
++                                                      &surface->presented_rect );
+ 
+-    TRACE( "updating %s, toplevel %p, virtual_rect %s, monitor_rect %s\n", debugstr_client_surface( surface ), surface->toplevel,
+-           wine_dbgstr_rect( &surface->virtual_rect ), wine_dbgstr_rect( &surface->monitor_rect ) );
++    TRACE( "updating %s, toplevel %p, virtual_rect %s, monitor_rect %s, presented_rect %s\n", debugstr_client_surface( surface ),
++           surface->toplevel, wine_dbgstr_rect( &surface->virtual_rect ), wine_dbgstr_rect( &surface->monitor_rect ),
++           wine_dbgstr_rect( &surface->presented_rect ) );
+     surface->funcs->update( surface );
+ 
+     surface->updated = surface->updated || surface->toplevel != toplevel ||
+@@ -406,7 +435,7 @@ void *client_surface_create( const struct client_surface_funcs *funcs, HWND hwnd
+     surface->format = format;
+     surface->raw = raw;
+     surface->toplevel = toplevel;
+-    surface->virtual_rect = get_client_surface_rects( toplevel, hwnd, &surface->monitor_rect );
++    surface->virtual_rect = get_client_surface_rects( toplevel, hwnd, &surface->monitor_rect, &surface->presented_rect );
+     list_init( &surface->entry );
+ 
+     TRACE( "created %s, format %d, raw %u, toplevel %p, virtual_rect %s, monitor_rect %s\n", debugstr_client_surface( surface ),
+@@ -482,7 +511,7 @@ BOOL client_surface_get_size( struct client_surface *surface, SIZE *virtual_size
+ 
+ SIZE get_client_swapchain_size( HWND toplevel, HWND hwnd )
+ {
+-    RECT monitor, rect = get_client_surface_rects( toplevel, hwnd, &monitor );
++    RECT monitor, rect = get_client_surface_rects( toplevel, hwnd, &monitor, NULL );
+     SIZE size = { max( 1, rect.right - rect.left ), max( 1, rect.bottom - rect.top ) };
+     return size;
+ }
+@@ -6282,6 +6311,29 @@ BOOL get_present_rect( HWND hwnd, RECT *rect, struct ratio dpi )
+     return !IsRectEmpty( rect );
+ }
+ 
++/* Set the part of the client rect that a swapchain presents to, in thread DPI client coordinates,
++ * NULL when it presents to all of it. As on Windows, the rest shows what GDI draws there. */
++BOOL set_presented_rect( HWND hwnd, const RECT *rect )
++{
++    struct ratio dpi = get_dpi_for_window( hwnd );
++    BOOL changed;
++    RECT new_rect;
++    WND *win;
++
++    if (rect) new_rect = map_dpi_rect( *rect, get_thread_dpi(), dpi );
++    else SetRectEmpty( &new_rect );
++
++    if (!(win = get_win_ptr( hwnd )) || win == WND_OTHER_PROCESS || win == WND_DESKTOP) return FALSE;
++    changed = win->partial_present != !!rect || !EqualRect( &win->presented_rect, &new_rect );
++    win->partial_present = !!rect;
++    win->presented_rect = new_rect;
++    release_win_ptr( win );
++
++    /* nothing may be presented anymore to show it */
++    if (changed) update_client_surfaces( NtUserGetAncestor( hwnd, GA_ROOT ) );
++    return TRUE;
++}
++
+ /*****************************************************************************
+  *           NtUserCallHwnd (win32u.@)
+  */
+diff --git a/include/ddk/d3dkmthk.h b/include/ddk/d3dkmthk.h
+index f2d679b..23dc12a 100644
+--- a/include/ddk/d3dkmthk.h
++++ b/include/ddk/d3dkmthk.h
+@@ -781,6 +781,7 @@ typedef enum _D3DKMT_ESCAPETYPE
+     /* Wine-specific escape codes */
+     D3DKMT_ESCAPE_UPDATE_RESOURCE_WINE = 0x80000000,
+     D3DKMT_ESCAPE_SET_PRESENT_RECT_WINE = 0x80000001,
++    D3DKMT_ESCAPE_SET_PRESENTED_RECT_WINE = 0x80000002,
+ } D3DKMT_ESCAPETYPE;
+ 
+ typedef struct _D3DKMT_ESCAPE
+diff --git a/include/wine/gdi_driver.h b/include/wine/gdi_driver.h
+index 1b431fe..15587f4 100644
+--- a/include/wine/gdi_driver.h
++++ b/include/wine/gdi_driver.h
+@@ -224,7 +224,7 @@ struct gdi_dc_funcs
+ };
+ 
+ /* increment this when you change the DC function table */
+-#define WINE_GDI_DRIVER_VERSION 110
++#define WINE_GDI_DRIVER_VERSION 111
+ 
+ #define GDI_PRIORITY_NULL_DRV        0  /* null driver */
+ #define GDI_PRIORITY_FONT_DRV      100  /* any font driver */
+@@ -279,6 +279,7 @@ struct client_surface
+     LONG                               offscreen;      /* client window is offscreen */
+     RECT                               virtual_rect;   /* virtual size and position in the toplevel ancestor, relative to its visible rect */
+     RECT                               monitor_rect;   /* raw physical size and position in the toplevel ancestor, relative to its visible rect */
++    RECT                               presented_rect; /* part of virtual_rect that shows the surface, the rest shows the window surface */
+     BOOL                               raw;            /* use the raw physical position and size for the host client surface */
+ };
+ 
+-- 
+2.43.0
+

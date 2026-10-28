@@ -1,0 +1,46 @@
+From a3c574656e286b58fb6e6a1421b18350e76f1134 Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 07:04:18 +0000
+Subject: [PATCH 0/4] Show what GDI draws outside the destination rect of a D3D present.
+
+A windowed D3D9 Present with a destination rect only replaces that part of
+the window on Windows, what GDI draws in the rest stays visible. With
+wined3d on OpenGL the client surface covers the whole client area instead,
+and the parts that are never presented to are black. MikuMikuDance presents
+its preview to a part of its main window only, and its panels around it,
+drawn with GDI, were black.
+
+wined3d now tells win32u the part of the window it presents to, with a new
+Wine escape, and the drivers only show that part of the client surface.
+Drivers that draw the client surfaces over the window surface (Android) also
+keep the client area in it, so that it shows what GDI drew there.
+
+Tested with a D3D9 test on X11 (Xvfb, llvmpipe): presenting a part of a
+window with GDI drawn bands and child windows left all the bands black with
+the DISCARD and FLIP swap effects, they now show, and presenting the whole
+window is unchanged. d3d9:visual and d3d9:d3d9ex pass, d3d9:device has one
+failure, as Xvfb only has one display mode.
+
+chatgptyukkuri (4):
+  win32u: Don't clip the client area out of the window surface without
+    PutImage.
+  win32u: Add the part of the client area presented to to client
+    surfaces.
+  winex11: Only show the presented part of client surfaces.
+  wined3d: Tell win32u which part of the window a GL swapchain presents
+    to.
+
+ dlls/win32u/d3dkmt.c           | 11 ++++++
+ dlls/win32u/ntuser_private.h   |  2 +
+ dlls/win32u/win32u_private.h   |  1 +
+ dlls/win32u/window.c           | 72 +++++++++++++++++++++++++++++-----
+ dlls/wined3d/swapchain.c       | 59 ++++++++++++++++++++++++++++
+ dlls/wined3d/wined3d_private.h |  4 ++
+ dlls/winex11.drv/init.c        | 21 ++++++++--
+ include/ddk/d3dkmthk.h         |  1 +
+ include/wine/gdi_driver.h      |  3 +-
+ 9 files changed, 160 insertions(+), 14 deletions(-)
+
+-- 
+2.43.0
+

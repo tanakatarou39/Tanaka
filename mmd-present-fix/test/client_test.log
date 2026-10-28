@@ -1,0 +1,354 @@
+no children, presented (393,25)-(1137,444), scale 1/1                  old: 4294967295 rects,   528264 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (0,0)-(1200,699), scale 1/1                     old: 4294967295 rects,     1200 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (1,0)-(1200,700), scale 1/1                     old: 4294967295 rects,      700 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (0,0)-(600,700), scale 1/1                      old: 4294967295 rects,   420000 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (100,100)-(101,101), scale 1/1                  old: 4294967295 rects,   839999 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (-50,-50)-(300,300), scale 1/1                  old: 4294967295 rects,   750000 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (1100,600)-(1400,900), scale 1/1                old: 4294967295 rects,   830000 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (0,0)-(0,0), scale 1/1                          old: 4294967295 rects,   840000 GPU pixels over GDI; new:    0 rects,        0
+no children, presented (393,25)-(1137,444), scale 3/2                  old: 4294967295 rects,  1188036 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (0,0)-(1200,699), scale 3/2                     old: 4294967295 rects,     3600 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (1,0)-(1200,700), scale 3/2                     old: 4294967295 rects,     1050 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (0,0)-(600,700), scale 3/2                      old: 4294967295 rects,   945000 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (100,100)-(101,101), scale 3/2                  old: 4294967295 rects,  1889999 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (-50,-50)-(300,300), scale 3/2                  old: 4294967295 rects,  1687500 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (1100,600)-(1400,900), scale 3/2                old: 4294967295 rects,  1867500 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (0,0)-(0,0), scale 3/2                          old: 4294967295 rects,  1890000 GPU pixels over GDI; new:    0 rects,        0
+no children, presented (393,25)-(1137,444), scale 3/4                  old: 4294967295 rects,   296730 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (0,0)-(1200,699), scale 3/4                     old: 4294967295 rects,      900 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (1,0)-(1200,700), scale 3/4                     old: 4294967295 rects,        0 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (0,0)-(600,700), scale 3/4                      old: 4294967295 rects,   236250 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (100,100)-(101,101), scale 3/4                  old: 4294967295 rects,   472500 GPU pixels over GDI; new:    0 rects,        0
+no children, presented (-50,-50)-(300,300), scale 3/4                  old: 4294967295 rects,   421875 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (1100,600)-(1400,900), scale 3/4                old: 4294967295 rects,   466875 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (0,0)-(0,0), scale 3/4                          old: 4294967295 rects,   472500 GPU pixels over GDI; new:    0 rects,        0
+no children, presented (393,25)-(1137,444), scale 7/3                  old: 4294967295 rects,  2876328 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (0,0)-(1200,699), scale 7/3                     old: 4294967295 rects,     8400 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (1,0)-(1200,700), scale 7/3                     old: 4294967295 rects,     3266 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (0,0)-(600,700), scale 7/3                      old: 4294967295 rects,  2286200 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (100,100)-(101,101), scale 7/3                  old: 4294967295 rects,  4572396 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (-50,-50)-(300,300), scale 7/3                  old: 4294967295 rects,  4083100 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (1100,600)-(1400,900), scale 7/3                old: 4294967295 rects,  4517644 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (0,0)-(0,0), scale 7/3                          old: 4294967295 rects,  4572400 GPU pixels over GDI; new:    0 rects,        0
+no children, presented (254,532)-(858,689), scale 1/1                  old: 4294967295 rects,   745172 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (254,532)-(858,689), scale 3/2                  old: 4294967295 rects,  1677090 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (1087,536)-(1134,887), scale 1/1                old: 4294967295 rects,   832292 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (1087,536)-(1134,887), scale 3/2                old: 4294967295 rects,  1872534 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (268,429)-(865,724), scale 1/1                  old: 4294967295 rects,   678213 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (268,429)-(865,724), scale 3/2                  old: 4294967295 rects,  1525735 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (1138,408)-(1790,578), scale 1/1                old: 4294967295 rects,   829460 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (1138,408)-(1790,578), scale 3/2                old: 4294967295 rects,  1866285 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (13,617)-(123,952), scale 1/1                   old: 4294967295 rects,   830870 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (13,617)-(123,952), scale 3/2                   old: 4294967295 rects,  1869375 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (424,308)-(992,688), scale 1/1                  old: 4294967295 rects,   624160 GPU pixels over GDI; new:    1 rects,        0
+no children, presented (424,308)-(992,688), scale 3/2                  old: 4294967295 rects,  1404360 GPU pixels over GDI; new:    1 rects,        0
+mmd, presented (393,25)-(1137,444), scale 1/1                          old:  238 rects,   335544 GPU pixels over GDI; new:    2 rects,        0
+mmd, presented (0,0)-(1200,699), scale 1/1                             old:  238 rects,      970 GPU pixels over GDI; new:  238 rects,        0
+mmd, presented (1,0)-(1200,700), scale 1/1                             old:  238 rects,      700 GPU pixels over GDI; new:  238 rects,        0
+mmd, presented (0,0)-(600,700), scale 1/1                              old:  238 rects,   343412 GPU pixels over GDI; new:  143 rects,        0
+mmd, presented (100,100)-(101,101), scale 1/1                          old:  238 rects,   641251 GPU pixels over GDI; new:    1 rects,        0
+mmd, presented (-50,-50)-(300,300), scale 1/1                          old:  238 rects,   613628 GPU pixels over GDI; new:   72 rects,        0
+mmd, presented (1100,600)-(1400,900), scale 1/1                        old:  238 rects,   631252 GPU pixels over GDI; new:    1 rects,        0
+mmd, presented (0,0)-(0,0), scale 1/1                                  old:  238 rects,   641252 GPU pixels over GDI; new:    0 rects,        0
+mmd, presented (393,25)-(1137,444), scale 3/2                          old:  238 rects,   754386 GPU pixels over GDI; new:    2 rects,        0
+mmd, presented (0,0)-(1200,699), scale 3/2                             old:  238 rects,     2910 GPU pixels over GDI; new:  238 rects,        0
+mmd, presented (1,0)-(1200,700), scale 3/2                             old:  238 rects,     1050 GPU pixels over GDI; new:  238 rects,        0
+mmd, presented (0,0)-(600,700), scale 3/2                              old:  238 rects,   772680 GPU pixels over GDI; new:  143 rects,        0
+mmd, presented (100,100)-(101,101), scale 3/2                          old:  238 rects,  1442819 GPU pixels over GDI; new:    1 rects,        0
+mmd, presented (-50,-50)-(300,300), scale 3/2                          old:  238 rects,  1380666 GPU pixels over GDI; new:   72 rects,        0
+mmd, presented (1100,600)-(1400,900), scale 3/2                        old:  238 rects,  1420320 GPU pixels over GDI; new:    1 rects,        0
+mmd, presented (0,0)-(0,0), scale 3/2                                  old:  238 rects,  1442820 GPU pixels over GDI; new:    0 rects,        0
+mmd, presented (393,25)-(1137,444), scale 3/4                          old:  238 rects,   188232 GPU pixels over GDI; new:    2 rects,        0
+mmd, presented (0,0)-(1200,699), scale 3/4                             old:  238 rects,      727 GPU pixels over GDI; new:  238 rects,        0
+mmd, presented (1,0)-(1200,700), scale 3/4                             old:  238 rects,        0 GPU pixels over GDI; new:  238 rects,        0
+mmd, presented (0,0)-(600,700), scale 3/4                              old:  238 rects,   193101 GPU pixels over GDI; new:  143 rects,        0
+mmd, presented (100,100)-(101,101), scale 3/4                          old:  238 rects,   360636 GPU pixels over GDI; new:    0 rects,        0
+mmd, presented (-50,-50)-(300,300), scale 3/4                          old:  238 rects,   345201 GPU pixels over GDI; new:   72 rects,        0
+mmd, presented (1100,600)-(1400,900), scale 3/4                        old:  238 rects,   355011 GPU pixels over GDI; new:    1 rects,        0
+mmd, presented (0,0)-(0,0), scale 3/4                                  old:  238 rects,   360636 GPU pixels over GDI; new:    0 rects,        0
+mmd, presented (393,25)-(1137,444), scale 7/3                          old:  238 rects,  1822415 GPU pixels over GDI; new:    2 rects,        0
+mmd, presented (0,0)-(1200,699), scale 7/3                             old:  238 rects,     6792 GPU pixels over GDI; new:  238 rects,        0
+mmd, presented (1,0)-(1200,700), scale 7/3                             old:  238 rects,     3266 GPU pixels over GDI; new:  238 rects,        0
+mmd, presented (0,0)-(600,700), scale 7/3                              old:  238 rects,  1869491 GPU pixels over GDI; new:  143 rects,        0
+mmd, presented (100,100)-(101,101), scale 7/3                          old:  238 rects,  3485843 GPU pixels over GDI; new:    1 rects,        0
+mmd, presented (-50,-50)-(300,300), scale 7/3                          old:  238 rects,  3339042 GPU pixels over GDI; new:   72 rects,        0
+mmd, presented (1100,600)-(1400,900), scale 7/3                        old:  238 rects,  3431091 GPU pixels over GDI; new:    1 rects,        0
+mmd, presented (0,0)-(0,0), scale 7/3                                  old:  238 rects,  3485847 GPU pixels over GDI; new:    0 rects,        0
+mmd, presented (17,368)-(151,431), scale 1/1                           old:  238 rects,   639740 GPU pixels over GDI; new:    8 rects,        0
+mmd, presented (17,368)-(151,431), scale 3/2                           old:  238 rects,  1439424 GPU pixels over GDI; new:    8 rects,        0
+mmd, presented (658,538)-(1093,827), scale 1/1                         old:  238 rects,   602522 GPU pixels over GDI; new:   27 rects,        0
+mmd, presented (658,538)-(1093,827), scale 3/2                         old:  238 rects,  1355799 GPU pixels over GDI; new:   27 rects,        0
+mmd, presented (1144,186)-(1429,211), scale 1/1                        old:  238 rects,   640852 GPU pixels over GDI; new:    2 rects,        0
+mmd, presented (1144,186)-(1429,211), scale 3/2                        old:  238 rects,  1441932 GPU pixels over GDI; new:    2 rects,        0
+mmd, presented (46,388)-(812,665), scale 1/1                           old:  238 rects,   457374 GPU pixels over GDI; new:   40 rects,        0
+mmd, presented (46,388)-(812,665), scale 3/2                           old:  238 rects,  1029645 GPU pixels over GDI; new:   40 rects,        0
+mmd, presented (1057,503)-(1683,818), scale 1/1                        old:  238 rects,   613081 GPU pixels over GDI; new:    1 rects,        0
+mmd, presented (1057,503)-(1683,818), scale 3/2                        old:  238 rects,  1379180 GPU pixels over GDI; new:    1 rects,        0
+mmd, presented (525,572)-(548,968), scale 1/1                          old:  238 rects,   638308 GPU pixels over GDI; new:    1 rects,        0
+mmd, presented (525,572)-(548,968), scale 3/2                          old:  238 rects,  1436100 GPU pixels over GDI; new:    1 rects,        0
+random 0, presented (393,25)-(1137,444), scale 1/1                     old:  381 rects,   371418 GPU pixels over GDI; new:   74 rects,        0
+random 0, presented (0,0)-(1200,699), scale 1/1                        old:  381 rects,      822 GPU pixels over GDI; new:  381 rects,        0
+random 0, presented (1,0)-(1200,700), scale 1/1                        old:  381 rects,      700 GPU pixels over GDI; new:  381 rects,        0
+random 0, presented (0,0)-(600,700), scale 1/1                         old:  381 rects,   280681 GPU pixels over GDI; new:  135 rects,        0
+random 0, presented (100,100)-(101,101), scale 1/1                     old:  381 rects,   578780 GPU pixels over GDI; new:    1 rects,        0
+random 0, presented (-50,-50)-(300,300), scale 1/1                     old:  381 rects,   492553 GPU pixels over GDI; new:   19 rects,        0
+random 0, presented (1100,600)-(1400,900), scale 1/1                   old:  381 rects,   570361 GPU pixels over GDI; new:    7 rects,        0
+random 0, presented (0,0)-(0,0), scale 1/1                             old:  381 rects,   578781 GPU pixels over GDI; new:    0 rects,        0
+random 0, presented (393,25)-(1137,444), scale 3/2                     old:  381 rects,   835132 GPU pixels over GDI; new:   74 rects,        0
+random 0, presented (0,0)-(1200,699), scale 3/2                        old:  381 rects,     2468 GPU pixels over GDI; new:  381 rects,        0
+random 0, presented (1,0)-(1200,700), scale 3/2                        old:  381 rects,     1050 GPU pixels over GDI; new:  381 rects,        0
+random 0, presented (0,0)-(600,700), scale 3/2                         old:  381 rects,   631577 GPU pixels over GDI; new:  135 rects,        0
+random 0, presented (100,100)-(101,101), scale 3/2                     old:  381 rects,  1302566 GPU pixels over GDI; new:    1 rects,        0
+random 0, presented (-50,-50)-(300,300), scale 3/2                     old:  381 rects,  1108590 GPU pixels over GDI; new:   19 rects,        0
+random 0, presented (1100,600)-(1400,900), scale 3/2                   old:  381 rects,  1283601 GPU pixels over GDI; new:    7 rects,        0
+random 0, presented (0,0)-(0,0), scale 3/2                             old:  381 rects,  1302567 GPU pixels over GDI; new:    0 rects,        0
+random 0, presented (393,25)-(1137,444), scale 3/4                     old:  373 rects,   208420 GPU pixels over GDI; new:   69 rects,        0
+random 0, presented (0,0)-(1200,699), scale 3/4                        old:  373 rects,      617 GPU pixels over GDI; new:  373 rects,        0
+random 0, presented (1,0)-(1200,700), scale 3/4                        old:  373 rects,        0 GPU pixels over GDI; new:  373 rects,        0
+random 0, presented (0,0)-(600,700), scale 3/4                         old:  373 rects,   157864 GPU pixels over GDI; new:  135 rects,        0
+random 0, presented (100,100)-(101,101), scale 3/4                     old:  373 rects,   325453 GPU pixels over GDI; new:    0 rects,        0
+random 0, presented (-50,-50)-(300,300), scale 3/4                     old:  373 rects,   276968 GPU pixels over GDI; new:   19 rects,        0
+random 0, presented (1100,600)-(1400,900), scale 3/4                   old:  373 rects,   320689 GPU pixels over GDI; new:    7 rects,        0
+random 0, presented (0,0)-(0,0), scale 3/4                             old:  373 rects,   325453 GPU pixels over GDI; new:    0 rects,        0
+random 0, presented (393,25)-(1137,444), scale 7/3                     old:  381 rects,  2021984 GPU pixels over GDI; new:   74 rects,        0
+random 0, presented (0,0)-(1200,699), scale 7/3                        old:  381 rects,     5751 GPU pixels over GDI; new:  381 rects,        0
+random 0, presented (1,0)-(1200,700), scale 7/3                        old:  381 rects,     3266 GPU pixels over GDI; new:  381 rects,        0
+random 0, presented (0,0)-(600,700), scale 7/3                         old:  381 rects,  1527296 GPU pixels over GDI; new:  135 rects,        0
+random 0, presented (100,100)-(101,101), scale 7/3                     old:  381 rects,  3149607 GPU pixels over GDI; new:    1 rects,        0
+random 0, presented (-50,-50)-(300,300), scale 7/3                     old:  381 rects,  2680821 GPU pixels over GDI; new:   19 rects,        0
+random 0, presented (1100,600)-(1400,900), scale 7/3                   old:  381 rects,  3103629 GPU pixels over GDI; new:    7 rects,        0
+random 0, presented (0,0)-(0,0), scale 7/3                             old:  381 rects,  3149611 GPU pixels over GDI; new:    0 rects,        0
+random 0, presented (1103,668)-(1528,1123), scale 1/1                  old:  381 rects,   576893 GPU pixels over GDI; new:    2 rects,        0
+random 0, presented (1103,668)-(1528,1123), scale 3/2                  old:  381 rects,  1298295 GPU pixels over GDI; new:    2 rects,        0
+random 0, presented (368,233)-(1060,246), scale 1/1                    old:  381 rects,   574084 GPU pixels over GDI; new:    4 rects,        0
+random 0, presented (368,233)-(1060,246), scale 3/2                    old:  381 rects,  1291733 GPU pixels over GDI; new:    4 rects,        0
+random 0, presented (1059,626)-(1328,689), scale 1/1                   old:  381 rects,   572490 GPU pixels over GDI; new:    5 rects,        0
+random 0, presented (1059,626)-(1328,689), scale 3/2                   old:  381 rects,  1288471 GPU pixels over GDI; new:    5 rects,        0
+random 0, presented (803,685)-(1089,826), scale 1/1                    old:  381 rects,   575976 GPU pixels over GDI; new:    2 rects,        0
+random 0, presented (803,685)-(1089,826), scale 3/2                    old:  381 rects,  1296104 GPU pixels over GDI; new:    2 rects,        0
+random 0, presented (765,675)-(1521,917), scale 1/1                    old:  381 rects,   571331 GPU pixels over GDI; new:    3 rects,        0
+random 0, presented (765,675)-(1521,917), scale 3/2                    old:  381 rects,  1285543 GPU pixels over GDI; new:    3 rects,        0
+random 0, presented (45,363)-(103,783), scale 1/1                      old:  381 rects,   568335 GPU pixels over GDI; new:    7 rects,        0
+random 0, presented (45,363)-(103,783), scale 3/2                      old:  381 rects,  1278975 GPU pixels over GDI; new:    7 rects,        0
+random 1, presented (393,25)-(1137,444), scale 1/1                     old:  183 rects,   391872 GPU pixels over GDI; new:   37 rects,        0
+random 1, presented (0,0)-(1200,699), scale 1/1                        old:  183 rects,     1096 GPU pixels over GDI; new:  183 rects,        0
+random 1, presented (1,0)-(1200,700), scale 1/1                        old:  183 rects,      700 GPU pixels over GDI; new:  183 rects,        0
+random 1, presented (0,0)-(600,700), scale 1/1                         old:  183 rects,   361144 GPU pixels over GDI; new:   96 rects,        0
+random 1, presented (100,100)-(101,101), scale 1/1                     old:  183 rects,   672324 GPU pixels over GDI; new:    1 rects,        0
+random 1, presented (-50,-50)-(300,300), scale 1/1                     old:  183 rects,   616726 GPU pixels over GDI; new:   16 rects,        0
+random 1, presented (1100,600)-(1400,900), scale 1/1                   old:  183 rects,   662325 GPU pixels over GDI; new:    1 rects,        0
+random 1, presented (0,0)-(0,0), scale 1/1                             old:  183 rects,   672325 GPU pixels over GDI; new:    0 rects,        0
+random 1, presented (393,25)-(1137,444), scale 3/2                     old:  183 rects,   881018 GPU pixels over GDI; new:   37 rects,        0
+random 1, presented (0,0)-(1200,699), scale 3/2                        old:  183 rects,     3288 GPU pixels over GDI; new:  183 rects,        0
+random 1, presented (1,0)-(1200,700), scale 3/2                        old:  183 rects,     1050 GPU pixels over GDI; new:  183 rects,        0
+random 1, presented (0,0)-(600,700), scale 3/2                         old:  183 rects,   812603 GPU pixels over GDI; new:   96 rects,        0
+random 1, presented (100,100)-(101,101), scale 3/2                     old:  183 rects,  1512577 GPU pixels over GDI; new:    1 rects,        0
+random 1, presented (-50,-50)-(300,300), scale 3/2                     old:  183 rects,  1387790 GPU pixels over GDI; new:   16 rects,        0
+random 1, presented (1100,600)-(1400,900), scale 3/2                   old:  183 rects,  1490078 GPU pixels over GDI; new:    1 rects,        0
+random 1, presented (0,0)-(0,0), scale 3/2                             old:  183 rects,  1512578 GPU pixels over GDI; new:    0 rects,        0
+random 1, presented (393,25)-(1137,444), scale 3/4                     old:  179 rects,   220055 GPU pixels over GDI; new:   37 rects,        0
+random 1, presented (0,0)-(1200,699), scale 3/4                        old:  179 rects,      822 GPU pixels over GDI; new:  179 rects,        0
+random 1, presented (1,0)-(1200,700), scale 3/4                        old:  179 rects,        0 GPU pixels over GDI; new:  179 rects,        0
+random 1, presented (0,0)-(600,700), scale 3/4                         old:  179 rects,   203104 GPU pixels over GDI; new:   96 rects,        0
+random 1, presented (100,100)-(101,101), scale 3/4                     old:  179 rects,   378252 GPU pixels over GDI; new:    0 rects,        0
+random 1, presented (-50,-50)-(300,300), scale 3/4                     old:  179 rects,   347103 GPU pixels over GDI; new:   16 rects,        0
+random 1, presented (1100,600)-(1400,900), scale 3/4                   old:  179 rects,   372627 GPU pixels over GDI; new:    1 rects,        0
+random 1, presented (0,0)-(0,0), scale 3/4                             old:  179 rects,   378252 GPU pixels over GDI; new:    0 rects,        0
+random 1, presented (393,25)-(1137,444), scale 7/3                     old:  183 rects,  2133204 GPU pixels over GDI; new:   37 rects,        0
+random 1, presented (0,0)-(1200,699), scale 7/3                        old:  183 rects,     7671 GPU pixels over GDI; new:  183 rects,        0
+random 1, presented (1,0)-(1200,700), scale 7/3                        old:  183 rects,     3266 GPU pixels over GDI; new:  183 rects,        0
+random 1, presented (0,0)-(600,700), scale 7/3                         old:  183 rects,  1965296 GPU pixels over GDI; new:   96 rects,        0
+random 1, presented (100,100)-(101,101), scale 7/3                     old:  183 rects,  3659118 GPU pixels over GDI; new:    1 rects,        0
+random 1, presented (-50,-50)-(300,300), scale 7/3                     old:  183 rects,  3357226 GPU pixels over GDI; new:   16 rects,        0
+random 1, presented (1100,600)-(1400,900), scale 7/3                   old:  183 rects,  3604366 GPU pixels over GDI; new:    1 rects,        0
+random 1, presented (0,0)-(0,0), scale 7/3                             old:  183 rects,  3659122 GPU pixels over GDI; new:    0 rects,        0
+random 1, presented (130,485)-(288,829), scale 1/1                     old:  183 rects,   662005 GPU pixels over GDI; new:    5 rects,        0
+random 1, presented (130,485)-(288,829), scale 3/2                     old:  183 rects,  1489288 GPU pixels over GDI; new:    5 rects,        0
+random 1, presented (591,596)-(1101,731), scale 1/1                    old:  183 rects,   637031 GPU pixels over GDI; new:   17 rects,        0
+random 1, presented (591,596)-(1101,731), scale 3/2                    old:  183 rects,  1433132 GPU pixels over GDI; new:   17 rects,        0
+random 1, presented (99,364)-(679,426), scale 1/1                      old:  183 rects,   636365 GPU pixels over GDI; new:    1 rects,        0
+random 1, presented (99,364)-(679,426), scale 3/2                      old:  183 rects,  1431668 GPU pixels over GDI; new:    1 rects,        0
+random 1, presented (489,423)-(948,626), scale 1/1                     old:  183 rects,   585788 GPU pixels over GDI; new:   13 rects,        0
+random 1, presented (489,423)-(948,626), scale 3/2                     old:  183 rects,  1317420 GPU pixels over GDI; new:   13 rects,        0
+random 1, presented (607,458)-(1136,650), scale 1/1                    old:  183 rects,   591694 GPU pixels over GDI; new:   16 rects,        0
+random 1, presented (607,458)-(1136,650), scale 3/2                    old:  183 rects,  1330974 GPU pixels over GDI; new:   16 rects,        0
+random 1, presented (383,613)-(463,1067), scale 1/1                    old:  183 rects,   665365 GPU pixels over GDI; new:    1 rects,        0
+random 1, presented (383,613)-(463,1067), scale 3/2                    old:  183 rects,  1496858 GPU pixels over GDI; new:    1 rects,        0
+random 2, presented (393,25)-(1137,444), scale 1/1                     old:  149 rects,   430968 GPU pixels over GDI; new:   42 rects,        0
+random 2, presented (0,0)-(1200,699), scale 1/1                        old:  149 rects,     1008 GPU pixels over GDI; new:  149 rects,        0
+random 2, presented (1,0)-(1200,700), scale 1/1                        old:  149 rects,      700 GPU pixels over GDI; new:  149 rects,        0
+random 2, presented (0,0)-(600,700), scale 1/1                         old:  149 rects,   350453 GPU pixels over GDI; new:   72 rects,        0
+random 2, presented (100,100)-(101,101), scale 1/1                     old:  149 rects,   689471 GPU pixels over GDI; new:    1 rects,        0
+random 2, presented (-50,-50)-(300,300), scale 1/1                     old:  149 rects,   615895 GPU pixels over GDI; new:    8 rects,        0
+random 2, presented (1100,600)-(1400,900), scale 1/1                   old:  149 rects,   679472 GPU pixels over GDI; new:    1 rects,        0
+random 2, presented (0,0)-(0,0), scale 1/1                             old:  149 rects,   689472 GPU pixels over GDI; new:    0 rects,        0
+random 2, presented (393,25)-(1137,444), scale 3/2                     old:  149 rects,   969110 GPU pixels over GDI; new:   42 rects,        0
+random 2, presented (0,0)-(1200,699), scale 3/2                        old:  149 rects,     3024 GPU pixels over GDI; new:  149 rects,        0
+random 2, presented (1,0)-(1200,700), scale 3/2                        old:  149 rects,     1050 GPU pixels over GDI; new:  149 rects,        0
+random 2, presented (0,0)-(600,700), scale 3/2                         old:  149 rects,   788433 GPU pixels over GDI; new:   72 rects,        0
+random 2, presented (100,100)-(101,101), scale 3/2                     old:  149 rects,  1551366 GPU pixels over GDI; new:    1 rects,        0
+random 2, presented (-50,-50)-(300,300), scale 3/2                     old:  149 rects,  1385910 GPU pixels over GDI; new:    8 rects,        0
+random 2, presented (1100,600)-(1400,900), scale 3/2                   old:  149 rects,  1528867 GPU pixels over GDI; new:    1 rects,        0
+random 2, presented (0,0)-(0,0), scale 3/2                             old:  149 rects,  1551367 GPU pixels over GDI; new:    0 rects,        0
+random 2, presented (393,25)-(1137,444), scale 3/4                     old:  140 rects,   242173 GPU pixels over GDI; new:   42 rects,        0
+random 2, presented (0,0)-(1200,699), scale 3/4                        old:  140 rects,      756 GPU pixels over GDI; new:  140 rects,        0
+random 2, presented (1,0)-(1200,700), scale 3/4                        old:  140 rects,        0 GPU pixels over GDI; new:  140 rects,        0
+random 2, presented (0,0)-(600,700), scale 3/4                         old:  140 rects,   197306 GPU pixels over GDI; new:   68 rects,        0
+random 2, presented (100,100)-(101,101), scale 3/4                     old:  140 rects,   388174 GPU pixels over GDI; new:    0 rects,        0
+random 2, presented (-50,-50)-(300,300), scale 3/4                     old:  140 rects,   346735 GPU pixels over GDI; new:    8 rects,        0
+random 2, presented (1100,600)-(1400,900), scale 3/4                   old:  140 rects,   382549 GPU pixels over GDI; new:    1 rects,        0
+random 2, presented (0,0)-(0,0), scale 3/4                             old:  140 rects,   388174 GPU pixels over GDI; new:    0 rects,        0
+random 2, presented (393,25)-(1137,444), scale 7/3                     old:  149 rects,  2346490 GPU pixels over GDI; new:   42 rects,        0
+random 2, presented (0,0)-(1200,699), scale 7/3                        old:  149 rects,     7056 GPU pixels over GDI; new:  149 rects,        0
+random 2, presented (1,0)-(1200,700), scale 7/3                        old:  149 rects,     3266 GPU pixels over GDI; new:  149 rects,        0
+random 2, presented (0,0)-(600,700), scale 7/3                         old:  149 rects,  1907391 GPU pixels over GDI; new:   72 rects,        0
+random 2, presented (100,100)-(101,101), scale 7/3                     old:  149 rects,  3753081 GPU pixels over GDI; new:    1 rects,        0
+random 2, presented (-50,-50)-(300,300), scale 7/3                     old:  149 rects,  3352957 GPU pixels over GDI; new:    8 rects,        0
+random 2, presented (1100,600)-(1400,900), scale 7/3                   old:  149 rects,  3698329 GPU pixels over GDI; new:    1 rects,        0
+random 2, presented (0,0)-(0,0), scale 7/3                             old:  149 rects,  3753085 GPU pixels over GDI; new:    0 rects,        0
+random 2, presented (120,255)-(293,608), scale 1/1                     old:  149 rects,   644578 GPU pixels over GDI; new:   15 rects,        0
+random 2, presented (120,255)-(293,608), scale 3/2                     old:  149 rects,  1450362 GPU pixels over GDI; new:   15 rects,        0
+random 2, presented (835,463)-(1295,746), scale 1/1                    old:  149 rects,   614342 GPU pixels over GDI; new:    4 rects,        0
+random 2, presented (835,463)-(1295,746), scale 3/2                    old:  149 rects,  1382035 GPU pixels over GDI; new:    4 rects,        0
+random 2, presented (890,427)-(1411,478), scale 1/1                    old:  149 rects,   674166 GPU pixels over GDI; new:    2 rects,        0
+random 2, presented (890,427)-(1411,478), scale 3/2                    old:  149 rects,  1516750 GPU pixels over GDI; new:    2 rects,        0
+random 2, presented (345,69)-(714,513), scale 1/1                      old:  149 rects,   560981 GPU pixels over GDI; new:   39 rects,        0
+random 2, presented (345,69)-(714,513), scale 3/2                      old:  149 rects,  1261806 GPU pixels over GDI; new:   39 rects,        0
+random 2, presented (1036,487)-(1372,594), scale 1/1                   old:  149 rects,   671924 GPU pixels over GDI; new:    1 rects,        0
+random 2, presented (1036,487)-(1372,594), scale 3/2                   old:  149 rects,  1511761 GPU pixels over GDI; new:    1 rects,        0
+random 2, presented (415,398)-(625,810), scale 1/1                     old:  149 rects,   637155 GPU pixels over GDI; new:   11 rects,        0
+random 2, presented (415,398)-(625,810), scale 3/2                     old:  149 rects,  1433552 GPU pixels over GDI; new:   11 rects,        0
+random 3, presented (393,25)-(1137,444), scale 1/1                     old:  359 rects,   400800 GPU pixels over GDI; new:  132 rects,        0
+random 3, presented (0,0)-(1200,699), scale 1/1                        old:  359 rects,     1145 GPU pixels over GDI; new:  359 rects,        0
+random 3, presented (1,0)-(1200,700), scale 1/1                        old:  359 rects,      700 GPU pixels over GDI; new:  359 rects,        0
+random 3, presented (0,0)-(600,700), scale 1/1                         old:  359 rects,   277446 GPU pixels over GDI; new:  119 rects,        0
+random 3, presented (100,100)-(101,101), scale 1/1                     old:  359 rects,   583174 GPU pixels over GDI; new:    1 rects,        0
+random 3, presented (-50,-50)-(300,300), scale 1/1                     old:  359 rects,   504016 GPU pixels over GDI; new:    9 rects,        0
+random 3, presented (1100,600)-(1400,900), scale 1/1                   old:  359 rects,   581015 GPU pixels over GDI; new:    1 rects,        0
+random 3, presented (0,0)-(0,0), scale 1/1                             old:  359 rects,   583175 GPU pixels over GDI; new:    0 rects,        0
+random 3, presented (393,25)-(1137,444), scale 3/2                     old:  359 rects,   901241 GPU pixels over GDI; new:  132 rects,        0
+random 3, presented (0,0)-(1200,699), scale 3/2                        old:  359 rects,     3434 GPU pixels over GDI; new:  359 rects,        0
+random 3, presented (1,0)-(1200,700), scale 3/2                        old:  359 rects,     1050 GPU pixels over GDI; new:  359 rects,        0
+random 3, presented (0,0)-(600,700), scale 3/2                         old:  359 rects,   624181 GPU pixels over GDI; new:  119 rects,        0
+random 3, presented (100,100)-(101,101), scale 3/2                     old:  359 rects,  1312078 GPU pixels over GDI; new:    1 rects,        0
+random 3, presented (-50,-50)-(300,300), scale 3/2                     old:  359 rects,  1134061 GPU pixels over GDI; new:    9 rects,        0
+random 3, presented (1100,600)-(1400,900), scale 3/2                   old:  359 rects,  1307255 GPU pixels over GDI; new:    1 rects,        0
+random 3, presented (0,0)-(0,0), scale 3/2                             old:  359 rects,  1312079 GPU pixels over GDI; new:    0 rects,        0
+random 3, presented (393,25)-(1137,444), scale 3/4                     old:  354 rects,   224736 GPU pixels over GDI; new:  132 rects,        0
+random 3, presented (0,0)-(1200,699), scale 3/4                        old:  354 rects,      858 GPU pixels over GDI; new:  354 rects,        0
+random 3, presented (1,0)-(1200,700), scale 3/4                        old:  354 rects,        0 GPU pixels over GDI; new:  354 rects,        0
+random 3, presented (0,0)-(600,700), scale 3/4                         old:  354 rects,   155904 GPU pixels over GDI; new:  117 rects,        0
+random 3, presented (100,100)-(101,101), scale 3/4                     old:  354 rects,   327685 GPU pixels over GDI; new:    0 rects,        0
+random 3, presented (-50,-50)-(300,300), scale 3/4                     old:  354 rects,   283303 GPU pixels over GDI; new:    9 rects,        0
+random 3, presented (1100,600)-(1400,900), scale 3/4                   old:  354 rects,   326497 GPU pixels over GDI; new:    1 rects,        0
+random 3, presented (0,0)-(0,0), scale 3/4                             old:  354 rects,   327685 GPU pixels over GDI; new:    0 rects,        0
+random 3, presented (393,25)-(1137,444), scale 7/3                     old:  359 rects,  2181792 GPU pixels over GDI; new:  132 rects,        0
+random 3, presented (0,0)-(1200,699), scale 7/3                        old:  359 rects,     8013 GPU pixels over GDI; new:  359 rects,        0
+random 3, presented (1,0)-(1200,700), scale 7/3                        old:  359 rects,     3266 GPU pixels over GDI; new:  359 rects,        0
+random 3, presented (0,0)-(600,700), scale 7/3                         old:  359 rects,  1509799 GPU pixels over GDI; new:  119 rects,        0
+random 3, presented (100,100)-(101,101), scale 7/3                     old:  359 rects,  3173800 GPU pixels over GDI; new:    1 rects,        0
+random 3, presented (-50,-50)-(300,300), scale 7/3                     old:  359 rects,  2743683 GPU pixels over GDI; new:    9 rects,        0
+random 3, presented (1100,600)-(1400,900), scale 7/3                   old:  359 rects,  3162044 GPU pixels over GDI; new:    1 rects,        0
+random 3, presented (0,0)-(0,0), scale 7/3                             old:  359 rects,  3173804 GPU pixels over GDI; new:    0 rects,        0
+random 3, presented (878,577)-(938,698), scale 1/1                     old:  359 rects,   582275 GPU pixels over GDI; new:    2 rects,        0
+random 3, presented (878,577)-(938,698), scale 3/2                     old:  359 rects,  1310009 GPU pixels over GDI; new:    2 rects,        0
+random 3, presented (879,152)-(1611,309), scale 1/1                    old:  359 rects,   539572 GPU pixels over GDI; new:    5 rects,        0
+random 3, presented (879,152)-(1611,309), scale 3/2                    old:  359 rects,  1214146 GPU pixels over GDI; new:    5 rects,        0
+random 3, presented (753,261)-(1461,640), scale 1/1                    old:  359 rects,   478280 GPU pixels over GDI; new:   31 rects,        0
+random 3, presented (753,261)-(1461,640), scale 3/2                    old:  359 rects,  1075989 GPU pixels over GDI; new:   31 rects,        0
+random 3, presented (191,55)-(367,491), scale 1/1                      old:  359 rects,   526341 GPU pixels over GDI; new:    9 rects,        0
+random 3, presented (191,55)-(367,491), scale 3/2                      old:  359 rects,  1184168 GPU pixels over GDI; new:    9 rects,        0
+random 3, presented (662,591)-(753,939), scale 1/1                     old:  359 rects,   574958 GPU pixels over GDI; new:    2 rects,        0
+random 3, presented (662,591)-(753,939), scale 3/2                     old:  359 rects,  1293570 GPU pixels over GDI; new:    2 rects,        0
+random 3, presented (546,489)-(740,580), scale 1/1                     old:  359 rects,   566757 GPU pixels over GDI; new:    3 rects,        0
+random 3, presented (546,489)-(740,580), scale 3/2                     old:  359 rects,  1275002 GPU pixels over GDI; new:    3 rects,        0
+random 4, presented (393,25)-(1137,444), scale 1/1                     old:  216 rects,   395628 GPU pixels over GDI; new:   67 rects,        0
+random 4, presented (0,0)-(1200,699), scale 1/1                        old:  216 rects,      938 GPU pixels over GDI; new:  216 rects,        0
+random 4, presented (1,0)-(1200,700), scale 1/1                        old:  216 rects,      700 GPU pixels over GDI; new:  216 rects,        0
+random 4, presented (0,0)-(600,700), scale 1/1                         old:  216 rects,   334446 GPU pixels over GDI; new:   78 rects,        0
+random 4, presented (100,100)-(101,101), scale 1/1                     old:  216 rects,   638939 GPU pixels over GDI; new:    1 rects,        0
+random 4, presented (-50,-50)-(300,300), scale 1/1                     old:  216 rects,   576815 GPU pixels over GDI; new:   12 rects,        0
+random 4, presented (1100,600)-(1400,900), scale 1/1                   old:  216 rects,   629440 GPU pixels over GDI; new:    2 rects,        0
+random 4, presented (0,0)-(0,0), scale 1/1                             old:  216 rects,   638940 GPU pixels over GDI; new:    0 rects,        0
+random 4, presented (393,25)-(1137,444), scale 3/2                     old:  216 rects,   889530 GPU pixels over GDI; new:   67 rects,        0
+random 4, presented (0,0)-(1200,699), scale 3/2                        old:  216 rects,     2814 GPU pixels over GDI; new:  216 rects,        0
+random 4, presented (1,0)-(1200,700), scale 3/2                        old:  216 rects,     1050 GPU pixels over GDI; new:  216 rects,        0
+random 4, presented (0,0)-(600,700), scale 3/2                         old:  216 rects,   752689 GPU pixels over GDI; new:   78 rects,        0
+random 4, presented (100,100)-(101,101), scale 3/2                     old:  216 rects,  1437554 GPU pixels over GDI; new:    1 rects,        0
+random 4, presented (-50,-50)-(300,300), scale 3/2                     old:  216 rects,  1297952 GPU pixels over GDI; new:   12 rects,        0
+random 4, presented (1100,600)-(1400,900), scale 3/2                   old:  216 rects,  1416165 GPU pixels over GDI; new:    2 rects,        0
+random 4, presented (0,0)-(0,0), scale 3/2                             old:  216 rects,  1437555 GPU pixels over GDI; new:    0 rects,        0
+random 4, presented (393,25)-(1137,444), scale 3/4                     old:  204 rects,   221975 GPU pixels over GDI; new:   61 rects,        0
+random 4, presented (0,0)-(1200,699), scale 3/4                        old:  204 rects,      704 GPU pixels over GDI; new:  204 rects,        0
+random 4, presented (1,0)-(1200,700), scale 3/4                        old:  204 rects,        0 GPU pixels over GDI; new:  204 rects,        0
+random 4, presented (0,0)-(600,700), scale 3/4                         old:  204 rects,   188130 GPU pixels over GDI; new:   78 rects,        0
+random 4, presented (100,100)-(101,101), scale 3/4                     old:  204 rects,   359119 GPU pixels over GDI; new:    0 rects,        0
+random 4, presented (-50,-50)-(300,300), scale 3/4                     old:  204 rects,   324331 GPU pixels over GDI; new:   12 rects,        0
+random 4, presented (1100,600)-(1400,900), scale 3/4                   old:  204 rects,   353764 GPU pixels over GDI; new:    2 rects,        0
+random 4, presented (0,0)-(0,0), scale 3/4                             old:  204 rects,   359119 GPU pixels over GDI; new:    0 rects,        0
+random 4, presented (393,25)-(1137,444), scale 7/3                     old:  216 rects,  2153552 GPU pixels over GDI; new:   67 rects,        0
+random 4, presented (0,0)-(1200,699), scale 7/3                        old:  216 rects,     6567 GPU pixels over GDI; new:  216 rects,        0
+random 4, presented (1,0)-(1200,700), scale 7/3                        old:  216 rects,     3266 GPU pixels over GDI; new:  216 rects,        0
+random 4, presented (0,0)-(600,700), scale 7/3                         old:  216 rects,  1820568 GPU pixels over GDI; new:   78 rects,        0
+random 4, presented (100,100)-(101,101), scale 7/3                     old:  216 rects,  3477413 GPU pixels over GDI; new:    1 rects,        0
+random 4, presented (-50,-50)-(300,300), scale 7/3                     old:  216 rects,  3139952 GPU pixels over GDI; new:   12 rects,        0
+random 4, presented (1100,600)-(1400,900), scale 7/3                   old:  216 rects,  3425434 GPU pixels over GDI; new:    2 rects,        0
+random 4, presented (0,0)-(0,0), scale 7/3                             old:  216 rects,  3477417 GPU pixels over GDI; new:    0 rects,        0
+random 4, presented (639,20)-(667,267), scale 1/1                      old:  216 rects,   634432 GPU pixels over GDI; new:    2 rects,        0
+random 4, presented (639,20)-(667,267), scale 3/2                      old:  216 rects,  1427433 GPU pixels over GDI; new:    2 rects,        0
+random 4, presented (948,275)-(1080,615), scale 1/1                    old:  216 rects,   598909 GPU pixels over GDI; new:   11 rects,        0
+random 4, presented (948,275)-(1080,615), scale 3/2                    old:  216 rects,  1347451 GPU pixels over GDI; new:   11 rects,        0
+random 4, presented (167,77)-(379,530), scale 1/1                      old:  216 rects,   564454 GPU pixels over GDI; new:   13 rects,        0
+random 4, presented (167,77)-(379,530), scale 3/2                      old:  216 rects,  1269918 GPU pixels over GDI; new:   13 rects,        0
+random 4, presented (1141,526)-(1325,943), scale 1/1                   old:  216 rects,   628674 GPU pixels over GDI; new:    1 rects,        0
+random 4, presented (1141,526)-(1325,943), scale 3/2                   old:  216 rects,  1414326 GPU pixels over GDI; new:    1 rects,        0
+random 4, presented (855,18)-(1557,203), scale 1/1                     old:  216 rects,   587620 GPU pixels over GDI; new:    7 rects,        0
+random 4, presented (855,18)-(1557,203), scale 3/2                     old:  216 rects,  1322315 GPU pixels over GDI; new:    7 rects,        0
+random 4, presented (284,664)-(844,953), scale 1/1                     old:  216 rects,   620628 GPU pixels over GDI; new:    5 rects,        0
+random 4, presented (284,664)-(844,953), scale 3/2                     old:  216 rects,  1396281 GPU pixels over GDI; new:    5 rects,        0
+random 5, presented (393,25)-(1137,444), scale 1/1                     old:  384 rects,   345361 GPU pixels over GDI; new:   75 rects,        0
+random 5, presented (0,0)-(1200,699), scale 1/1                        old:  384 rects,      990 GPU pixels over GDI; new:  384 rects,        0
+random 5, presented (1,0)-(1200,700), scale 1/1                        old:  384 rects,      700 GPU pixels over GDI; new:  384 rects,        0
+random 5, presented (0,0)-(600,700), scale 1/1                         old:  384 rects,   304058 GPU pixels over GDI; new:  116 rects,        0
+random 5, presented (100,100)-(101,101), scale 1/1                     old:  384 rects,   586161 GPU pixels over GDI; new:    1 rects,        0
+random 5, presented (-50,-50)-(300,300), scale 1/1                     old:  384 rects,   536039 GPU pixels over GDI; new:   28 rects,        0
+random 5, presented (1100,600)-(1400,900), scale 1/1                   old:  384 rects,   585344 GPU pixels over GDI; new:    5 rects,        0
+random 5, presented (0,0)-(0,0), scale 1/1                             old:  384 rects,   586162 GPU pixels over GDI; new:    0 rects,        0
+random 5, presented (393,25)-(1137,444), scale 3/2                     old:  384 rects,   776376 GPU pixels over GDI; new:   75 rects,        0
+random 5, presented (0,0)-(1200,699), scale 3/2                        old:  384 rects,     2968 GPU pixels over GDI; new:  384 rects,        0
+random 5, presented (1,0)-(1200,700), scale 3/2                        old:  384 rects,     1050 GPU pixels over GDI; new:  384 rects,        0
+random 5, presented (0,0)-(600,700), scale 3/2                         old:  384 rects,   683766 GPU pixels over GDI; new:  116 rects,        0
+random 5, presented (100,100)-(101,101), scale 3/2                     old:  384 rects,  1318596 GPU pixels over GDI; new:    1 rects,        0
+random 5, presented (-50,-50)-(300,300), scale 3/2                     old:  384 rects,  1206067 GPU pixels over GDI; new:   28 rects,        0
+random 5, presented (1100,600)-(1400,900), scale 3/2                   old:  384 rects,  1316758 GPU pixels over GDI; new:    5 rects,        0
+random 5, presented (0,0)-(0,0), scale 3/2                             old:  384 rects,  1318597 GPU pixels over GDI; new:    0 rects,        0
+random 5, presented (393,25)-(1137,444), scale 3/4                     old:  360 rects,   193688 GPU pixels over GDI; new:   71 rects,        0
+random 5, presented (0,0)-(1200,699), scale 3/4                        old:  360 rects,      743 GPU pixels over GDI; new:  360 rects,        0
+random 5, presented (1,0)-(1200,700), scale 3/4                        old:  360 rects,        0 GPU pixels over GDI; new:  360 rects,        0
+random 5, presented (0,0)-(600,700), scale 3/4                         old:  360 rects,   170924 GPU pixels over GDI; new:  116 rects,        0
+random 5, presented (100,100)-(101,101), scale 3/4                     old:  360 rects,   329533 GPU pixels over GDI; new:    0 rects,        0
+random 5, presented (-50,-50)-(300,300), scale 3/4                     old:  360 rects,   301486 GPU pixels over GDI; new:   28 rects,        0
+random 5, presented (1100,600)-(1400,900), scale 3/4                   old:  360 rects,   329068 GPU pixels over GDI; new:    3 rects,        0
+random 5, presented (0,0)-(0,0), scale 3/4                             old:  360 rects,   329533 GPU pixels over GDI; new:    0 rects,        0
+random 5, presented (393,25)-(1137,444), scale 7/3                     old:  384 rects,  1880250 GPU pixels over GDI; new:   75 rects,        0
+random 5, presented (0,0)-(1200,699), scale 7/3                        old:  384 rects,     6930 GPU pixels over GDI; new:  384 rects,        0
+random 5, presented (1,0)-(1200,700), scale 7/3                        old:  384 rects,     3266 GPU pixels over GDI; new:  384 rects,        0
+random 5, presented (0,0)-(600,700), scale 7/3                         old:  384 rects,  1655690 GPU pixels over GDI; new:  116 rects,        0
+random 5, presented (100,100)-(101,101), scale 7/3                     old:  384 rects,  3190355 GPU pixels over GDI; new:    1 rects,        0
+random 5, presented (-50,-50)-(300,300), scale 7/3                     old:  384 rects,  2918552 GPU pixels over GDI; new:   28 rects,        0
+random 5, presented (1100,600)-(1400,900), scale 7/3                   old:  384 rects,  3185883 GPU pixels over GDI; new:    5 rects,        0
+random 5, presented (0,0)-(0,0), scale 7/3                             old:  384 rects,  3190359 GPU pixels over GDI; new:    0 rects,        0
+random 5, presented (839,539)-(1029,794), scale 1/1                    old:  384 rects,   565259 GPU pixels over GDI; new:   16 rects,        0
+random 5, presented (839,539)-(1029,794), scale 3/2                    old:  384 rects,  1271577 GPU pixels over GDI; new:   16 rects,        0
+random 5, presented (480,427)-(683,633), scale 1/1                     old:  384 rects,   549213 GPU pixels over GDI; new:   11 rects,        0
+random 5, presented (480,427)-(683,633), scale 3/2                     old:  384 rects,  1235600 GPU pixels over GDI; new:   11 rects,        0
+random 5, presented (1104,659)-(1868,933), scale 1/1                   old:  384 rects,   585514 GPU pixels over GDI; new:    2 rects,        0
+random 5, presented (1104,659)-(1868,933), scale 3/2                   old:  384 rects,  1317139 GPU pixels over GDI; new:    2 rects,        0
+random 5, presented (291,322)-(819,597), scale 1/1                     old:  384 rects,   484863 GPU pixels over GDI; new:   25 rects,        0
+random 5, presented (291,322)-(819,597), scale 3/2                     old:  384 rects,  1090827 GPU pixels over GDI; new:   25 rects,        0
+random 5, presented (37,269)-(582,433), scale 1/1                      old:  384 rects,   525784 GPU pixels over GDI; new:   20 rects,        0
+random 5, presented (37,269)-(582,433), scale 3/2                      old:  384 rects,  1182579 GPU pixels over GDI; new:   20 rects,        0
+random 5, presented (785,267)-(1149,741), scale 1/1                    old:  384 rects,   469857 GPU pixels over GDI; new:   48 rects,        0
+random 5, presented (785,267)-(1149,741), scale 3/2                    old:  384 rects,  1057119 GPU pixels over GDI; new:   48 rects,        0
+32 whole window cases, 352 partial cases; GPU pixels drawn over the GDI part: old 337676355, new 0
+1952 checks, 0 failures

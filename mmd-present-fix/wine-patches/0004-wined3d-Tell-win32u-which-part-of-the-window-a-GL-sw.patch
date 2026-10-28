@@ -1,0 +1,139 @@
+From a3c574656e286b58fb6e6a1421b18350e76f1134 Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 07:04:12 +0000
+Subject: [PATCH 4/4] wined3d: Tell win32u which part of the window a GL
+ swapchain presents to.
+
+What GDI draws in the rest of the window stays visible on Windows, for
+instance the panels around the preview of MikuMikuDance, which presents to
+a part of its main window only. These were black.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ dlls/wined3d/swapchain.c       | 59 ++++++++++++++++++++++++++++++++++
+ dlls/wined3d/wined3d_private.h |  4 +++
+ 2 files changed, 63 insertions(+)
+
+diff --git a/dlls/wined3d/swapchain.c b/dlls/wined3d/swapchain.c
+index 6d602b5..712fe62 100644
+--- a/dlls/wined3d/swapchain.c
++++ b/dlls/wined3d/swapchain.c
+@@ -40,6 +40,39 @@ static BOOL set_window_present_rect(HWND hwnd, UINT x, UINT y, UINT width, UINT
+     return !D3DKMTEscape(&escape);
+ }
+ 
++static BOOL set_window_presented_rect(HWND hwnd, const RECT *rect)
++{
++    D3DKMT_ESCAPE escape = {0};
++
++    escape.Type = D3DKMT_ESCAPE_SET_PRESENTED_RECT_WINE;
++    escape.hContext = HandleToULong(hwnd);
++    escape.pPrivateDriverData = (void *)rect;
++    escape.PrivateDriverDataSize = rect ? sizeof(*rect) : 0;
++
++    return !D3DKMTEscape(&escape);
++}
++
++/* Presenting only replaces the part of the window it presents to, what GDI
++ * draws stays visible in the rest of it. Tell win32u which part that is, an
++ * empty rect for none, or NULL for the whole client area. */
++static void swapchain_set_presented_rect(struct wined3d_swapchain *swapchain, const RECT *rect)
++{
++    HWND window = rect ? swapchain->win_handle : NULL;
++
++    if (window == swapchain->presented_window && (!window || EqualRect(rect, &swapchain->presented_rect)))
++        return;
++
++    TRACE("swapchain %p, window %p, rect %s.\n", swapchain, swapchain->win_handle, wine_dbgstr_rect(rect));
++
++    if (swapchain->presented_window && swapchain->presented_window != window)
++        set_window_presented_rect(swapchain->presented_window, NULL);
++    if (window && !set_window_presented_rect(window, rect))
++        WARN("Failed to set the presented rect of window %p.\n", window);
++    swapchain->presented_window = window;
++    if (rect)
++        swapchain->presented_rect = *rect;
++}
++
+ void wined3d_swapchain_cleanup(struct wined3d_swapchain *swapchain)
+ {
+     HRESULT hr;
+@@ -171,6 +204,7 @@ ULONG CDECL wined3d_swapchain_decref(struct wined3d_swapchain *swapchain)
+             wined3d_device_uninit_3d(device);
+         wined3d_cs_finish(device->cs, WINED3D_CS_QUEUE_DEFAULT);
+ 
++        swapchain_set_presented_rect(swapchain, NULL);
+         if (swapchain->dc)
+             wined3d_release_dc(swapchain->win_handle, swapchain->dc);
+ 
+@@ -620,6 +654,22 @@ static bool swapchain_present_is_partial_copy(struct wined3d_swapchain *swapchai
+     return false;
+ }
+ 
++/* whether a windowed present leaves a part of the client area out, rect is
++ * then the part it presents to */
++static bool swapchain_present_is_partial(struct wined3d_swapchain *swapchain, const RECT *dst_rect, RECT *rect)
++{
++    RECT client_rect;
++
++    if (!swapchain->state.desc.windowed)
++        return false;
++
++    SetRect(rect, min(dst_rect->left, dst_rect->right), min(dst_rect->top, dst_rect->bottom),
++            max(dst_rect->left, dst_rect->right), max(dst_rect->top, dst_rect->bottom));
++    GetClientRect(swapchain->win_handle, &client_rect);
++    return rect->left > client_rect.left || rect->top > client_rect.top
++            || rect->right < client_rect.right || rect->bottom < client_rect.bottom;
++}
++
+ static void swapchain_gl_present(struct wined3d_swapchain *swapchain,
+         const RECT *src_rect, const RECT *dst_rect, unsigned int swap_interval, uint32_t flags)
+ {
+@@ -628,6 +678,7 @@ static void swapchain_gl_present(struct wined3d_swapchain *swapchain,
+     const struct wined3d_gl_info *gl_info;
+     struct wined3d_context_gl *context_gl;
+     struct wined3d_context *context;
++    RECT presented_rect;
+ 
+     context = context_acquire(swapchain->device, swapchain->front_buffer, 0);
+     context_gl = wined3d_context_gl(context);
+@@ -645,12 +696,20 @@ static void swapchain_gl_present(struct wined3d_swapchain *swapchain,
+             || (pixel_format->swap_method != WGL_SWAP_COPY_ARB
+             && swapchain_present_is_partial_copy(swapchain, dst_rect)))
+     {
++        /* nothing presented with GL shows in the window */
++        SetRectEmpty(&presented_rect);
++        swapchain_set_presented_rect(swapchain, &presented_rect);
+         swapchain_blit_gdi(swapchain, context, src_rect, dst_rect);
+     }
+     else
+     {
+         gl_info = context_gl->gl_info;
+ 
++        if (swapchain_present_is_partial(swapchain, dst_rect, &presented_rect))
++            swapchain_set_presented_rect(swapchain, &presented_rect);
++        else
++            swapchain_set_presented_rect(swapchain, NULL);
++
+         swapchain_gl_set_swap_interval(swapchain, context_gl, swap_interval);
+ 
+         wined3d_texture_load_location(back_buffer, 0, context, back_buffer->resource.draw_binding);
+diff --git a/dlls/wined3d/wined3d_private.h b/dlls/wined3d/wined3d_private.h
+index 0f0387c..ffba0dc 100644
+--- a/dlls/wined3d/wined3d_private.h
++++ b/dlls/wined3d/wined3d_private.h
+@@ -4129,6 +4129,10 @@ struct wined3d_swapchain
+     struct wined3d_swapchain_state state;
+     HWND win_handle;
+     HDC dc;
++
++    /* the window presented to a part of, see swapchain_set_presented_rect() */
++    HWND presented_window;
++    RECT presented_rect;
+ };
+ 
+ void wined3d_swapchain_activate(struct wined3d_swapchain *swapchain, BOOL activate);
+-- 
+2.43.0
+
