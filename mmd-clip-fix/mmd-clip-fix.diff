@@ -1,0 +1,211 @@
+--- a/wine/dlls/wineandroid.drv/client.c
++++ b/wine/dlls/wineandroid.drv/client.c
+@@ -16,16 +16,101 @@
+     return ret;
+ }
+ 
+-static UINT get_client_clip( struct android_client_surface *surface, struct adisp_rect *rects )
++struct clip_order
++{
++    UINT64 area;
++    UINT   index;
++};
++
++static int compare_clip_order( const void *p1, const void *p2 )
++{
++    const struct clip_order *o1 = p1, *o2 = p2;
++
++    if (o1->area != o2->area) return o1->area > o2->area ? -1 : 1;
++    return o1->index < o2->index ? -1 : o1->index > o2->index ? 1 : 0;
++}
++
++/* keep the max largest of the count rects, in their order: dropping parts only shows what GDI
++ * drew there instead of the surface, it never draws the surface over another window */
++static UINT reduce_clip_rects( struct adisp_rect *rects, UINT count, UINT max )
++{
++    struct clip_order *order;
++    BYTE *keep;
++    UINT i, n;
++
++    if (count <= max) return count;
++    if (!(order = malloc( count * (sizeof(*order) + 1) ))) return 0;
++    keep = (BYTE *)(order + count);
++    for (i = 0; i < count; i++)
++    {
++        order[i].area  = (UINT64)(rects[i].right - rects[i].left) * (rects[i].bottom - rects[i].top);
++        order[i].index = i;
++        keep[i] = 0;
++    }
++    qsort( order, count, sizeof(*order), compare_clip_order );
++    for (i = 0; i < max; i++) keep[order[i].index] = 1;
++    for (i = n = 0; i < count; i++) if (keep[i]) rects[n++] = rects[i];
++    free( order );
++    return n;
++}
++
++/* from the virtual coordinates of the region to the monitor ones of the surface rect, the edges
++ * shared with the windows that cover the surface are scaled the same way, so they don't overlap */
++static UINT scale_clip_rects( const RECT *r, UINT count, const RECT *vrect, const RECT *mrect,
++                              struct adisp_rect *rects )
++{
++    int vw = vrect->right - vrect->left, vh = vrect->bottom - vrect->top;
++    int mw = mrect->right - mrect->left, mh = mrect->bottom - mrect->top;
++    UINT i, n;
++
++    for (i = n = 0; i < count; i++)
++    {
++        rects[n].left   = mrect->left + scale( r[i].left - vrect->left, mw, vw );
++        rects[n].top    = mrect->top + scale( r[i].top - vrect->top, mh, vh );
++        rects[n].right  = mrect->left + scale( r[i].right - vrect->left, mw, vw );
++        rects[n].bottom = mrect->top + scale( r[i].bottom - vrect->top, mh, vh );
++        /* parts thinner than a pixel of the monitor disappear */
++        if (rects[n].right > rects[n].left && rects[n].bottom > rects[n].top) n++;
++    }
++    return n;
++}
++
++/* the visible parts of the surface from the region of its virtual rect not covered by the other
++ * windows, at most max rects: ADISP_CLIP_NONE if nothing covers it, 0 if it is hidden (or on
++ * failure, not to draw it over the other windows) */
++static UINT get_region_clip( HRGN rgn, BOOL covered, const RECT *vrect, const RECT *mrect,
++                             struct adisp_rect *rects, UINT max )
++{
++    struct adisp_rect *all = rects;
++    UINT count = 0, size;
++    RGNDATA *data;
++
++    if (!covered) return ADISP_CLIP_NONE;
++    if (!(size = NtGdiGetRegionData( rgn, 0, NULL )) || !(data = malloc( size ))) return 0;
++    if (NtGdiGetRegionData( rgn, size, data ) &&
++        (data->rdh.nCount <= max || (all = malloc( data->rdh.nCount * sizeof(*all) ))))
++    {
++        count = scale_clip_rects( (const RECT *)data->Buffer, data->rdh.nCount, vrect, mrect, all );
++        if (all != rects)
++        {
++            if (count > max) WARN( "%u visible parts, only keeping the %u largest ones\n", count, max );
++            count = reduce_clip_rects( all, count, max );
++            memcpy( rects, all, count * sizeof(*rects) );
++            free( all );
++        }
++    }
++    free( data );
++    return count;
++}
++
++static UINT get_client_clip( struct android_client_surface *surface, struct adisp_rect *rects, UINT max )
+ {
+     HWND hwnd = surface->base.hwnd, toplevel = surface->base.toplevel, win, other;
+     RECT vrect = surface->base.virtual_rect, mrect = surface->base.monitor_rect;
+-    UINT dpi = NtUserGetDpiForWindow( hwnd ), count = ADISP_CLIP_NONE, i;
++    UINT dpi = NtUserGetDpiForWindow( hwnd ), count;
+     int vw = vrect.right - vrect.left, vh = vrect.bottom - vrect.top;
+     BOOL covered = FALSE;
+     POINT origin;
+-    char buffer[sizeof(RGNDATAHEADER) + ADISP_MAX_CLIP_RECTS * sizeof(RECT)];
+-    RGNDATA *data = (RGNDATA *)buffer;
+     HRGN rgn;
+ 
+     if (!toplevel || vw <= 0 || vh <= 0) return ADISP_CLIP_NONE;
+@@ -43,34 +128,26 @@
+         for (other = NtUserGetWindowRelative( win, GW_HWNDPREV ); other; other = NtUserGetWindowRelative( other, GW_HWNDPREV ))
+             covered |= subtract_window( rgn, other, &origin, dpi );
+ 
+-    if (covered && NtGdiGetRegionData( rgn, sizeof(buffer), data ) && data->rdh.nCount <= ADISP_MAX_CLIP_RECTS)
+-    {
+-        const RECT *r = (const RECT *)data->Buffer;
+-        int mw = mrect.right - mrect.left, mh = mrect.bottom - mrect.top;
+-
+-        /* from the virtual coordinates of the region to the monitor ones of the surface rect */
+-        for (i = 0; i < data->rdh.nCount; i++)
+-        {
+-            rects[i].left   = mrect.left + scale( r[i].left - vrect.left, mw, vw );
+-            rects[i].top    = mrect.top + scale( r[i].top - vrect.top, mh, vh );
+-            rects[i].right  = mrect.left + scale( r[i].right - vrect.left, mw, vw );
+-            rects[i].bottom = mrect.top + scale( r[i].bottom - vrect.top, mh, vh );
+-        }
+-        count = data->rdh.nCount;
+-    }
++    count = get_region_clip( rgn, covered, &vrect, &mrect, rects, max );
+     NtGdiDeleteObjectApp( rgn );
+     return count;
+ }
+ 
+ static void send_client_clip( struct android_client_surface *surface )
+ {
+-    char buffer[offsetof( struct adisp_client_clip, rects[ADISP_MAX_CLIP_RECTS] )];
+-    struct adisp_client_clip *msg = (struct adisp_client_clip *)buffer;
+-    UINT count = get_client_clip( surface, msg->rects ), n = count == ADISP_CLIP_NONE ? 0 : count;
++    struct adisp_client_clip *msg;
++    UINT count, n;
++
++    if (!(msg = malloc( offsetof( struct adisp_client_clip, rects[ADISP_MAX_CLIP_RECTS] ) ))) return;
++    count = get_client_clip( surface, msg->rects, ADISP_MAX_CLIP_RECTS );
++    n = count == ADISP_CLIP_NONE ? 0 : count;
+ 
+     if (count == surface->sent_clip_count &&
+         !memcmp( msg->rects, surface->sent_clip, n * sizeof(msg->rects[0]) ))
++    {
++        free( msg );
+         return;
++    }
+     surface->sent_clip_count = count;
+     memcpy( surface->sent_clip, msg->rects, n * sizeof(msg->rects[0]) );
+ 
+@@ -80,4 +157,5 @@
+     msg->id       = surface->id;
+     msg->count    = count;
+     display_send( msg, msg->hdr.size, -1 );
++    free( msg );
+ }
+--- a/app/jni/server.c
++++ b/app/jni/server.c
+@@ -7,7 +7,19 @@
+     if (count != ADISP_CLIP_NONE)
+     {
+         if (count > ADISP_MAX_CLIP_RECTS || size < offsetof( struct adisp_client_clip, rects[count] )) return;
+-        memcpy( surf->clip, req->rects, count * sizeof(req->rects[0]) );
++        if (count > surf->clip_size)
++        {
++            struct adisp_rect *clip = realloc( surf->clip, count * sizeof(*clip) );
++
++            /* don't draw the surface over the other windows if it can't be clipped */
++            if (!clip) count = 0;
++            else
++            {
++                surf->clip = clip;
++                surf->clip_size = count;
++            }
++        }
++        if (count) memcpy( surf->clip, req->rects, count * sizeof(req->rects[0]) );
+     }
+     surf->clip_count = count;
+     scene_mark_dirty();
+--- a/app/jni/include/adisp_protocol_excerpt.h
++++ b/app/jni/include/adisp_protocol_excerpt.h
+@@ -1,10 +1,12 @@
+ #define ADISP_CLIP_NONE      0xffffffff
+-#define ADISP_MAX_CLIP_RECTS 64
++/* a clip message must fit in ADISP_MAX_MSG_SIZE: 24 + 2048 * 16 bytes = 32 KiB,
++ * a more complex clip is reduced by the client to its largest parts */
++#define ADISP_MAX_CLIP_RECTS 2048
+ 
+ struct adisp_client_clip
+ {
+     struct adisp_header hdr;
+     uint32_t id;
+-    uint32_t count;           /* entries in rects, or ADISP_CLIP_NONE */
++    uint32_t count;           /* entries in rects (0: all covered), or ADISP_CLIP_NONE (nothing covered) */
+     struct adisp_rect rects[1];
+ };
+--- a/app/jni/client_surf_excerpt.h
++++ b/app/jni/client_surf_excerpt.h
+@@ -8,7 +8,8 @@
+     struct adisp_rect rect;     /* relative to the toplevel visible rect */
+     /* the parts not covered by other windows of the toplevel, like rect, ADISP_CLIP_NONE: all */
+     uint32_t        clip_count;
+-    struct adisp_rect clip[ADISP_MAX_CLIP_RECTS];
++    struct adisp_rect *clip;   /* clip_size allocated entries */
++    uint32_t        clip_size;
+     struct client_buffer buffers[MAX_CLIENT_BUFFERS];
+     int             displayed;  /* buffer on screen, -1 if none */
+     int             pending;    /* newer buffer waiting to be drawn, -1 if none */

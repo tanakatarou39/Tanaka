@@ -1,0 +1,281 @@
+mmd panels max=64 1280x720->1280x720 trunc       region  684 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 80.6% of the visible area
+mmd panels max=64 1280x720->1280x720 round       region  684 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 80.6% of the visible area
+mmd panels max=64 1280x720->640x360 trunc        region  684 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 81.9% of the visible area
+mmd panels max=64 1280x720->640x360 round        region  684 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 82.3% of the visible area
+mmd panels max=64 1280x720->1920x1080 trunc      region  684 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 81.0% of the visible area
+mmd panels max=64 1280x720->1920x1080 round      region  684 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 81.1% of the visible area
+mmd panels max=64 1280x720->1366x768 trunc       region  684 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 81.0% of the visible area
+mmd panels max=64 1280x720->1366x768 round       region  684 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 80.8% of the visible area
+mmd panels max=64 1280x720->1000x333 trunc       region  684 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 82.1% of the visible area
+mmd panels max=64 1280x720->1000x333 round       region  684 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 83.1% of the visible area
+mmd panels max=64 1600x900->1600x900 trunc       region  902 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 80.6% of the visible area
+mmd panels max=64 1600x900->1600x900 round       region  902 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 80.6% of the visible area
+mmd panels max=64 1600x900->800x450 trunc        region  902 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 80.5% of the visible area
+mmd panels max=64 1600x900->800x450 round        region  902 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 80.7% of the visible area
+mmd panels max=64 1600x900->2400x1350 trunc      region  902 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 80.5% of the visible area
+mmd panels max=64 1600x900->2400x1350 round      region  902 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 80.6% of the visible area
+mmd panels max=64 1600x900->1366x768 trunc       region  902 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 81.1% of the visible area
+mmd panels max=64 1600x900->1366x768 round       region  902 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 80.5% of the visible area
+mmd panels max=64 1600x900->1000x333 trunc       region  902 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 81.4% of the visible area
+mmd panels max=64 1600x900->1000x333 round       region  902 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 80.4% of the visible area
+mmd 300 controls max=64 1280x720->1280x720 trunc region 2430 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 28.0% of the visible area
+mmd 300 controls max=64 1280x720->1280x720 round region 2430 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 28.0% of the visible area
+mmd 300 controls max=64 1280x720->640x360 trunc  region 2430 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 28.1% of the visible area
+mmd 300 controls max=64 1280x720->640x360 round  region 2430 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 29.4% of the visible area
+mmd 300 controls max=64 1280x720->1920x1080 trunc region 2430 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 27.8% of the visible area
+mmd 300 controls max=64 1280x720->1920x1080 round region 2430 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 28.3% of the visible area
+mmd 300 controls max=64 1280x720->1366x768 trunc region 2430 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 28.3% of the visible area
+mmd 300 controls max=64 1280x720->1366x768 round region 2430 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 28.4% of the visible area
+mmd 300 controls max=64 1280x720->1000x333 trunc region 2430 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 28.9% of the visible area
+mmd 300 controls max=64 1280x720->1000x333 round region 2430 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 28.5% of the visible area
+mmd 450 controls max=64 1920x1080->1920x1080 trunc region 4171 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 25.2% of the visible area
+mmd 450 controls max=64 1920x1080->1920x1080 round region 4171 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 25.2% of the visible area
+mmd 450 controls max=64 1920x1080->960x540 trunc region 4171 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 25.8% of the visible area
+mmd 450 controls max=64 1920x1080->960x540 round region 4171 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 26.0% of the visible area
+mmd 450 controls max=64 1920x1080->2880x1620 trunc region 4171 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 25.4% of the visible area
+mmd 450 controls max=64 1920x1080->2880x1620 round region 4171 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 25.4% of the visible area
+mmd 450 controls max=64 1920x1080->1366x768 trunc region 4171 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 25.4% of the visible area
+mmd 450 controls max=64 1920x1080->1366x768 round region 4171 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 25.5% of the visible area
+mmd 450 controls max=64 1920x1080->1000x333 trunc region 4171 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 26.0% of the visible area
+mmd 450 controls max=64 1920x1080->1000x333 round region 4171 rects, old: NONE (not clipped), new: 64 rects
+                                                 kept 26.4% of the visible area
+mmd panels max=512 1280x720->1280x720 trunc      region  684 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 99.6% of the visible area
+mmd panels max=512 1280x720->1280x720 round      region  684 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 99.6% of the visible area
+mmd panels max=512 1280x720->640x360 trunc       region  684 rects, old: NONE (not clipped), new: 502 rects
+mmd panels max=512 1280x720->640x360 round       region  684 rects, old: NONE (not clipped), new: 504 rects
+mmd panels max=512 1280x720->1920x1080 trunc     region  684 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 99.6% of the visible area
+mmd panels max=512 1280x720->1920x1080 round     region  684 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 99.6% of the visible area
+mmd panels max=512 1280x720->1366x768 trunc      region  684 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 99.6% of the visible area
+mmd panels max=512 1280x720->1366x768 round      region  684 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 99.5% of the visible area
+mmd panels max=512 1280x720->1000x333 trunc      region  684 rects, old: NONE (not clipped), new: 503 rects
+mmd panels max=512 1280x720->1000x333 round      region  684 rects, old: NONE (not clipped), new: 469 rects
+mmd panels max=512 1600x900->1600x900 trunc      region  902 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 98.8% of the visible area
+mmd panels max=512 1600x900->1600x900 round      region  902 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 98.8% of the visible area
+mmd panels max=512 1600x900->800x450 trunc       region  902 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 99.5% of the visible area
+mmd panels max=512 1600x900->800x450 round       region  902 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 99.4% of the visible area
+mmd panels max=512 1600x900->2400x1350 trunc     region  902 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 98.8% of the visible area
+mmd panels max=512 1600x900->2400x1350 round     region  902 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 98.8% of the visible area
+mmd panels max=512 1600x900->1366x768 trunc      region  902 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 99.0% of the visible area
+mmd panels max=512 1600x900->1366x768 round      region  902 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 98.8% of the visible area
+mmd panels max=512 1600x900->1000x333 trunc      region  902 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 99.7% of the visible area
+mmd panels max=512 1600x900->1000x333 round      region  902 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 99.8% of the visible area
+mmd 300 controls max=512 1280x720->1280x720 trunc region 2430 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 74.4% of the visible area
+mmd 300 controls max=512 1280x720->1280x720 round region 2430 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 74.4% of the visible area
+mmd 300 controls max=512 1280x720->640x360 trunc region 2430 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 79.4% of the visible area
+mmd 300 controls max=512 1280x720->640x360 round region 2430 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 79.1% of the visible area
+mmd 300 controls max=512 1280x720->1920x1080 trunc region 2430 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 75.0% of the visible area
+mmd 300 controls max=512 1280x720->1920x1080 round region 2430 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 74.9% of the visible area
+mmd 300 controls max=512 1280x720->1366x768 trunc region 2430 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 74.7% of the visible area
+mmd 300 controls max=512 1280x720->1366x768 round region 2430 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 74.6% of the visible area
+mmd 300 controls max=512 1280x720->1000x333 trunc region 2430 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 80.4% of the visible area
+mmd 300 controls max=512 1280x720->1000x333 round region 2430 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 80.0% of the visible area
+mmd 450 controls max=512 1920x1080->1920x1080 trunc region 4171 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 68.2% of the visible area
+mmd 450 controls max=512 1920x1080->1920x1080 round region 4171 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 68.2% of the visible area
+mmd 450 controls max=512 1920x1080->960x540 trunc region 4171 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 72.4% of the visible area
+mmd 450 controls max=512 1920x1080->960x540 round region 4171 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 72.5% of the visible area
+mmd 450 controls max=512 1920x1080->2880x1620 trunc region 4171 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 68.6% of the visible area
+mmd 450 controls max=512 1920x1080->2880x1620 round region 4171 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 68.7% of the visible area
+mmd 450 controls max=512 1920x1080->1366x768 trunc region 4171 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 69.9% of the visible area
+mmd 450 controls max=512 1920x1080->1366x768 round region 4171 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 70.5% of the visible area
+mmd 450 controls max=512 1920x1080->1000x333 trunc region 4171 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 79.0% of the visible area
+mmd 450 controls max=512 1920x1080->1000x333 round region 4171 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 78.8% of the visible area
+mmd panels max=2048 1280x720->1280x720 trunc     region  684 rects, old: NONE (not clipped), new: 684 rects
+mmd panels max=2048 1280x720->1280x720 round     region  684 rects, old: NONE (not clipped), new: 684 rects
+mmd panels max=2048 1280x720->640x360 trunc      region  684 rects, old: NONE (not clipped), new: 502 rects
+mmd panels max=2048 1280x720->640x360 round      region  684 rects, old: NONE (not clipped), new: 504 rects
+mmd panels max=2048 1280x720->1920x1080 trunc    region  684 rects, old: NONE (not clipped), new: 684 rects
+mmd panels max=2048 1280x720->1920x1080 round    region  684 rects, old: NONE (not clipped), new: 684 rects
+mmd panels max=2048 1280x720->1366x768 trunc     region  684 rects, old: NONE (not clipped), new: 684 rects
+mmd panels max=2048 1280x720->1366x768 round     region  684 rects, old: NONE (not clipped), new: 684 rects
+mmd panels max=2048 1280x720->1000x333 trunc     region  684 rects, old: NONE (not clipped), new: 503 rects
+mmd panels max=2048 1280x720->1000x333 round     region  684 rects, old: NONE (not clipped), new: 469 rects
+mmd panels max=2048 1600x900->1600x900 trunc     region  902 rects, old: NONE (not clipped), new: 902 rects
+mmd panels max=2048 1600x900->1600x900 round     region  902 rects, old: NONE (not clipped), new: 902 rects
+mmd panels max=2048 1600x900->800x450 trunc      region  902 rects, old: NONE (not clipped), new: 661 rects
+mmd panels max=2048 1600x900->800x450 round      region  902 rects, old: NONE (not clipped), new: 694 rects
+mmd panels max=2048 1600x900->2400x1350 trunc    region  902 rects, old: NONE (not clipped), new: 902 rects
+mmd panels max=2048 1600x900->2400x1350 round    region  902 rects, old: NONE (not clipped), new: 902 rects
+mmd panels max=2048 1600x900->1366x768 trunc     region  902 rects, old: NONE (not clipped), new: 833 rects
+mmd panels max=2048 1600x900->1366x768 round     region  902 rects, old: NONE (not clipped), new: 869 rects
+mmd panels max=2048 1600x900->1000x333 trunc     region  902 rects, old: NONE (not clipped), new: 602 rects
+mmd panels max=2048 1600x900->1000x333 round     region  902 rects, old: NONE (not clipped), new: 599 rects
+mmd 300 controls max=2048 1280x720->1280x720 trunc region 2430 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 99.3% of the visible area
+mmd 300 controls max=2048 1280x720->1280x720 round region 2430 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 99.3% of the visible area
+mmd 300 controls max=2048 1280x720->640x360 trunc region 2430 rects, old: NONE (not clipped), new: 1680 rects
+mmd 300 controls max=2048 1280x720->640x360 round region 2430 rects, old: NONE (not clipped), new: 1725 rects
+mmd 300 controls max=2048 1280x720->1920x1080 trunc region 2430 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 99.4% of the visible area
+mmd 300 controls max=2048 1280x720->1920x1080 round region 2430 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 99.4% of the visible area
+mmd 300 controls max=2048 1280x720->1366x768 trunc region 2430 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 99.4% of the visible area
+mmd 300 controls max=2048 1280x720->1366x768 round region 2430 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 99.3% of the visible area
+mmd 300 controls max=2048 1280x720->1000x333 trunc region 2430 rects, old: NONE (not clipped), new: 1603 rects
+mmd 300 controls max=2048 1280x720->1000x333 round region 2430 rects, old: NONE (not clipped), new: 1623 rects
+mmd 450 controls max=2048 1920x1080->1920x1080 trunc region 4171 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 94.2% of the visible area
+mmd 450 controls max=2048 1920x1080->1920x1080 round region 4171 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 94.2% of the visible area
+mmd 450 controls max=2048 1920x1080->960x540 trunc region 4171 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 98.3% of the visible area
+mmd 450 controls max=2048 1920x1080->960x540 round region 4171 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 98.3% of the visible area
+mmd 450 controls max=2048 1920x1080->2880x1620 trunc region 4171 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 94.6% of the visible area
+mmd 450 controls max=2048 1920x1080->2880x1620 round region 4171 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 94.6% of the visible area
+mmd 450 controls max=2048 1920x1080->1366x768 trunc region 4171 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 96.3% of the visible area
+mmd 450 controls max=2048 1920x1080->1366x768 round region 4171 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 96.6% of the visible area
+mmd 450 controls max=2048 1920x1080->1000x333 trunc region 4171 rects, old: NONE (not clipped), new: 1944 rects
+mmd 450 controls max=2048 1920x1080->1000x333 round region 4171 rects, old: NONE (not clipped), new: 1953 rects
+2500 controls max=2048 1920x1080->1920x1080 trunc region 10831 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 68.1% of the visible area
+2500 controls max=2048 1920x1080->1920x1080 round region 10831 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 68.1% of the visible area
+2500 controls max=2048 1920x1080->960x540 trunc  region 10831 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 82.7% of the visible area
+2500 controls max=2048 1920x1080->960x540 round  region 10831 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 82.9% of the visible area
+2500 controls max=2048 1920x1080->2880x1620 trunc region 10831 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 69.6% of the visible area
+2500 controls max=2048 1920x1080->2880x1620 round region 10831 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 69.5% of the visible area
+2500 controls max=2048 1920x1080->1366x768 trunc region 10831 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 76.3% of the visible area
+2500 controls max=2048 1920x1080->1366x768 round region 10831 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 75.2% of the visible area
+2500 controls max=2048 1920x1080->1000x333 trunc region 10831 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 93.3% of the visible area
+2500 controls max=2048 1920x1080->1000x333 round region 10831 rects, old: NONE (not clipped), new: 2048 rects
+                                                 kept 93.3% of the visible area
+mmd (count) max=4096 1280x720->1280x720 trunc    region  684 rects, old: NONE (not clipped), new: 684 rects
+mmd (max = count) max=684 1280x720->1280x720 trunc region  684 rects, old: NONE (not clipped), new: 684 rects
+mmd (max = count - 1) max=683 1280x720->1280x720 trunc region  684 rects, old: NONE (not clipped), new: 683 rects
+                                                 kept 100.0% of the visible area
+mmd (max = 1) max=1 1280x720->1280x720 trunc     region  684 rects, old: NONE (not clipped), new: 1 rects
+                                                 kept 3.0% of the visible area
+no children max=2048 1280x720->1280x720 trunc    region    1 rects, old: NONE (not clipped), new: NONE
+no children max=2048 1280x720->1280x720 round    region    1 rects, old: NONE (not clipped), new: NONE
+no children max=2048 1280x720->640x360 trunc     region    1 rects, old: NONE (not clipped), new: NONE
+no children max=2048 1280x720->640x360 round     region    1 rects, old: NONE (not clipped), new: NONE
+no children max=2048 1280x720->1920x1080 trunc   region    1 rects, old: NONE (not clipped), new: NONE
+no children max=2048 1280x720->1920x1080 round   region    1 rects, old: NONE (not clipped), new: NONE
+no children max=2048 1280x720->1366x768 trunc    region    1 rects, old: NONE (not clipped), new: NONE
+no children max=2048 1280x720->1366x768 round    region    1 rects, old: NONE (not clipped), new: NONE
+no children max=2048 1280x720->1000x333 trunc    region    1 rects, old: NONE (not clipped), new: NONE
+no children max=2048 1280x720->1000x333 round    region    1 rects, old: NONE (not clipped), new: NONE
+fully covered max=2048 1280x720->1280x720 trunc  region    0 rects, old: clipped, new: 0 rects
+fully covered max=2048 1280x720->1280x720 round  region    0 rects, old: clipped, new: 0 rects
+fully covered max=2048 1280x720->640x360 trunc   region    0 rects, old: clipped, new: 0 rects
+fully covered max=2048 1280x720->640x360 round   region    0 rects, old: clipped, new: 0 rects
+fully covered max=2048 1280x720->1920x1080 trunc region    0 rects, old: clipped, new: 0 rects
+fully covered max=2048 1280x720->1920x1080 round region    0 rects, old: clipped, new: 0 rects
+fully covered max=2048 1280x720->1366x768 trunc  region    0 rects, old: clipped, new: 0 rects
+fully covered max=2048 1280x720->1366x768 round  region    0 rects, old: clipped, new: 0 rects
+fully covered max=2048 1280x720->1000x333 trunc  region    0 rects, old: clipped, new: 0 rects
+fully covered max=2048 1280x720->1000x333 round  region    0 rects, old: clipped, new: 0 rects
+children outside max=2048 1280x720->1280x720 trunc region    1 rects, old: clipped, new: 1 rects
+children outside max=2048 1280x720->1280x720 round region    1 rects, old: clipped, new: 1 rects
+children outside max=2048 1280x720->640x360 trunc region    1 rects, old: clipped, new: 1 rects
+children outside max=2048 1280x720->640x360 round region    1 rects, old: clipped, new: 1 rects
+children outside max=2048 1280x720->1920x1080 trunc region    1 rects, old: clipped, new: 1 rects
+children outside max=2048 1280x720->1920x1080 round region    1 rects, old: clipped, new: 1 rects
+children outside max=2048 1280x720->1366x768 trunc region    1 rects, old: clipped, new: 1 rects
+children outside max=2048 1280x720->1366x768 round region    1 rects, old: clipped, new: 1 rects
+children outside max=2048 1280x720->1000x333 trunc region    1 rects, old: clipped, new: 1 rects
+children outside max=2048 1280x720->1000x333 round region    1 rects, old: clipped, new: 1 rects
+1 pixel strips max=2048 1280x720->1280x720 trunc region    2 rects, old: clipped, new: 2 rects
+1 pixel strips max=2048 1280x720->1280x720 round region    2 rects, old: clipped, new: 2 rects
+1 pixel strips max=2048 1280x720->640x360 trunc  region    2 rects, old: clipped, new: 2 rects
+1 pixel strips max=2048 1280x720->640x360 round  region    2 rects, old: clipped, new: 0 rects
+1 pixel strips max=2048 1280x720->1920x1080 trunc region    2 rects, old: clipped, new: 2 rects
+1 pixel strips max=2048 1280x720->1920x1080 round region    2 rects, old: clipped, new: 2 rects
+1 pixel strips max=2048 1280x720->1366x768 trunc region    2 rects, old: clipped, new: 2 rects
+1 pixel strips max=2048 1280x720->1366x768 round region    2 rects, old: clipped, new: 2 rects
+1 pixel strips max=2048 1280x720->1000x333 trunc region    2 rects, old: clipped, new: 0 rects
+1 pixel strips max=2048 1280x720->1000x333 round region    2 rects, old: clipped, new: 2 rects
+offset virtual rect max=512 1280x720->1920x1080 round region 2507 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 74.9% of the visible area
+offset virtual rect max=512 1280x720->1920x1080 trunc region 2507 rects, old: NONE (not clipped), new: 512 rects
+                                                 kept 75.0% of the visible area
+region_test: 304282 checks, 0 failures, 104 reductions
