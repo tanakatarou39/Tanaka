@@ -1,0 +1,35 @@
+From 611c464133e5d16f307e7054f0e45472d0da7a1c Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 04:58:20 +0000
+Subject: [PATCH 4/5] gdi32: Export
+ D3DKMT{Get,Set}ProcessSchedulingPriorityClass.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ dlls/gdi32/gdi32.spec | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/dlls/gdi32/gdi32.spec b/dlls/gdi32/gdi32.spec
+index 207549f..c089a32 100644
+--- a/dlls/gdi32/gdi32.spec
++++ b/dlls/gdi32/gdi32.spec
+@@ -121,6 +121,7 @@
+ @ stdcall D3DKMTEnumAdapters(ptr) win32u.NtGdiDdDDIEnumAdapters
+ @ stdcall D3DKMTEnumAdapters2(ptr) win32u.NtGdiDdDDIEnumAdapters2
+ @ stdcall D3DKMTEscape(ptr) win32u.NtGdiDdDDIEscape
++@ stdcall D3DKMTGetProcessSchedulingPriorityClass(long ptr) win32u.NtGdiDdDDIGetProcessSchedulingPriorityClass
+ @ stdcall D3DKMTOpenAdapterFromDeviceName(ptr) win32u.NtGdiDdDDIOpenAdapterFromDeviceName
+ @ stdcall D3DKMTOpenAdapterFromGdiDisplayName(ptr)
+ @ stdcall D3DKMTOpenAdapterFromHdc(ptr) win32u.NtGdiDdDDIOpenAdapterFromHdc
+@@ -143,6 +144,7 @@
+ @ stdcall D3DKMTQueryVideoMemoryInfo(ptr) win32u.NtGdiDdDDIQueryVideoMemoryInfo
+ @ stdcall D3DKMTReleaseKeyedMutex(ptr) win32u.NtGdiDdDDIReleaseKeyedMutex
+ @ stdcall D3DKMTReleaseKeyedMutex2(ptr) win32u.NtGdiDdDDIReleaseKeyedMutex2
++@ stdcall D3DKMTSetProcessSchedulingPriorityClass(long long) win32u.NtGdiDdDDISetProcessSchedulingPriorityClass
+ @ stdcall D3DKMTSetQueuedLimit(ptr) win32u.NtGdiDdDDISetQueuedLimit
+ @ stdcall D3DKMTSetVidPnSourceOwner(ptr) win32u.NtGdiDdDDISetVidPnSourceOwner
+ @ stdcall D3DKMTShareObjects(long ptr ptr long ptr) win32u.NtGdiDdDDIShareObjects
+-- 
+2.43.0
+

@@ -1,0 +1,216 @@
+From bbf9fbbda42a311f594eafcafd14e16a3e8e52f6 Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 04:58:20 +0000
+Subject: [PATCH 3/5] win32u: Implement
+ NtGdiDdDDI{Get,Set}ProcessSchedulingPriorityClass.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ dlls/win32u/d3dkmt.c        | 46 +++++++++++++++++++++++++++++++++++++
+ dlls/win32u/main.c          | 10 ++++++++
+ dlls/win32u/win32syscalls.h | 10 ++++----
+ dlls/win32u/win32u.spec     |  4 ++--
+ dlls/wow64win/gdi.c         | 16 +++++++++++++
+ 5 files changed, 78 insertions(+), 8 deletions(-)
+
+diff --git a/dlls/win32u/d3dkmt.c b/dlls/win32u/d3dkmt.c
+index 11a2997..9df987c 100644
+--- a/dlls/win32u/d3dkmt.c
++++ b/dlls/win32u/d3dkmt.c
+@@ -920,6 +920,52 @@ NTSTATUS WINAPI NtGdiDdDDIQueryVideoMemoryInfo( D3DKMT_QUERYVIDEOMEMORYINFO *des
+     return STATUS_SUCCESS;
+ }
+ 
++/******************************************************************************
++ *           NtGdiDdDDISetProcessSchedulingPriorityClass    (win32u.@)
++ */
++NTSTATUS WINAPI NtGdiDdDDISetProcessSchedulingPriorityClass( HANDLE process, D3DKMT_SCHEDULINGPRIORITYCLASS priority )
++{
++    static int once;
++    NTSTATUS status;
++
++    TRACE( "(%p, %d)\n", process, priority );
++
++    if ((UINT)priority > D3DKMT_SCHEDULINGPRIORITYCLASS_REALTIME) return STATUS_INVALID_PARAMETER;
++
++    SERVER_START_REQ( d3dkmt_set_process_priority )
++    {
++        req->handle   = wine_server_obj_handle( process );
++        req->priority = priority;
++        status = wine_server_call( req );
++    }
++    SERVER_END_REQ;
++
++    if (!status && priority != D3DKMT_SCHEDULINGPRIORITYCLASS_NORMAL && !once++)
++        FIXME( "priority class %d is only stored, GPU scheduling is not affected\n", priority );
++    return status;
++}
++
++/******************************************************************************
++ *           NtGdiDdDDIGetProcessSchedulingPriorityClass    (win32u.@)
++ */
++NTSTATUS WINAPI NtGdiDdDDIGetProcessSchedulingPriorityClass( HANDLE process, D3DKMT_SCHEDULINGPRIORITYCLASS *priority )
++{
++    NTSTATUS status;
++
++    TRACE( "(%p, %p)\n", process, priority );
++
++    if (!priority) return STATUS_INVALID_PARAMETER;
++
++    SERVER_START_REQ( d3dkmt_get_process_priority )
++    {
++        req->handle = wine_server_obj_handle( process );
++        if (!(status = wine_server_call( req ))) *priority = reply->priority;
++    }
++    SERVER_END_REQ;
++
++    return status;
++}
++
+ /******************************************************************************
+  *           NtGdiDdDDISetQueuedLimit    (win32u.@)
+  */
+diff --git a/dlls/win32u/main.c b/dlls/win32u/main.c
+index 22e5368..4502941 100644
+--- a/dlls/win32u/main.c
++++ b/dlls/win32u/main.c
+@@ -320,6 +320,11 @@ NTSTATUS SYSCALL_API NtGdiDdDDIEscape( const D3DKMT_ESCAPE *desc )
+     SYSCALL_FUNC( NtGdiDdDDIEscape );
+ }
+ 
++NTSTATUS SYSCALL_API NtGdiDdDDIGetProcessSchedulingPriorityClass( HANDLE process, D3DKMT_SCHEDULINGPRIORITYCLASS *priority )
++{
++    SYSCALL_FUNC( NtGdiDdDDIGetProcessSchedulingPriorityClass );
++}
++
+ NTSTATUS SYSCALL_API NtGdiDdDDIOpenAdapterFromDeviceName( D3DKMT_OPENADAPTERFROMDEVICENAME *desc )
+ {
+     SYSCALL_FUNC( NtGdiDdDDIOpenAdapterFromDeviceName );
+@@ -425,6 +430,11 @@ NTSTATUS SYSCALL_API NtGdiDdDDIReleaseKeyedMutex2( D3DKMT_RELEASEKEYEDMUTEX2 *pa
+     SYSCALL_FUNC( NtGdiDdDDIReleaseKeyedMutex2 );
+ }
+ 
++NTSTATUS SYSCALL_API NtGdiDdDDISetProcessSchedulingPriorityClass( HANDLE process, D3DKMT_SCHEDULINGPRIORITYCLASS priority )
++{
++    SYSCALL_FUNC( NtGdiDdDDISetProcessSchedulingPriorityClass );
++}
++
+ NTSTATUS SYSCALL_API NtGdiDdDDISetQueuedLimit( D3DKMT_SETQUEUEDLIMIT *desc )
+ {
+     SYSCALL_FUNC( NtGdiDdDDISetQueuedLimit );
+diff --git a/dlls/win32u/win32syscalls.h b/dlls/win32u/win32syscalls.h
+index 132ac47..ba01f0c 100644
+--- a/dlls/win32u/win32syscalls.h
++++ b/dlls/win32u/win32syscalls.h
+@@ -277,7 +277,7 @@
+     SYSCALL_ENTRY( 0x1111, NtGdiDdDDIGetPresentQueueEvent, 0 ) \
+     SYSCALL_ENTRY( 0x1112, NtGdiDdDDIGetProcessDeviceRemovalSupport, 0 ) \
+     SYSCALL_ENTRY( 0x1113, NtGdiDdDDIGetProcessSchedulingPriorityBand, 0 ) \
+-    SYSCALL_ENTRY( 0x1114, NtGdiDdDDIGetProcessSchedulingPriorityClass, 0 ) \
++    SYSCALL_ENTRY( 0x1114, NtGdiDdDDIGetProcessSchedulingPriorityClass, 8 ) \
+     SYSCALL_ENTRY( 0x1115, NtGdiDdDDIGetResourcePresentPrivateDriverData, 0 ) \
+     SYSCALL_ENTRY( 0x1116, NtGdiDdDDIGetRuntimeData, 0 ) \
+     SYSCALL_ENTRY( 0x1117, NtGdiDdDDIGetScanLine, 0 ) \
+@@ -362,7 +362,7 @@
+     SYSCALL_ENTRY( 0x1166, NtGdiDdDDISetMonitorColorSpaceTransform, 0 ) \
+     SYSCALL_ENTRY( 0x1167, NtGdiDdDDISetProcessDeviceRemovalSupport, 0 ) \
+     SYSCALL_ENTRY( 0x1168, NtGdiDdDDISetProcessSchedulingPriorityBand, 0 ) \
+-    SYSCALL_ENTRY( 0x1169, NtGdiDdDDISetProcessSchedulingPriorityClass, 0 ) \
++    SYSCALL_ENTRY( 0x1169, NtGdiDdDDISetProcessSchedulingPriorityClass, 8 ) \
+     SYSCALL_ENTRY( 0x116a, NtGdiDdDDISetQueuedLimit, 4 ) \
+     SYSCALL_ENTRY( 0x116b, NtGdiDdDDISetStablePowerState, 0 ) \
+     SYSCALL_ENTRY( 0x116c, NtGdiDdDDISetStereoEnabled, 0 ) \
+@@ -1819,7 +1819,7 @@
+     SYSCALL_ENTRY( 0x1111, NtGdiDdDDIGetPresentQueueEvent, 0 ) \
+     SYSCALL_ENTRY( 0x1112, NtGdiDdDDIGetProcessDeviceRemovalSupport, 0 ) \
+     SYSCALL_ENTRY( 0x1113, NtGdiDdDDIGetProcessSchedulingPriorityBand, 0 ) \
+-    SYSCALL_ENTRY( 0x1114, NtGdiDdDDIGetProcessSchedulingPriorityClass, 0 ) \
++    SYSCALL_ENTRY( 0x1114, NtGdiDdDDIGetProcessSchedulingPriorityClass, 16 ) \
+     SYSCALL_ENTRY( 0x1115, NtGdiDdDDIGetResourcePresentPrivateDriverData, 0 ) \
+     SYSCALL_ENTRY( 0x1116, NtGdiDdDDIGetRuntimeData, 0 ) \
+     SYSCALL_ENTRY( 0x1117, NtGdiDdDDIGetScanLine, 0 ) \
+@@ -1904,7 +1904,7 @@
+     SYSCALL_ENTRY( 0x1166, NtGdiDdDDISetMonitorColorSpaceTransform, 0 ) \
+     SYSCALL_ENTRY( 0x1167, NtGdiDdDDISetProcessDeviceRemovalSupport, 0 ) \
+     SYSCALL_ENTRY( 0x1168, NtGdiDdDDISetProcessSchedulingPriorityBand, 0 ) \
+-    SYSCALL_ENTRY( 0x1169, NtGdiDdDDISetProcessSchedulingPriorityClass, 0 ) \
++    SYSCALL_ENTRY( 0x1169, NtGdiDdDDISetProcessSchedulingPriorityClass, 16 ) \
+     SYSCALL_ENTRY( 0x116a, NtGdiDdDDISetQueuedLimit, 8 ) \
+     SYSCALL_ENTRY( 0x116b, NtGdiDdDDISetStablePowerState, 0 ) \
+     SYSCALL_ENTRY( 0x116c, NtGdiDdDDISetStereoEnabled, 0 ) \
+@@ -3311,7 +3311,6 @@
+     SYSCALL_STUB( NtGdiDdDDIGetPresentQueueEvent ) \
+     SYSCALL_STUB( NtGdiDdDDIGetProcessDeviceRemovalSupport ) \
+     SYSCALL_STUB( NtGdiDdDDIGetProcessSchedulingPriorityBand ) \
+-    SYSCALL_STUB( NtGdiDdDDIGetProcessSchedulingPriorityClass ) \
+     SYSCALL_STUB( NtGdiDdDDIGetResourcePresentPrivateDriverData ) \
+     SYSCALL_STUB( NtGdiDdDDIGetRuntimeData ) \
+     SYSCALL_STUB( NtGdiDdDDIGetScanLine ) \
+@@ -3375,7 +3374,6 @@
+     SYSCALL_STUB( NtGdiDdDDISetMonitorColorSpaceTransform ) \
+     SYSCALL_STUB( NtGdiDdDDISetProcessDeviceRemovalSupport ) \
+     SYSCALL_STUB( NtGdiDdDDISetProcessSchedulingPriorityBand ) \
+-    SYSCALL_STUB( NtGdiDdDDISetProcessSchedulingPriorityClass ) \
+     SYSCALL_STUB( NtGdiDdDDISetStablePowerState ) \
+     SYSCALL_STUB( NtGdiDdDDISetStereoEnabled ) \
+     SYSCALL_STUB( NtGdiDdDDISetSyncRefreshCountWaitTarget ) \
+diff --git a/dlls/win32u/win32u.spec b/dlls/win32u/win32u.spec
+index 2c40901..8c39086 100644
+--- a/dlls/win32u/win32u.spec
++++ b/dlls/win32u/win32u.spec
+@@ -275,7 +275,7 @@
+ @ stub -syscall NtGdiDdDDIGetPresentQueueEvent
+ @ stub -syscall NtGdiDdDDIGetProcessDeviceRemovalSupport
+ @ stub -syscall NtGdiDdDDIGetProcessSchedulingPriorityBand
+-@ stub -syscall NtGdiDdDDIGetProcessSchedulingPriorityClass
++@ stdcall -syscall NtGdiDdDDIGetProcessSchedulingPriorityClass(long ptr)
+ @ stub -syscall NtGdiDdDDIGetResourcePresentPrivateDriverData
+ @ stub -syscall NtGdiDdDDIGetRuntimeData
+ @ stub -syscall NtGdiDdDDIGetScanLine
+@@ -360,7 +360,7 @@
+ @ stub -syscall NtGdiDdDDISetMonitorColorSpaceTransform
+ @ stub -syscall NtGdiDdDDISetProcessDeviceRemovalSupport
+ @ stub -syscall NtGdiDdDDISetProcessSchedulingPriorityBand
+-@ stub -syscall NtGdiDdDDISetProcessSchedulingPriorityClass
++@ stdcall -syscall NtGdiDdDDISetProcessSchedulingPriorityClass(long long)
+ @ stdcall -syscall NtGdiDdDDISetQueuedLimit(ptr)
+ @ stub -syscall NtGdiDdDDISetStablePowerState
+ @ stub -syscall NtGdiDdDDISetStereoEnabled
+diff --git a/dlls/wow64win/gdi.c b/dlls/wow64win/gdi.c
+index 68bd746..97c0152 100644
+--- a/dlls/wow64win/gdi.c
++++ b/dlls/wow64win/gdi.c
+@@ -942,6 +942,14 @@ NTSTATUS WINAPI wow64_NtGdiDdDDIEscape( UINT *args )
+     return NtGdiDdDDIEscape( &desc );
+ }
+ 
++NTSTATUS WINAPI wow64_NtGdiDdDDIGetProcessSchedulingPriorityClass( UINT *args )
++{
++    HANDLE process = get_handle( &args );
++    D3DKMT_SCHEDULINGPRIORITYCLASS *priority = get_ptr( &args );
++
++    return NtGdiDdDDIGetProcessSchedulingPriorityClass( process, priority );
++}
++
+ NTSTATUS WINAPI wow64_NtGdiDdDDIOpenAdapterFromDeviceName( UINT *args )
+ {
+     struct _D3DKMT_OPENADAPTERFROMDEVICENAME
+@@ -1509,6 +1517,14 @@ NTSTATUS WINAPI wow64_NtGdiDdDDIReleaseKeyedMutex2( UINT *args )
+     return status;
+ }
+ 
++NTSTATUS WINAPI wow64_NtGdiDdDDISetProcessSchedulingPriorityClass( UINT *args )
++{
++    HANDLE process = get_handle( &args );
++    D3DKMT_SCHEDULINGPRIORITYCLASS priority = get_ulong( &args );
++
++    return NtGdiDdDDISetProcessSchedulingPriorityClass( process, priority );
++}
++
+ NTSTATUS WINAPI wow64_NtGdiDdDDISetQueuedLimit( UINT *args )
+ {
+     D3DKMT_SETQUEUEDLIMIT *desc = get_ptr( &args );
+-- 
+2.43.0
+

@@ -1,0 +1,46 @@
+From 1c1f58f293d78431cd97cccde049246b308ab95a Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 05:31:31 +0000
+Subject: [PATCH 0/5] Implement D3DKMT{Get,Set}ProcessSchedulingPriorityClass
+
+OBS Studio 33 calls D3DKMTSetProcessSchedulingPriorityClass() from gdi32
+when initializing its Direct3D 11 renderer, and currently crashes on the
+unimplemented win32u stub.
+
+The priority class is stored per process in the server, so that it can
+be queried and changed through handles to other processes, with the
+PROCESS_SET_INFORMATION / PROCESS_QUERY_LIMITED_INFORMATION access
+checks. Setting the realtime class requires SeIncreaseBasePriorityPrivilege
+to be enabled, otherwise STATUS_PRIVILEGE_NOT_HELD is returned, which OBS
+only logs. The value doesn't affect GPU scheduling yet.
+
+chatgptyukkuri (5):
+  include: Add D3DKMT{Get,Set}ProcessSchedulingPriorityClass
+    declarations.
+  server: Store the GPU scheduling priority class of processes.
+  win32u: Implement NtGdiDdDDI{Get,Set}ProcessSchedulingPriorityClass.
+  gdi32: Export D3DKMT{Get,Set}ProcessSchedulingPriorityClass.
+  win32u/tests: Add D3DKMT{Get,Set}ProcessSchedulingPriorityClass tests.
+
+ dlls/gdi32/gdi32.spec          |   2 +
+ dlls/win32u/d3dkmt.c           |  46 ++++++++++
+ dlls/win32u/main.c             |  10 +++
+ dlls/win32u/tests/Makefile.in  |   2 +-
+ dlls/win32u/tests/d3dkmt.c     | 157 +++++++++++++++++++++++++++++++++
+ dlls/win32u/win32syscalls.h    |  10 +--
+ dlls/win32u/win32u.spec        |   4 +-
+ dlls/wow64win/gdi.c            |  16 ++++
+ include/ddk/d3dkmthk.h         |  12 +++
+ include/ntgdi.h                |   2 +
+ include/wine/server_protocol.h |  36 +++++++-
+ server/d3dkmt.c                |  27 ++++++
+ server/process.c               |   1 +
+ server/process.h               |   1 +
+ server/protocol.def            |  15 ++++
+ server/request_handlers.h      |  11 +++
+ server/request_trace.h         |  22 +++++
+ 17 files changed, 364 insertions(+), 10 deletions(-)
+
+-- 
+2.43.0
+

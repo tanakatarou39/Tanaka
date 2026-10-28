@@ -1,0 +1,207 @@
+From 1c1f58f293d78431cd97cccde049246b308ab95a Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 04:59:48 +0000
+Subject: [PATCH 5/5] win32u/tests: Add
+ D3DKMT{Get,Set}ProcessSchedulingPriorityClass tests.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ dlls/win32u/tests/Makefile.in |   2 +-
+ dlls/win32u/tests/d3dkmt.c    | 157 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 158 insertions(+), 1 deletion(-)
+
+diff --git a/dlls/win32u/tests/Makefile.in b/dlls/win32u/tests/Makefile.in
+index e668c84..faea665 100644
+--- a/dlls/win32u/tests/Makefile.in
++++ b/dlls/win32u/tests/Makefile.in
+@@ -1,5 +1,5 @@
+ TESTDLL   = win32u.dll
+-IMPORTS   = imm32 user32 gdi32 dwmapi setupapi opengl32 d3d9 dxgi d3d10 d3d11 d3d12 win32u
++IMPORTS   = advapi32 imm32 user32 gdi32 dwmapi setupapi opengl32 d3d9 dxgi d3d10 d3d11 d3d12 win32u
+ 
+ SOURCES = \
+ 	d3dkmt.c \
+diff --git a/dlls/win32u/tests/d3dkmt.c b/dlls/win32u/tests/d3dkmt.c
+index 7a33089..ae79ee1 100644
+--- a/dlls/win32u/tests/d3dkmt.c
++++ b/dlls/win32u/tests/d3dkmt.c
+@@ -6753,6 +6753,160 @@ static void test_escape(void)
+     ok_nt( STATUS_INVALID_PARAMETER, D3DKMTEscape( &escape ) );
+ }
+ 
++static BOOL set_increase_base_priority_privilege( BOOL enable )
++{
++    TOKEN_PRIVILEGES privs;
++    HANDLE token;
++    BOOL ret;
++
++    if (!OpenProcessToken( GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &token )) return FALSE;
++    privs.PrivilegeCount = 1;
++    privs.Privileges[0].Attributes = enable ? SE_PRIVILEGE_ENABLED : 0;
++    ret = LookupPrivilegeValueW( NULL, L"SeIncreaseBasePriorityPrivilege", &privs.Privileges[0].Luid ) &&
++          AdjustTokenPrivileges( token, FALSE, &privs, 0, NULL, NULL ) && GetLastError() == ERROR_SUCCESS;
++    CloseHandle( token );
++    return ret;
++}
++
++static void test_D3DKMTProcessSchedulingPriorityClass_process( const char *name )
++{
++    D3DKMT_SCHEDULINGPRIORITYCLASS priority;
++    char buffer[MAX_PATH];
++    HANDLE ready, done;
++
++    sprintf( buffer, "%s_ready", name );
++    ready = OpenEventA( EVENT_MODIFY_STATE, FALSE, buffer );
++    ok( !!ready, "OpenEventA failed, error %lu\n", GetLastError() );
++    sprintf( buffer, "%s_done", name );
++    done = OpenEventA( SYNCHRONIZE, FALSE, buffer );
++    ok( !!done, "OpenEventA failed, error %lu\n", GetLastError() );
++
++    priority = 0xdeadbeef;
++    ok_nt( STATUS_SUCCESS, D3DKMTGetProcessSchedulingPriorityClass( GetCurrentProcess(), &priority ) );
++    ok_ex( priority, ==, D3DKMT_SCHEDULINGPRIORITYCLASS_NORMAL, UINT, "%u" );
++
++    SetEvent( ready );
++    ok_ret( WAIT_OBJECT_0, WaitForSingleObject( done, 10000 ) );
++
++    /* the parent process has changed the priority class */
++    priority = 0xdeadbeef;
++    ok_nt( STATUS_SUCCESS, D3DKMTGetProcessSchedulingPriorityClass( GetCurrentProcess(), &priority ) );
++    ok_ex( priority, ==, D3DKMT_SCHEDULINGPRIORITYCLASS_BELOW_NORMAL, UINT, "%u" );
++
++    CloseHandle( ready );
++    CloseHandle( done );
++}
++
++static void test_D3DKMTProcessSchedulingPriorityClass(void)
++{
++    STARTUPINFOA startup = {.cb = sizeof(STARTUPINFOA)};
++    D3DKMT_SCHEDULINGPRIORITYCLASS priority;
++    char cmdline[MAX_PATH * 2], name[64];
++    PROCESS_INFORMATION info = {0};
++    HANDLE ready, done, process;
++    NTSTATUS status;
++    char **argv;
++    UINT i;
++
++    priority = 0xdeadbeef;
++    ok_nt( STATUS_INVALID_HANDLE, D3DKMTGetProcessSchedulingPriorityClass( NULL, &priority ) );
++    ok_ex( priority, ==, 0xdeadbeef, UINT, "%#x" );
++    ok_nt( STATUS_INVALID_HANDLE, D3DKMTGetProcessSchedulingPriorityClass( (HANDLE)0xdeadbeef, &priority ) );
++    ok_nt( STATUS_INVALID_HANDLE, D3DKMTSetProcessSchedulingPriorityClass( NULL, D3DKMT_SCHEDULINGPRIORITYCLASS_HIGH ) );
++    ok_nt( STATUS_INVALID_HANDLE, D3DKMTSetProcessSchedulingPriorityClass( (HANDLE)0xdeadbeef, D3DKMT_SCHEDULINGPRIORITYCLASS_HIGH ) );
++
++    ok_nt( STATUS_INVALID_PARAMETER, D3DKMTSetProcessSchedulingPriorityClass( GetCurrentProcess(), -1 ) );
++    ok_nt( STATUS_INVALID_PARAMETER, D3DKMTSetProcessSchedulingPriorityClass( GetCurrentProcess(),
++                                                                             D3DKMT_SCHEDULINGPRIORITYCLASS_REALTIME + 1 ) );
++    ok_nt( STATUS_INVALID_PARAMETER, D3DKMTSetProcessSchedulingPriorityClass( GetCurrentProcess(), 0xdeadbeef ) );
++
++    for (i = D3DKMT_SCHEDULINGPRIORITYCLASS_IDLE; i <= D3DKMT_SCHEDULINGPRIORITYCLASS_HIGH; i++)
++    {
++        winetest_push_context( "priority %u", i );
++        ok_nt( STATUS_SUCCESS, D3DKMTSetProcessSchedulingPriorityClass( GetCurrentProcess(), i ) );
++        priority = 0xdeadbeef;
++        ok_nt( STATUS_SUCCESS, D3DKMTGetProcessSchedulingPriorityClass( GetCurrentProcess(), &priority ) );
++        ok_ex( priority, ==, i, UINT, "%u" );
++        winetest_pop_context();
++    }
++
++    /* an invalid priority class doesn't change the current one */
++    ok_nt( STATUS_INVALID_PARAMETER, D3DKMTSetProcessSchedulingPriorityClass( GetCurrentProcess(), -1 ) );
++    priority = 0xdeadbeef;
++    ok_nt( STATUS_SUCCESS, D3DKMTGetProcessSchedulingPriorityClass( GetCurrentProcess(), &priority ) );
++    ok_ex( priority, ==, D3DKMT_SCHEDULINGPRIORITYCLASS_HIGH, UINT, "%u" );
++
++    /* the realtime priority class requires SeIncreaseBasePriorityPrivilege */
++    if (set_increase_base_priority_privilege( FALSE ))
++    {
++        status = D3DKMTSetProcessSchedulingPriorityClass( GetCurrentProcess(), D3DKMT_SCHEDULINGPRIORITYCLASS_REALTIME );
++        ok( status == STATUS_PRIVILEGE_NOT_HELD || broken( status == STATUS_SUCCESS ), "got %#lx\n", status );
++        if (status == STATUS_PRIVILEGE_NOT_HELD)
++        {
++            priority = 0xdeadbeef;
++            ok_nt( STATUS_SUCCESS, D3DKMTGetProcessSchedulingPriorityClass( GetCurrentProcess(), &priority ) );
++            ok_ex( priority, ==, D3DKMT_SCHEDULINGPRIORITYCLASS_HIGH, UINT, "%u" );
++        }
++    }
++    if (set_increase_base_priority_privilege( TRUE ))
++    {
++        ok_nt( STATUS_SUCCESS, D3DKMTSetProcessSchedulingPriorityClass( GetCurrentProcess(),
++                                                                       D3DKMT_SCHEDULINGPRIORITYCLASS_REALTIME ) );
++        priority = 0xdeadbeef;
++        ok_nt( STATUS_SUCCESS, D3DKMTGetProcessSchedulingPriorityClass( GetCurrentProcess(), &priority ) );
++        ok_ex( priority, ==, D3DKMT_SCHEDULINGPRIORITYCLASS_REALTIME, UINT, "%u" );
++        set_increase_base_priority_privilege( FALSE );
++    }
++    else skip( "SeIncreaseBasePriorityPrivilege not available\n" );
++
++    ok_nt( STATUS_SUCCESS, D3DKMTSetProcessSchedulingPriorityClass( GetCurrentProcess(),
++                                                                   D3DKMT_SCHEDULINGPRIORITYCLASS_NORMAL ) );
++
++    /* another process */
++    sprintf( name, "test_d3dkmt_priority_%lu", GetCurrentProcessId() );
++    sprintf( cmdline, "%s_ready", name );
++    ready = CreateEventA( NULL, FALSE, FALSE, cmdline );
++    ok( !!ready, "CreateEventA failed, error %lu\n", GetLastError() );
++    sprintf( cmdline, "%s_done", name );
++    done = CreateEventA( NULL, FALSE, FALSE, cmdline );
++    ok( !!done, "CreateEventA failed, error %lu\n", GetLastError() );
++
++    winetest_get_mainargs( &argv );
++    sprintf( cmdline, "%s d3dkmt test_D3DKMTProcessSchedulingPriorityClass %s", argv[0], name );
++    ok_ret( 1, CreateProcessA( NULL, cmdline, NULL, NULL, FALSE, 0, NULL, NULL, &startup, &info ) );
++    ok_ret( WAIT_OBJECT_0, WaitForSingleObject( ready, 10000 ) );
++
++    priority = 0xdeadbeef;
++    ok_nt( STATUS_SUCCESS, D3DKMTGetProcessSchedulingPriorityClass( info.hProcess, &priority ) );
++    ok_ex( priority, ==, D3DKMT_SCHEDULINGPRIORITYCLASS_NORMAL, UINT, "%u" );
++
++    /* access rights are checked */
++    process = OpenProcess( SYNCHRONIZE, FALSE, info.dwProcessId );
++    ok( !!process, "OpenProcess failed, error %lu\n", GetLastError() );
++    priority = 0xdeadbeef;
++    ok_nt( STATUS_ACCESS_DENIED, D3DKMTGetProcessSchedulingPriorityClass( process, &priority ) );
++    ok_ex( priority, ==, 0xdeadbeef, UINT, "%#x" );
++    ok_nt( STATUS_ACCESS_DENIED, D3DKMTSetProcessSchedulingPriorityClass( process,
++                                                                         D3DKMT_SCHEDULINGPRIORITYCLASS_BELOW_NORMAL ) );
++    CloseHandle( process );
++
++    ok_nt( STATUS_SUCCESS, D3DKMTSetProcessSchedulingPriorityClass( info.hProcess,
++                                                                   D3DKMT_SCHEDULINGPRIORITYCLASS_BELOW_NORMAL ) );
++    priority = 0xdeadbeef;
++    ok_nt( STATUS_SUCCESS, D3DKMTGetProcessSchedulingPriorityClass( info.hProcess, &priority ) );
++    ok_ex( priority, ==, D3DKMT_SCHEDULINGPRIORITYCLASS_BELOW_NORMAL, UINT, "%u" );
++
++    /* the priority class of the current process is unchanged */
++    priority = 0xdeadbeef;
++    ok_nt( STATUS_SUCCESS, D3DKMTGetProcessSchedulingPriorityClass( GetCurrentProcess(), &priority ) );
++    ok_ex( priority, ==, D3DKMT_SCHEDULINGPRIORITYCLASS_NORMAL, UINT, "%u" );
++
++    SetEvent( done );
++    wait_child_process( &info );
++    CloseHandle( ready );
++    CloseHandle( done );
++}
++
+ START_TEST( d3dkmt )
+ {
+     char **argv;
+@@ -6764,6 +6918,8 @@ START_TEST( d3dkmt )
+     argc = winetest_get_mainargs( &argv );
+     if (argc > 3 && !strcmp( argv[2], "test_D3DKMTCreateSynchronizationObject" ))
+         return test_D3DKMTCreateSynchronizationObject_process( argv[3] );
++    if (argc > 3 && !strcmp( argv[2], "test_D3DKMTProcessSchedulingPriorityClass" ))
++        return test_D3DKMTProcessSchedulingPriorityClass_process( argv[3] );
+ 
+     test_D3DKMTOpenAdapterFromGdiDisplayName();
+     test_D3DKMTOpenAdapterFromHdc();
+@@ -6787,4 +6943,5 @@ START_TEST( d3dkmt )
+     test_shared_resources();
+     test_shared_fences();
+     test_escape();
++    test_D3DKMTProcessSchedulingPriorityClass();
+ }
+-- 
+2.43.0
+
