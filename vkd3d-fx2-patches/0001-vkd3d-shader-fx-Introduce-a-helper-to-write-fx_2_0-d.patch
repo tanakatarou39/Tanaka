@@ -1,0 +1,56 @@
+From e9db7ff6f578fcb9d33506bd951415aa4285a932 Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 03:14:46 +0000
+Subject: [PATCH 1/9] vkd3d-shader/fx: Introduce a helper to write fx_2_0 data
+ blobs.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ libs/vkd3d-shader/fx.c | 23 ++++++++++++++---------
+ 1 file changed, 14 insertions(+), 9 deletions(-)
+
+diff --git a/libs/vkd3d-shader/fx.c b/libs/vkd3d-shader/fx.c
+index d24677fd..6c90e7e0 100644
+--- a/libs/vkd3d-shader/fx.c
++++ b/libs/vkd3d-shader/fx.c
+@@ -1960,6 +1960,19 @@ static bool compile_shader(const struct hlsl_ir_compile *compile, struct fx_writ
+     return ret >= 0;
+ }
+ 
++static void write_fx_2_data_blob(struct vkd3d_bytecode_buffer *buffer, const void *data, uint32_t size)
++{
++    static const uint32_t pad;
++
++    put_u32(buffer, size);
++    if (size)
++    {
++        bytecode_put_bytes(buffer, data, size);
++        if (size % 4)
++            bytecode_put_bytes_unaligned(buffer, &pad, 4 - (size % 4));
++    }
++}
++
+ static uint32_t write_fx_2_object_initializer(const struct hlsl_ir_var *var, struct fx_write_context *fx)
+ {
+     const struct hlsl_type *type = hlsl_get_multiarray_element_type(var->data_type);
+@@ -2010,15 +2023,7 @@ static uint32_t write_fx_2_object_initializer(const struct hlsl_ir_var *var, str
+             put_u32(&fx->unstructured, id);
+ 
+             put_u32(buffer, id);
+-            put_u32(buffer, size);
+-            if (size)
+-            {
+-                static const uint32_t pad;
+-
+-                bytecode_put_bytes(buffer, data, size);
+-                if (size % 4)
+-                    bytecode_put_bytes_unaligned(buffer, &pad, 4 - (size % 4));
+-            }
++            write_fx_2_data_blob(buffer, data, size);
+ 
+             vkd3d_shader_free_shader_code(&code);
+         }
+-- 
+2.43.0
+

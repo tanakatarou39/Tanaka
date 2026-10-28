@@ -1,0 +1,26 @@
+From 4cdc1e02b4764516aaec70dda783e423d05f4397 Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 03:32:57 +0000
+Subject: [PATCH 7/9] vkd3d-shader/fx: Add the "cmp" fxlc opcode name.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ libs/vkd3d-shader/fx.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/libs/vkd3d-shader/fx.c b/libs/vkd3d-shader/fx.c
+index 1d34e6cb..fbff6740 100644
+--- a/libs/vkd3d-shader/fx.c
++++ b/libs/vkd3d-shader/fx.c
+@@ -5540,6 +5540,7 @@ fxlc_opcodes[] =
+     { 0x234, "ishl"  },
+     { 0x235, "ishr"  },
+     { 0x236, "ushr"  },
++    { 0x300, "cmp"   },
+     { 0x301, "movc"  },
+     { 0x500, "dot"   },
+     { 0x502, "noise" },
+-- 
+2.43.0
+

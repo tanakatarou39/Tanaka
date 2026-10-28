@@ -1,0 +1,43 @@
+effect.c:260: Test succeeded inside todo block: Got result 0, expected 0 (D3D_OK)
+effect.c:4648: Test marked todo: Operation prec, component 2, expected 0xac531800, got 0 (0).
+effect.c:4655: Test marked todo: Unexpected sampler 0 magfilter 1077936128.
+effect.c:4663: Test marked todo: Unexpected sampler 1 magfilter 1065353216.
+effect.c:4671: Test marked todo: Unexpected vertex sampler 0 magfilter 1065353216.
+effect.c:4676: Test marked todo: Unexpected vertex sampler 1 minfilter 2.
+effect.c:4680: Test marked todo: Unexpected vertex sampler 1 magfilter 1073741824.
+effect.c:4687: Test marked todo: Unexpected vertex sampler 2 magfilter 1077936128.
+effect.c:4747: Test marked todo: Unexpected sampler 0 magfilter 1077936128.
+effect.c:4755: Test marked todo: Unexpected sampler 1 magfilter 1065353216.
+effect.c:4763: Test marked todo: Unexpected vertex sampler 0 magfilter 1065353216.
+effect.c:4771: Test marked todo: Unexpected vertex sampler 1 magfilter 1073741824.
+effect.c:4779: Test marked todo: Unexpected vertex sampler 2 magfilter 1077936128.
+effect.c:5655: Test marked todo: Unexpected sampler 1 minfilter 2.
+effect.c:6636: Test marked todo: Unexpected IsParameterUsed result.
+effect.c:6672: Test marked todo: Got result 0x8876086c.
+effect.c:6677: Test marked todo: Unexpected vector -9999, -9999, -9999, -9999.
+effect.c:6682: Test marked todo: Got result 0x8876086c.
+effect.c:8028: Test succeeded inside todo block: Unexpected hr 0.
+effect.c:8044: Test failed: Unexpected error, hr 0.
+effect.c:7838: filename effect2.fx.
+effect.c:7839: parent_data 0000000000000000: (null).
+effect.c:7838: filename include\include2.h.
+effect.c:7839: parent_data 0000000000000000: (null).
+effect.c:7860: Test marked todo: unexpected parent_data value.
+effect.c:7838: filename include1.h.
+effect.c:7839: parent_data 00007FFFFF3C5CB0: #include "include1.h"
+
+vs_output vs_main(const vs_input v)
+{
+    vs_output o;
+    const float4 scaled_color = 0.5 * color;
+
+    o.position = mul(v.position, mat);
+    o.diffuse = dot((float3)light, v.normal) * scaled_color;
+
+    return o;
+}
+.
+effect.c:8069: Test failed: D3DXInclude test failed with error 0.
+effect.c:8077: Test failed: Device has 2 references left.
+0020:effect: 233824 tests executed (18 marked as todo, 0 as flaky, 5 failures), 0 skipped.
+X connection to :99 broken (explicit kill or server shutdown).

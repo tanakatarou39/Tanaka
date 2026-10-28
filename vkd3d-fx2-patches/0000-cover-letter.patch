@@ -1,0 +1,51 @@
+From f8af3ace26dd157073109ae32f7f7bfafbb2996b Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 03:42:53 +0000
+Subject: [PATCH 0/9] vkd3d-shader/fx: Support more fx_2_0 state assignment types.
+
+Until now, fx_2_0 state assignments could only be constants. This series adds
+the remaining kinds of values that d3dx9 effects use:
+
+  - "compile" expressions, e.g. "VertexShader = compile vs_2_0 vs_main();",
+    written as shader objects whose bytecode is stored in the resources
+    section;
+  - references to parameters, e.g. "Texture = <tex>;" or
+    "VertexShader = vs_arr[1];";
+  - sampler_state initializers of sampler parameters;
+  - TRUE/FALSE for every state;
+  - simple expressions over parameters, written as fxlvm code blobs (CTAB,
+    CLIT and FXLC sections).
+
+The output was checked by loading it with Wine's d3dx9 (D3DXCreateEffect),
+applying the passes, and checking the resulting device states, shaders,
+textures and sampler states.
+
+Array selectors (non-constant indices, e.g. "VertexShader = vs_arr[i];"),
+matrix expressions and casts from float to integer in expressions are not
+supported yet.
+
+chatgptyukkuri (9):
+  vkd3d-shader/fx: Introduce a helper to write fx_2_0 data blobs.
+  vkd3d-shader/fx: Support writing compile expressions in fx_2_0 state
+    assignments.
+  vkd3d-shader/fx: Support writing variable references in fx_2_0 state
+    assignments.
+  vkd3d-shader/fx: Support writing sampler state initializers for
+    fx_2_0.
+  vkd3d-shader/fx: Accept boolean constants for all fx_2_0 states.
+  vkd3d-shader/fx: Write zero element count for fx_2_0 constant state
+    values.
+  vkd3d-shader/fx: Add the "cmp" fxlc opcode name.
+  vkd3d-shader/fx: Support writing simple expressions in fx_2_0 state
+    assignments.
+  vkd3d-shader/fx: Support more operations in fx_2_0 state expressions.
+
+ Makefile.am                                   |   1 +
+ libs/vkd3d-shader/fx.c                        | 967 +++++++++++++++++-
+ .../hlsl/effect-assignments-fx_2.shader_test  | 200 ++++
+ 3 files changed, 1115 insertions(+), 53 deletions(-)
+ create mode 100644 tests/hlsl/effect-assignments-fx_2.shader_test
+
+-- 
+2.43.0
+

@@ -1,0 +1,273 @@
+From 7f512e31ad729251b45bea0780d1839b3e254e22 Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 03:20:08 +0000
+Subject: [PATCH 3/9] vkd3d-shader/fx: Support writing variable references in
+ fx_2_0 state assignments.
+
+Referenced parameters are stored in the resources section by name, including
+array elements accessed with a constant index.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ libs/vkd3d-shader/fx.c                        | 144 +++++++++++++++++-
+ .../hlsl/effect-assignments-fx_2.shader_test  |  70 +++++++++
+ 2 files changed, 213 insertions(+), 1 deletion(-)
+
+diff --git a/libs/vkd3d-shader/fx.c b/libs/vkd3d-shader/fx.c
+index 199cae9b..5b429669 100644
+--- a/libs/vkd3d-shader/fx.c
++++ b/libs/vkd3d-shader/fx.c
+@@ -2262,6 +2262,116 @@ static uint32_t write_fx_2_compile_assignment(const struct hlsl_ir_compile *comp
+     return offset;
+ }
+ 
++static uint32_t write_fx_2_state_numeric_type(const struct hlsl_type *type, struct fx_write_context *fx)
++{
++    struct vkd3d_bytecode_buffer *buffer = &fx->unstructured;
++    uint32_t offset;
++
++    offset = put_u32(buffer, hlsl_sm1_base_type(type, false, HLSL_SAMPLER_DIM_GENERIC));
++    put_u32(buffer, get_fx_2_type_class(type));
++    put_u32(buffer, 0); /* Name */
++    put_u32(buffer, 0); /* Semantic */
++    put_u32(buffer, 0); /* Element count */
++
++    if (type->class == HLSL_CLASS_VECTOR)
++    {
++        put_u32(buffer, type->e.numeric.dimx);
++        put_u32(buffer, type->e.numeric.dimy);
++    }
++    else
++    {
++        put_u32(buffer, type->e.numeric.dimy);
++        put_u32(buffer, type->e.numeric.dimx);
++    }
++
++    return offset;
++}
++
++static uint32_t write_fx_2_reference_assignment(const struct hlsl_ir_var *var, const struct hlsl_type *type,
++        const char *name, uint32_t *type_offset, struct fx_write_context *fx)
++{
++    struct vkd3d_bytecode_buffer *buffer = &fx->unstructured;
++    struct hlsl_ctx *ctx = fx->ctx;
++    uint32_t offset = 0;
++
++    switch (type->class)
++    {
++        case HLSL_CLASS_PIXEL_SHADER:
++        case HLSL_CLASS_VERTEX_SHADER:
++            ++fx->shader_count;
++            /* fall through */
++        case HLSL_CLASS_TEXTURE:
++        case HLSL_CLASS_STRING:
++            *type_offset = write_fx_2_state_object_type(type, fx);
++            offset = put_u32(buffer, fx->object_variable_count++);
++            break;
++
++        case HLSL_CLASS_SCALAR:
++        case HLSL_CLASS_VECTOR:
++        case HLSL_CLASS_MATRIX:
++            /* The value is not used, the referenced parameter provides it. */
++            *type_offset = write_fx_2_state_numeric_type(type, fx);
++            offset = buffer->size;
++            for (unsigned int i = 0; i < hlsl_type_component_count(type); ++i)
++                put_u32(buffer, 0);
++            break;
++
++        default:
++            hlsl_fixme(ctx, &var->loc, "Writing references to variables of class %#x is not implemented.",
++                    type->class);
++            return 0;
++    }
++
++    write_fx_2_resource(FX_2_ASSIGNMENT_PARAMETER, name, strlen(name) + 1, fx);
++
++    return offset;
++}
++
++static uint32_t write_fx_2_index_assignment(const struct hlsl_ir_var *var, const struct hlsl_ir_index *index,
++        uint32_t *type, struct fx_write_context *fx)
++{
++    struct hlsl_ir_node *val = index->val.node, *idx = index->idx.node;
++    const struct hlsl_ir_var *ref;
++    struct hlsl_ctx *ctx = fx->ctx;
++    struct vkd3d_string_buffer *name;
++    uint32_t offset, element;
++
++    if (val->type != HLSL_IR_LOAD || hlsl_ir_load(val)->src.path_len
++            || !hlsl_ir_load(val)->src.var->is_uniform || val->data_type->class != HLSL_CLASS_ARRAY)
++    {
++        hlsl_fixme(ctx, &var->loc, "Unexpected indexed RHS value type.");
++        return 0;
++    }
++
++    if (idx->type != HLSL_IR_CONSTANT)
++    {
++        hlsl_fixme(ctx, &var->loc, "Non-constant array indices in RHS values are not implemented.");
++        return 0;
++    }
++
++    ref = hlsl_ir_load(val)->src.var;
++    element = hlsl_ir_constant(idx)->value.u[0].u;
++    if (element >= val->data_type->e.array.elements_count)
++    {
++        hlsl_error(ctx, &var->loc, VKD3D_SHADER_ERROR_HLSL_OFFSET_OUT_OF_BOUNDS,
++                "Array index %u exceeds array size %u.", element, val->data_type->e.array.elements_count);
++        return 0;
++    }
++
++    if (!(name = hlsl_get_string_buffer(ctx)))
++        return 0;
++    vkd3d_string_buffer_printf(name, "%s[%u]", ref->name, element);
++    offset = write_fx_2_reference_assignment(var, val->data_type->e.array.type, name->buffer, type, fx);
++    hlsl_release_string_buffer(ctx, name);
++
++    return offset;
++}
++
++static bool is_fx_2_float_type(enum hlsl_base_type type)
++{
++    return type == HLSL_TYPE_FLOAT || type == HLSL_TYPE_HALF;
++}
++
+ static void write_fx_2_state_assignment(const struct hlsl_ir_var *var,
+         struct hlsl_state_block_entry *entry, struct fx_write_context *fx)
+ {
+@@ -2294,6 +2404,27 @@ static void write_fx_2_state_assignment(const struct hlsl_ir_var *var,
+         case HLSL_IR_COMPILE:
+             value = write_fx_2_compile_assignment(hlsl_ir_compile(value_node), &type, fx);
+             break;
++        case HLSL_IR_LOAD:
++        {
++            struct hlsl_ir_load *load = hlsl_ir_load(value_node);
++
++            if (load->src.path_len)
++            {
++                hlsl_fixme(ctx, &var->loc, "Indexed access in RHS values is not implemented.");
++                break;
++            }
++            if (!load->src.var->is_uniform)
++            {
++                hlsl_fixme(ctx, &var->loc, "Unsupported value for state %s.", entry->name);
++                break;
++            }
++            value = write_fx_2_reference_assignment(var, load->src.var->data_type,
++                    load->src.var->name, &type, fx);
++            break;
++        }
++        case HLSL_IR_INDEX:
++            value = write_fx_2_index_assignment(var, hlsl_ir_index(value_node), &type, fx);
++            break;
+         default:
+             hlsl_fixme(ctx, &var->loc, "Unsupported assignment type for state %s.", entry->name);
+     }
+@@ -3201,6 +3332,16 @@ static struct fx_state_table fx_get_state_table(enum hlsl_type_class type_class,
+     return table;
+ }
+ 
++/* Referenced parameters are applied using their stored values, which are
++ * either floats, or 32-bit integers for integer and boolean parameters. */
++static bool is_fx_2_reference_state_compatible(const struct hlsl_ir_node *node, enum hlsl_base_type base_type)
++{
++    if (node->type != HLSL_IR_LOAD || !hlsl_is_numeric_type(node->data_type))
++        return false;
++
++    return is_fx_2_float_type(node->data_type->e.numeric.type) == is_fx_2_float_type(base_type);
++}
++
+ static void resolve_fx_2_state_block_values(struct hlsl_ir_var *var,
+         struct hlsl_state_block_entry *entry, struct fx_write_context *fx)
+ {
+@@ -3339,7 +3480,8 @@ static void resolve_fx_2_state_block_values(struct hlsl_ir_var *var,
+     if (state_type)
+     {
+         node = entry->args->node;
+-        if (!hlsl_type_state_compatible(node->data_type, base_type))
++        if (!hlsl_type_state_compatible(node->data_type, base_type)
++                && !is_fx_2_reference_state_compatible(node, base_type))
+         {
+             struct hlsl_ir_node *cast;
+ 
+diff --git a/tests/hlsl/effect-assignments-fx_2.shader_test b/tests/hlsl/effect-assignments-fx_2.shader_test
+index 9d2cfce1..b4c8c3b5 100644
+--- a/tests/hlsl/effect-assignments-fx_2.shader_test
++++ b/tests/hlsl/effect-assignments-fx_2.shader_test
+@@ -27,3 +27,73 @@ technique
+         PixelShader = compile ps_3_0 ps_main(float4(0.0, 1.0, 0.0, 1.0));
+     }
+ }
++
++[effect]
++float4x4 camera;
++bool enable;
++int fill_mode;
++texture tex;
++
++float4 vs_main(float4 pos : POSITION) : POSITION
++{
++    return pos;
++}
++
++float4 ps_main() : COLOR
++{
++    return 1.0;
++}
++
++vertexshader vs = compile vs_2_0 vs_main();
++vertexshader vs_arr[2] = { compile vs_2_0 vs_main(), compile vs_3_0 vs_main() };
++pixelshader ps = compile ps_2_0 ps_main();
++
++technique
++{
++    pass
++    {
++        VertexShader = <vs>;
++        PixelShader = (ps);
++        Texture[0] = <tex>;
++        ViewTransform = <camera>;
++        AlphaBlendEnable = <enable>;
++        FillMode = <fill_mode>;
++    }
++    pass
++    {
++        VertexShader = vs_arr[1];
++    }
++}
++
++[effect fail]
++float4 vs_main(float4 pos : POSITION) : POSITION
++{
++    return pos;
++}
++
++vertexshader vs_arr[2] = { compile vs_2_0 vs_main(), compile vs_3_0 vs_main() };
++
++technique
++{
++    pass
++    {
++        VertexShader = vs_arr[2];
++    }
++}
++
++[effect todo]
++float4 vs_main(float4 pos : POSITION) : POSITION
++{
++    return pos;
++}
++
++vertexshader vs_arr[2] = { compile vs_2_0 vs_main(), compile vs_3_0 vs_main() };
++int index;
++
++technique
++{
++    pass
++    {
++        VertexShader = vs_arr[index];
++    }
++}
+-- 
+2.43.0
+

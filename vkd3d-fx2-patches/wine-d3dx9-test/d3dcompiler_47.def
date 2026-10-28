@@ -1,0 +1,9 @@
+LIBRARY d3dcompiler_47.dll
+EXPORTS
+D3DCompile=libvkd3d-utils-1.D3DCompile
+D3DCompile2=libvkd3d-utils-1.D3DCompile2
+D3DCreateBlob=libvkd3d-utils-1.D3DCreateBlob
+D3DDisassemble=libvkd3d-utils-1.D3DDisassemble
+D3DPreprocess=libvkd3d-utils-1.D3DPreprocess
+D3DReflect=libvkd3d-utils-1.D3DReflect
+D3DGetBlobPart=libvkd3d-utils-1.D3DGetBlobPart

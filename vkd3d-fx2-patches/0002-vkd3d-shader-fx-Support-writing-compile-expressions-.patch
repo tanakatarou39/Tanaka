@@ -1,0 +1,232 @@
+From b205743210247b0453ed4573e131084b6d793f48 Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 03:16:02 +0000
+Subject: [PATCH 2/9] vkd3d-shader/fx: Support writing compile expressions in
+ fx_2_0 state assignments.
+
+Shader objects created with the "compile" keyword are assigned a new object
+id, and the compiled shader is stored in the resources section, referenced by
+the technique, pass and state index of the assignment.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ Makefile.am                                   |  1 +
+ libs/vkd3d-shader/fx.c                        | 77 ++++++++++++++++++-
+ .../hlsl/effect-assignments-fx_2.shader_test  | 29 +++++++
+ 3 files changed, 104 insertions(+), 3 deletions(-)
+ create mode 100644 tests/hlsl/effect-assignments-fx_2.shader_test
+
+diff --git a/Makefile.am b/Makefile.am
+index 7e9b2e44..16bc8739 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -139,6 +139,7 @@ vkd3d_shader_tests = \
+ 	tests/hlsl/early-depth-stencil.shader_test \
+ 	tests/hlsl/effect-annotations-fx_2.shader_test \
+ 	tests/hlsl/effect-annotations-fx_4.shader_test \
++	tests/hlsl/effect-assignments-fx_2.shader_test \
+ 	tests/hlsl/effect-assignments-fx_5.shader_test \
+ 	tests/hlsl/effect-compile.shader_test \
+ 	tests/hlsl/effect-constructgswithso-4.shader_test \
+diff --git a/libs/vkd3d-shader/fx.c b/libs/vkd3d-shader/fx.c
+index 6c90e7e0..199cae9b 100644
+--- a/libs/vkd3d-shader/fx.c
++++ b/libs/vkd3d-shader/fx.c
+@@ -280,6 +280,7 @@ struct fx_write_context
+     struct vkd3d_bytecode_buffer unstructured;
+     struct vkd3d_bytecode_buffer structured;
+     struct vkd3d_bytecode_buffer objects;
++    struct vkd3d_bytecode_buffer resources;
+ 
+     struct rb_tree strings;
+     struct list types;
+@@ -294,6 +295,7 @@ struct fx_write_context
+     uint32_t numeric_variable_count;
+     uint32_t shared_numeric_variable_count;
+     uint32_t object_variable_count;
++    uint32_t object_data_count;
+     uint32_t shared_object_count;
+     uint32_t shader_count;
+     uint32_t parameter_count;
+@@ -307,8 +309,19 @@ struct fx_write_context
+     uint32_t blend_state_count;
+     uint32_t string_count;
+     uint32_t inline_shader_count;
++    uint32_t resource_count;
+     int status;
+ 
++    /* Location of the fx_2_0 state assignment that is being written,
++     * resources refer to their state assignments using it. */
++    struct
++    {
++        uint32_t technique;
++        uint32_t index;
++        uint32_t element;
++        uint32_t state;
++    } fx_2_state;
++
+     bool child_effect;
+     bool include_empty_buffers;
+ 
+@@ -1108,6 +1121,8 @@ static void write_fx_2_pass(struct hlsl_ir_var *var, struct fx_write_context *fx
+     count_offset = put_u32(buffer, 0);
+ 
+     write_fx_2_annotations(var, annotation_count_offset, fx);
++    fx->fx_2_state.element = ~0u;
++    fx->fx_2_state.state = 0;
+     count = write_state_block(var, 0, fx);
+     set_u32(buffer, count_offset, count);
+ 
+@@ -1823,8 +1838,10 @@ static void write_fx_2_technique(struct hlsl_ir_var *var, struct fx_write_contex
+ 
+     write_fx_2_annotations(var, annotation_count_offset, fx);
+ 
++    fx->fx_2_state.technique = fx->technique_count;
+     LIST_FOR_EACH_ENTRY(pass, &var->scope->vars, struct hlsl_ir_var, scope_entry)
+     {
++        fx->fx_2_state.index = count;
+         write_pass(pass, fx);
+         ++count;
+     }
+@@ -2024,6 +2041,7 @@ static uint32_t write_fx_2_object_initializer(const struct hlsl_ir_var *var, str
+ 
+             put_u32(buffer, id);
+             write_fx_2_data_blob(buffer, data, size);
++            ++fx->object_data_count;
+ 
+             vkd3d_shader_free_shader_code(&code);
+         }
+@@ -2196,6 +2214,54 @@ static uint32_t write_fx_2_state_type(const struct hlsl_state_block_entry *entry
+     return offset;
+ }
+ 
++static uint32_t write_fx_2_state_object_type(const struct hlsl_type *type, struct fx_write_context *fx)
++{
++    struct vkd3d_bytecode_buffer *buffer = &fx->unstructured;
++    uint32_t offset;
++
++    offset = put_u32(buffer, hlsl_sm1_base_type(type, false, HLSL_SAMPLER_DIM_GENERIC));
++    put_u32(buffer, D3DXPC_OBJECT);
++    put_u32(buffer, 0); /* Name */
++    put_u32(buffer, 0); /* Semantic */
++    put_u32(buffer, 0); /* Element count */
++
++    return offset;
++}
++
++static void write_fx_2_resource(enum fx_2_type_constants usage, const void *data, uint32_t size,
++        struct fx_write_context *fx)
++{
++    struct vkd3d_bytecode_buffer *buffer = &fx->resources;
++
++    put_u32(buffer, fx->fx_2_state.technique);
++    put_u32(buffer, fx->fx_2_state.index);
++    put_u32(buffer, fx->fx_2_state.element);
++    put_u32(buffer, fx->fx_2_state.state);
++    put_u32(buffer, usage);
++    write_fx_2_data_blob(buffer, data, size);
++
++    ++fx->resource_count;
++}
++
++static uint32_t write_fx_2_compile_assignment(const struct hlsl_ir_compile *compile,
++        uint32_t *type, struct fx_write_context *fx)
++{
++    struct vkd3d_shader_code code = { 0 };
++    uint32_t offset;
++
++    *type = write_fx_2_state_object_type(compile->node.data_type, fx);
++    offset = put_u32(&fx->unstructured, fx->object_variable_count++);
++    ++fx->shader_count;
++
++    if (!compile_shader(compile, fx, &code))
++        return offset;
++
++    write_fx_2_resource(FX_2_ASSIGNMENT_CODE_BLOB, code.code, code.size, fx);
++    vkd3d_shader_free_shader_code(&code);
++
++    return offset;
++}
++
+ static void write_fx_2_state_assignment(const struct hlsl_ir_var *var,
+         struct hlsl_state_block_entry *entry, struct fx_write_context *fx)
+ {
+@@ -2225,12 +2291,16 @@ static void write_fx_2_state_assignment(const struct hlsl_ir_var *var,
+             }
+             break;
+         }
++        case HLSL_IR_COMPILE:
++            value = write_fx_2_compile_assignment(hlsl_ir_compile(value_node), &type, fx);
++            break;
+         default:
+             hlsl_fixme(ctx, &var->loc, "Unsupported assignment type for state %s.", entry->name);
+     }
+ 
+     set_u32(buffer, type_offset, type);
+     set_u32(buffer, rhs_offset, value);
++    ++fx->fx_2_state.state;
+ }
+ 
+ static void resolve_fx_2_state_block_values(struct hlsl_ir_var *var, struct hlsl_state_block_entry *entry,
+@@ -2270,11 +2340,11 @@ static int hlsl_fx_2_write(struct hlsl_ctx *ctx, struct vkd3d_shader_code *out)
+ 
+     write_fx_2_parameters(&fx);
+     write_techniques(ctx->globals, &fx);
+-    put_u32(structured, fx.object_variable_count - 1);
+-    put_u32(structured, 0); /* Resource count */
++    put_u32(structured, fx.object_data_count);
++    put_u32(structured, fx.resource_count);
+ 
+     bytecode_put_bytes(structured, fx.objects.data, fx.objects.size);
+-    /* TODO: resources */
++    bytecode_put_bytes(structured, fx.resources.data, fx.resources.size);
+ 
+     set_u32(structured, parameter_count, fx.parameter_count);
+     set_u32(structured, object_count, fx.object_variable_count);
+@@ -2290,6 +2360,7 @@ static int hlsl_fx_2_write(struct hlsl_ctx *ctx, struct vkd3d_shader_code *out)
+     vkd3d_free(fx.unstructured.data);
+     vkd3d_free(fx.structured.data);
+     vkd3d_free(fx.objects.data);
++    vkd3d_free(fx.resources.data);
+ 
+     if (!fx.technique_count)
+         hlsl_error(ctx, &ctx->location, VKD3D_SHADER_ERROR_HLSL_MISSING_TECHNIQUE, "No techniques found.");
+diff --git a/tests/hlsl/effect-assignments-fx_2.shader_test b/tests/hlsl/effect-assignments-fx_2.shader_test
+new file mode 100644
+index 00000000..9d2cfce1
+--- /dev/null
++++ b/tests/hlsl/effect-assignments-fx_2.shader_test
+@@ -0,0 +1,29 @@
++[require]
++shader model < 3.0
++
++[effect]
++float4x4 wvp;
++
++float4 vs_main(float4 pos : POSITION) : POSITION
++{
++    return mul(pos, wvp);
++}
++
++float4 ps_main(uniform float4 color) : COLOR
++{
++    return color;
++}
++
++technique
++{
++    pass
++    {
++        VertexShader = compile vs_2_0 vs_main();
++        PixelShader = compile ps_2_0 ps_main(float4(1.0, 0.0, 0.0, 1.0));
++    }
++    pass
++    {
++        VertexShader = NULL;
++        PixelShader = compile ps_3_0 ps_main(float4(0.0, 1.0, 0.0, 1.0));
++    }
++}
+-- 
+2.43.0
+

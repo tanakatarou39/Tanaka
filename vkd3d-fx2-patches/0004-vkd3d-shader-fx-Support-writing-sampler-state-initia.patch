@@ -1,0 +1,218 @@
+From 218f2ac67ca0b17e2b1a859979fd9bfc2c2f66a3 Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 03:22:42 +0000
+Subject: [PATCH 4/9] vkd3d-shader/fx: Support writing sampler state
+ initializers for fx_2_0.
+
+Assignments of each element are stored contiguously in the unstructured
+section. Resources of the sampler state assignments are identified by the
+parameter and element index.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ libs/vkd3d-shader/fx.c                        | 105 +++++++++++-------
+ .../hlsl/effect-assignments-fx_2.shader_test  |  22 ++++
+ 2 files changed, 88 insertions(+), 39 deletions(-)
+
+diff --git a/libs/vkd3d-shader/fx.c b/libs/vkd3d-shader/fx.c
+index 5b429669..c36a61fd 100644
+--- a/libs/vkd3d-shader/fx.c
++++ b/libs/vkd3d-shader/fx.c
+@@ -316,6 +316,7 @@ struct fx_write_context
+      * resources refer to their state assignments using it. */
+     struct
+     {
++        struct vkd3d_bytecode_buffer *buffer;
+         uint32_t technique;
+         uint32_t index;
+         uint32_t element;
+@@ -1121,6 +1122,7 @@ static void write_fx_2_pass(struct hlsl_ir_var *var, struct fx_write_context *fx
+     count_offset = put_u32(buffer, 0);
+ 
+     write_fx_2_annotations(var, annotation_count_offset, fx);
++    fx->fx_2_state.buffer = buffer;
+     fx->fx_2_state.element = ~0u;
+     fx->fx_2_state.state = 0;
+     count = write_state_block(var, 0, fx);
+@@ -1990,67 +1992,89 @@ static void write_fx_2_data_blob(struct vkd3d_bytecode_buffer *buffer, const voi
+     }
+ }
+ 
++static uint32_t write_fx_2_sampler_initializer(struct hlsl_ir_var *var, struct fx_write_context *fx)
++{
++    unsigned int i, elements_count = hlsl_get_multiarray_size(var->data_type);
++    struct vkd3d_bytecode_buffer buffer = { 0 };
++    uint32_t count_offset, count, offset;
++
++    /* State assignments of all elements have to be stored contiguously,
++     * while their types and values are written to the same unstructured
++     * buffer. Collect the assignments first, and append them afterwards. */
++    fx->fx_2_state.buffer = &buffer;
++    fx->fx_2_state.technique = ~0u;
++    fx->fx_2_state.index = fx->parameter_count;
++
++    for (i = 0; i < elements_count; ++i)
++    {
++        fx->fx_2_state.element = i;
++        fx->fx_2_state.state = 0;
++
++        count_offset = put_u32(&buffer, 0);
++        count = i < var->state_block_count ? write_state_block(var, i, fx) : 0;
++        set_u32(&buffer, count_offset, count);
++    }
++
++    set_status(fx, buffer.status);
++    offset = bytecode_put_bytes(&fx->unstructured, buffer.data, buffer.size);
++    vkd3d_bytecode_buffer_cleanup(&buffer);
++
++    return offset;
++}
++
+ static uint32_t write_fx_2_object_initializer(const struct hlsl_ir_var *var, struct fx_write_context *fx)
+ {
+     const struct hlsl_type *type = hlsl_get_multiarray_element_type(var->data_type);
+     unsigned int i, elements_count = hlsl_get_multiarray_size(var->data_type);
+     struct vkd3d_bytecode_buffer *buffer = &fx->objects;
+     uint32_t offset = fx->unstructured.size, id, size;
+-    struct hlsl_ctx *ctx = fx->ctx;
+     struct vkd3d_shader_code code;
+     const void *data;
+ 
+     for (i = 0; i < elements_count; ++i)
+     {
+-        if (type->class == HLSL_CLASS_SAMPLER)
+-        {
+-            hlsl_fixme(ctx, &var->loc, "Writing fx_2_0 sampler objects initializers is not implemented.");
+-        }
+-        else
+-        {
+-            size = 0;
+-            memset(&code, 0, sizeof(code));
++        size = 0;
++        memset(&code, 0, sizeof(code));
+ 
+-            switch (type->class)
++        switch (type->class)
++        {
++            case HLSL_CLASS_STRING:
+             {
+-                case HLSL_CLASS_STRING:
++                const char *string = var->default_values[i].string ? var->default_values[i].string : "";
++                size = strlen(string) + 1;
++                data = string;
++                break;
++            }
++            case HLSL_CLASS_TEXTURE:
++                break;
++            case HLSL_CLASS_PIXEL_SHADER:
++            case HLSL_CLASS_VERTEX_SHADER:
++                if (var->default_values
++                        && var->default_values[i].shader
++                        && compile_shader(var->default_values[i].shader, fx, &code))
+                 {
+-                    const char *string = var->default_values[i].string ? var->default_values[i].string : "";
+-                    size = strlen(string) + 1;
+-                    data = string;
+-                    break;
++                    size = code.size;
++                    data = code.code;
+                 }
+-                case HLSL_CLASS_TEXTURE:
+-                    break;
+-                case HLSL_CLASS_PIXEL_SHADER:
+-                case HLSL_CLASS_VERTEX_SHADER:
+-                    if (var->default_values
+-                            && var->default_values[i].shader
+-                            && compile_shader(var->default_values[i].shader, fx, &code))
+-                    {
+-                        size = code.size;
+-                        data = code.code;
+-                    }
+-                    break;
+-                default:
+-                    vkd3d_unreachable();
+-            }
+-            id = fx->object_variable_count++;
++                break;
++            default:
++                vkd3d_unreachable();
++        }
++        id = fx->object_variable_count++;
+ 
+-            put_u32(&fx->unstructured, id);
++        put_u32(&fx->unstructured, id);
+ 
+-            put_u32(buffer, id);
+-            write_fx_2_data_blob(buffer, data, size);
+-            ++fx->object_data_count;
++        put_u32(buffer, id);
++        write_fx_2_data_blob(buffer, data, size);
++        ++fx->object_data_count;
+ 
+-            vkd3d_shader_free_shader_code(&code);
+-        }
++        vkd3d_shader_free_shader_code(&code);
+     }
+ 
+     return offset;
+ }
+ 
+-static uint32_t write_fx_2_initial_value(const struct hlsl_ir_var *var, struct fx_write_context *fx)
++static uint32_t write_fx_2_initial_value(struct hlsl_ir_var *var, struct fx_write_context *fx)
+ {
+     const struct hlsl_type *type = hlsl_get_multiarray_element_type(var->data_type);
+     struct hlsl_ctx *ctx = fx->ctx;
+@@ -2068,6 +2092,9 @@ static uint32_t write_fx_2_initial_value(const struct hlsl_ir_var *var, struct f
+             break;
+ 
+         case HLSL_CLASS_SAMPLER:
++            offset = write_fx_2_sampler_initializer(var, fx);
++            break;
++
+         case HLSL_CLASS_TEXTURE:
+         case HLSL_CLASS_STRING:
+         case HLSL_CLASS_PIXEL_SHADER:
+@@ -2375,8 +2402,8 @@ static bool is_fx_2_float_type(enum hlsl_base_type type)
+ static void write_fx_2_state_assignment(const struct hlsl_ir_var *var,
+         struct hlsl_state_block_entry *entry, struct fx_write_context *fx)
+ {
++    struct vkd3d_bytecode_buffer *buffer = fx->fx_2_state.buffer;
+     struct vkd3d_bytecode_buffer *unstructured = &fx->unstructured;
+-    struct vkd3d_bytecode_buffer *buffer = &fx->structured;
+     uint32_t value = 0, type = 0, rhs_offset, type_offset;
+     struct hlsl_ir_node *value_node = entry->args->node;
+     struct hlsl_ctx *ctx = fx->ctx;
+diff --git a/tests/hlsl/effect-assignments-fx_2.shader_test b/tests/hlsl/effect-assignments-fx_2.shader_test
+index b4c8c3b5..14ebaecd 100644
+--- a/tests/hlsl/effect-assignments-fx_2.shader_test
++++ b/tests/hlsl/effect-assignments-fx_2.shader_test
+@@ -97,3 +97,25 @@ technique
+         VertexShader = vs_arr[index];
+     }
+ }
++
++[effect]
++texture tex;
++texture2D tex2;
++
++sampler s = sampler_state
++{
++    Texture = <tex>;
++    MinFilter = LINEAR;
++    MagFilter = POINT;
++    AddressU = CLAMP;
++};
++
++sampler2D samplers[2] =
++{
++    sampler_state { MipFilter = POINT; },
++    sampler_state { Texture = <tex2>; AddressV = MIRROR; }
++};
++
++sampler unused;
++
++technique {}
+-- 
+2.43.0
+

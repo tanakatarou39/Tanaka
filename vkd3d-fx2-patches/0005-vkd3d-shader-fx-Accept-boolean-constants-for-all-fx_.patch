@@ -1,0 +1,90 @@
+From 01c5e4cc6d1050e5ebc36d5f62e5f224f22637cc Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 03:24:01 +0000
+Subject: [PATCH 5/9] vkd3d-shader/fx: Accept boolean constants for all fx_2_0
+ states.
+
+States like AlphaBlendEnable don't have named values, and states like ZEnable
+only have values that are not boolean, but TRUE and FALSE are commonly used
+for both.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ libs/vkd3d-shader/fx.c                        | 10 +++++++--
+ .../hlsl/effect-assignments-fx_2.shader_test  | 22 +++++++++++++++++++
+ 2 files changed, 30 insertions(+), 2 deletions(-)
+
+diff --git a/libs/vkd3d-shader/fx.c b/libs/vkd3d-shader/fx.c
+index c36a61fd..1e822bed 100644
+--- a/libs/vkd3d-shader/fx.c
++++ b/libs/vkd3d-shader/fx.c
+@@ -2960,6 +2960,7 @@ static bool state_block_contains_state(const struct hlsl_state_block_entry *entr
+ struct replace_state_context
+ {
+     const struct rhs_named_value *values;
++    const struct rhs_named_value *common_values;
+     struct hlsl_ir_var *var;
+ };
+ 
+@@ -2988,13 +2989,15 @@ static bool replace_state_block_constant(struct hlsl_ctx *ctx, struct hlsl_ir_no
+     struct hlsl_ir_node *c;
+     unsigned int value;
+ 
+-    if (!replace_context->values)
++    if (!replace_context->values && !replace_context->common_values)
+         return false;
+     if (instr->type != HLSL_IR_STATEBLOCK_CONSTANT)
+         return false;
+ 
+     state_constant = hlsl_ir_stateblock_constant(instr);
+-    if (!get_fx_4_state_enum_value(replace_context->values, state_constant->name, &value))
++    if (!(replace_context->values && get_fx_4_state_enum_value(replace_context->values, state_constant->name, &value))
++            && !(replace_context->common_values
++            && get_fx_4_state_enum_value(replace_context->common_values, state_constant->name, &value)))
+     {
+         hlsl_error(ctx, &replace_context->var->loc, VKD3D_SHADER_ERROR_HLSL_INVALID_SYNTAX,
+                 "Unrecognized state constant %s.", state_constant->name);
+@@ -3430,6 +3433,9 @@ static void resolve_fx_2_state_block_values(struct hlsl_ir_var *var,
+     entry->name_id = state->id;
+ 
+     replace_context.values = state->values;
++    replace_context.common_values = NULL;
++    /* Boolean constants are accepted for any state. */
++    replace_context.common_values = bool_values;
+     replace_context.var = var;
+ 
+     /* Turn named constants into actual constants. */
+diff --git a/tests/hlsl/effect-assignments-fx_2.shader_test b/tests/hlsl/effect-assignments-fx_2.shader_test
+index 14ebaecd..f08d7e94 100644
+--- a/tests/hlsl/effect-assignments-fx_2.shader_test
++++ b/tests/hlsl/effect-assignments-fx_2.shader_test
+@@ -119,3 +119,25 @@ sampler2D samplers[2] =
+ sampler unused;
+ 
+ technique {}
++
++[effect]
++technique
++{
++    pass
++    {
++        AlphaBlendEnable = TRUE;
++        ZEnable = FALSE;
++        ZWriteEnable = true;
++        Lighting = false;
++        StencilEnable = True;
++    }
++}
++
++[effect fail]
++technique
++{
++    pass
++    {
++        CullMode = UNKNOWN;
++    }
++}
+-- 
+2.43.0
+

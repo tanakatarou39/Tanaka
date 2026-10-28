@@ -1,0 +1,581 @@
+From 424be6da4efc86def08fb78cbafa6684fab52d1d Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Wed, 28 Oct 2026 03:35:40 +0000
+Subject: [PATCH 8/9] vkd3d-shader/fx: Support writing simple expressions in
+ fx_2_0 state assignments.
+
+Expressions are written as fxlvm code blobs, with the referenced parameters
+listed in the constant table, and literals stored as doubles. Only scalar and
+vector values, and basic arithmetic operations are supported for now.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ libs/vkd3d-shader/fx.c                        | 497 ++++++++++++++++++
+ .../hlsl/effect-assignments-fx_2.shader_test  |  38 ++
+ 2 files changed, 535 insertions(+)
+
+diff --git a/libs/vkd3d-shader/fx.c b/libs/vkd3d-shader/fx.c
+index fbff6740..96b5e457 100644
+--- a/libs/vkd3d-shader/fx.c
++++ b/libs/vkd3d-shader/fx.c
+@@ -2399,6 +2399,499 @@ static bool is_fx_2_float_type(enum hlsl_base_type type)
+     return type == HLSL_TYPE_FLOAT || type == HLSL_TYPE_HALF;
+ }
+ 
++enum fxlc_opcode
++{
++    FX_FXLC_OP_MOV = 0x100,
++    FX_FXLC_OP_NEG = 0x101,
++    FX_FXLC_OP_RCP = 0x103,
++    FX_FXLC_OP_MIN = 0x200,
++    FX_FXLC_OP_MAX = 0x201,
++    FX_FXLC_OP_ADD = 0x204,
++    FX_FXLC_OP_MUL = 0x205,
++};
++
++struct fxlc_operand
++{
++    uint32_t table;
++    uint32_t offset;
++};
++
++struct fxlc_value
++{
++    const struct hlsl_ir_node *node;
++    struct fxlc_operand operand;
++};
++
++struct fxlc_input
++{
++    const struct hlsl_ir_var *var;
++    uint32_t info_offset;
++};
++
++struct fxlc_writer
++{
++    struct fx_write_context *fx;
++    const struct hlsl_ir_var *var;
++
++    struct vkd3d_bytecode_buffer code;
++    uint32_t instr_count;
++
++    double *literals;
++    size_t literals_capacity;
++    uint32_t literal_count;
++
++    struct fxlc_input *inputs;
++    size_t inputs_capacity;
++    uint32_t input_count;
++
++    struct fxlc_value *values;
++    size_t values_capacity;
++    size_t value_count;
++
++    uint32_t temp_count;
++    bool failed;
++};
++
++static void VKD3D_PRINTF_FUNC(2, 3) fxlc_fixme(struct fxlc_writer *writer, const char *fmt, ...)
++{
++    struct hlsl_ctx *ctx = writer->fx->ctx;
++    struct vkd3d_string_buffer *string;
++    va_list args;
++
++    if (writer->failed)
++        return;
++    writer->failed = true;
++
++    if (!(string = hlsl_get_string_buffer(ctx)))
++        return;
++    va_start(args, fmt);
++    vkd3d_string_buffer_vprintf(string, fmt, args);
++    va_end(args);
++    hlsl_fixme(ctx, &writer->var->loc, "%s", string->buffer);
++    hlsl_release_string_buffer(ctx, string);
++}
++
++static void fxlc_put_operand(struct fxlc_writer *writer, const struct fxlc_operand *operand)
++{
++    put_u32(&writer->code, 0); /* No relative addressing. */
++    put_u32(&writer->code, operand->table);
++    put_u32(&writer->code, operand->offset);
++}
++
++static void fxlc_write_instruction(struct fxlc_writer *writer, enum fxlc_opcode opcode, unsigned int comp_count,
++        const struct fxlc_operand *dst, const struct fxlc_operand *srcs, unsigned int src_count)
++{
++    put_u32(&writer->code, (opcode << FX_FXLC_OPCODE_SHIFT) | comp_count);
++    put_u32(&writer->code, src_count);
++    for (unsigned int i = 0; i < src_count; ++i)
++        fxlc_put_operand(writer, &srcs[i]);
++    fxlc_put_operand(writer, dst);
++    ++writer->instr_count;
++}
++
++static struct fxlc_operand fxlc_offset_operand(const struct fxlc_operand *operand, unsigned int component)
++{
++    struct fxlc_operand ret = *operand;
++
++    ret.offset += component;
++    return ret;
++}
++
++/* Each instruction is limited to a single output register. */
++static struct fxlc_operand fxlc_allocate_temp(struct fxlc_writer *writer)
++{
++    return (struct fxlc_operand){FX_FXLC_REG_TEMP, 4 * writer->temp_count++};
++}
++
++static struct fxlc_operand fxlc_allocate_literals(struct fxlc_writer *writer, const double *values, unsigned int count)
++{
++    uint32_t offset = writer->literal_count;
++
++    /* Keep the components of a single value in the same register. */
++    if (offset % 4 + count > 4)
++        offset = align(offset, 4);
++
++    if (!hlsl_array_reserve(writer->fx->ctx, (void **)&writer->literals, &writer->literals_capacity,
++            align(offset + count, 4), sizeof(*writer->literals)))
++    {
++        writer->failed = true;
++        return (struct fxlc_operand){FX_FXLC_REG_LITERAL, 0};
++    }
++
++    for (unsigned int i = writer->literal_count; i < align(offset + count, 4); ++i)
++        writer->literals[i] = 0.0;
++    memcpy(&writer->literals[offset], values, count * sizeof(*values));
++    writer->literal_count = offset + count;
++
++    return (struct fxlc_operand){FX_FXLC_REG_LITERAL, offset};
++}
++
++static struct fxlc_operand fxlc_get_input(struct fxlc_writer *writer, const struct hlsl_ir_var *var)
++{
++    uint32_t i;
++
++    for (i = 0; i < writer->input_count; ++i)
++    {
++        if (writer->inputs[i].var == var)
++            return (struct fxlc_operand){FX_FXLC_REG_CB, 4 * i};
++    }
++
++    if (!hlsl_array_reserve(writer->fx->ctx, (void **)&writer->inputs, &writer->inputs_capacity,
++            writer->input_count + 1, sizeof(*writer->inputs)))
++    {
++        writer->failed = true;
++        return (struct fxlc_operand){FX_FXLC_REG_CB, 0};
++    }
++    writer->inputs[writer->input_count].var = var;
++    return (struct fxlc_operand){FX_FXLC_REG_CB, 4 * writer->input_count++};
++}
++
++static void fxlc_set_value(struct fxlc_writer *writer, const struct hlsl_ir_node *node,
++        const struct fxlc_operand *operand)
++{
++    if (!hlsl_array_reserve(writer->fx->ctx, (void **)&writer->values, &writer->values_capacity,
++            writer->value_count + 1, sizeof(*writer->values)))
++    {
++        writer->failed = true;
++        return;
++    }
++    writer->values[writer->value_count].node = node;
++    writer->values[writer->value_count++].operand = *operand;
++}
++
++static struct fxlc_operand fxlc_get_value(struct fxlc_writer *writer, const struct hlsl_ir_node *node)
++{
++    for (size_t i = 0; i < writer->value_count; ++i)
++    {
++        if (writer->values[i].node == node)
++            return writer->values[i].operand;
++    }
++
++    fxlc_fixme(writer, "Unhandled node type %s in a state expression.", hlsl_node_type_to_string(node->type));
++    return (struct fxlc_operand){FX_FXLC_REG_LITERAL, 0};
++}
++
++static void fxlc_write_constant(struct fxlc_writer *writer, const struct hlsl_ir_constant *constant)
++{
++    const struct hlsl_type *type = constant->node.data_type;
++    struct fxlc_operand operand;
++    double values[4];
++    unsigned int i;
++
++    for (i = 0; i < type->e.numeric.dimx; ++i)
++    {
++        const union hlsl_constant_value_component *value = &constant->value.u[i];
++
++        switch (type->e.numeric.type)
++        {
++            case HLSL_TYPE_FLOAT:
++            case HLSL_TYPE_HALF:
++                values[i] = value->f;
++                break;
++            case HLSL_TYPE_INT:
++                values[i] = value->i;
++                break;
++            case HLSL_TYPE_UINT:
++                values[i] = value->u;
++                break;
++            case HLSL_TYPE_BOOL:
++                values[i] = value->u ? 1.0 : 0.0;
++                break;
++            default:
++                fxlc_fixme(writer, "Unhandled constant type %u in a state expression.", type->e.numeric.type);
++                return;
++        }
++    }
++
++    operand = fxlc_allocate_literals(writer, values, type->e.numeric.dimx);
++    fxlc_set_value(writer, &constant->node, &operand);
++}
++
++static void fxlc_write_load(struct fxlc_writer *writer, const struct hlsl_ir_load *load)
++{
++    const struct hlsl_ir_var *var = load->src.var;
++    struct fxlc_operand operand;
++
++    if (!var->is_uniform || load->src.path_len || var->data_type->class > HLSL_CLASS_VECTOR)
++    {
++        fxlc_fixme(writer, "Unhandled load of variable \"%s\" in a state expression.", var->name);
++        return;
++    }
++
++    operand = fxlc_get_input(writer, var);
++    fxlc_set_value(writer, &load->node, &operand);
++}
++
++static void fxlc_write_swizzle(struct fxlc_writer *writer, const struct hlsl_ir_swizzle *swizzle)
++{
++    unsigned int i, comp_count = swizzle->node.data_type->e.numeric.dimx;
++    struct fxlc_operand src, dst, s;
++
++    if (swizzle->val.node->data_type->class > HLSL_CLASS_VECTOR)
++    {
++        fxlc_fixme(writer, "Matrix swizzles are not implemented in state expressions.");
++        return;
++    }
++
++    src = fxlc_get_value(writer, swizzle->val.node);
++    dst = fxlc_allocate_temp(writer);
++
++    for (i = 0; i < comp_count; ++i)
++    {
++        struct fxlc_operand d = fxlc_offset_operand(&dst, i);
++
++        s = fxlc_offset_operand(&src, hlsl_swizzle_get_component(swizzle->u.vector, i));
++        fxlc_write_instruction(writer, FX_FXLC_OP_MOV, 1, &d, &s, 1);
++    }
++
++    fxlc_set_value(writer, &swizzle->node, &dst);
++}
++
++static void fxlc_write_expr(struct fxlc_writer *writer, const struct hlsl_ir_expr *expr)
++{
++    unsigned int i, comp_count = expr->node.data_type->e.numeric.dimx;
++    struct fxlc_operand args[3], srcs[3], dst, tmp;
++    const struct hlsl_type *src_type;
++
++    for (i = 0; i < ARRAY_SIZE(expr->operands) && expr->operands[i].node; ++i)
++    {
++        const struct hlsl_type *type = expr->operands[i].node->data_type;
++
++        if (!hlsl_is_numeric_type(type) || type->class > HLSL_CLASS_VECTOR
++                || type->e.numeric.dimx != comp_count)
++        {
++            fxlc_fixme(writer, "Unhandled operand type for %s in a state expression.",
++                    debug_hlsl_expr_op(expr->op));
++            return;
++        }
++        args[i] = fxlc_get_value(writer, expr->operands[i].node);
++    }
++    if (writer->failed)
++        return;
++
++    dst = fxlc_allocate_temp(writer);
++
++    switch (expr->op)
++    {
++        case HLSL_OP1_CAST:
++            src_type = expr->operands[0].node->data_type;
++            /* Values are stored as floating point numbers, and boolean values
++             * as 0.0 and 1.0. */
++            if (expr->node.data_type->e.numeric.type == HLSL_TYPE_BOOL
++                    && src_type->e.numeric.type != HLSL_TYPE_BOOL)
++            {
++                fxlc_fixme(writer, "Casts to bool are not implemented in state expressions.");
++                return;
++            }
++            if (!is_fx_2_float_type(expr->node.data_type->e.numeric.type)
++                    && is_fx_2_float_type(src_type->e.numeric.type))
++            {
++                fxlc_fixme(writer, "Casts from float to integer are not implemented in state expressions.");
++                return;
++            }
++            fxlc_write_instruction(writer, FX_FXLC_OP_MOV, comp_count, &dst, args, 1);
++            break;
++
++        case HLSL_OP1_NEG:
++            fxlc_write_instruction(writer, FX_FXLC_OP_NEG, comp_count, &dst, args, 1);
++            break;
++
++        case HLSL_OP2_ADD:
++            fxlc_write_instruction(writer, FX_FXLC_OP_ADD, comp_count, &dst, args, 2);
++            break;
++
++        case HLSL_OP2_DIV:
++            if (!is_fx_2_float_type(expr->node.data_type->e.numeric.type))
++            {
++                fxlc_fixme(writer, "Integer division is not implemented in state expressions.");
++                return;
++            }
++            /* The "div" instruction is not implemented by d3dx9. */
++            tmp = fxlc_allocate_temp(writer);
++            fxlc_write_instruction(writer, FX_FXLC_OP_RCP, comp_count, &tmp, &args[1], 1);
++            srcs[0] = args[0];
++            srcs[1] = tmp;
++            fxlc_write_instruction(writer, FX_FXLC_OP_MUL, comp_count, &dst, srcs, 2);
++            break;
++
++        case HLSL_OP2_MAX:
++            fxlc_write_instruction(writer, FX_FXLC_OP_MAX, comp_count, &dst, args, 2);
++            break;
++
++        case HLSL_OP2_MIN:
++            fxlc_write_instruction(writer, FX_FXLC_OP_MIN, comp_count, &dst, args, 2);
++            break;
++
++        case HLSL_OP2_MUL:
++            fxlc_write_instruction(writer, FX_FXLC_OP_MUL, comp_count, &dst, args, 2);
++            break;
++
++        default:
++            fxlc_fixme(writer, "Unhandled operation %s in a state expression.", debug_hlsl_expr_op(expr->op));
++            return;
++    }
++
++    fxlc_set_value(writer, &expr->node, &dst);
++}
++
++/* Writes a d3dbc style comment token, the size includes the tag. */
++static void fxlc_put_comment_header(struct vkd3d_bytecode_buffer *buffer, uint32_t tag, size_t size)
++{
++    put_u32(buffer, vkd3d_make_u32(0xfffe, align(size, 4) / sizeof(uint32_t) + 1));
++    put_u32(buffer, tag);
++}
++
++static void fxlc_write_ctab(struct fxlc_writer *writer, struct vkd3d_bytecode_buffer *buffer)
++{
++    struct vkd3d_bytecode_buffer ctab = { 0 };
++    uint32_t constants_offset, creator_offset, target_offset;
++    static const char creator[] = "vkd3d-shader";
++    static const char target[] = "fx_2_0";
++    uint32_t i;
++
++    put_u32(&ctab, 7 * sizeof(uint32_t)); /* CTAB header size. */
++    creator_offset = put_u32(&ctab, 0);
++    put_u32(&ctab, TAG_FX20);
++    put_u32(&ctab, writer->input_count);
++    constants_offset = put_u32(&ctab, 0);
++    put_u32(&ctab, 0); /* Flags */
++    target_offset = put_u32(&ctab, 0);
++
++    set_u32(&ctab, constants_offset, ctab.size);
++    for (i = 0; i < writer->input_count; ++i)
++    {
++        writer->inputs[i].info_offset = put_u32(&ctab, 0); /* Name */
++        put_u32(&ctab, vkd3d_make_u32(D3DXRS_FLOAT4, i));
++        put_u32(&ctab, 1); /* Register count, reserved */
++        put_u32(&ctab, 0); /* Type info */
++        put_u32(&ctab, 0); /* Default value */
++    }
++
++    for (i = 0; i < writer->input_count; ++i)
++    {
++        const struct hlsl_type *type = writer->inputs[i].var->data_type;
++        uint32_t offset;
++
++        offset = put_u32(&ctab, vkd3d_make_u32(hlsl_sm1_class(type),
++                hlsl_sm1_base_type(type, false, HLSL_SAMPLER_DIM_GENERIC)));
++        put_u32(&ctab, vkd3d_make_u32(type->e.numeric.dimy, type->e.numeric.dimx));
++        put_u32(&ctab, 1); /* Elements, struct members */
++        put_u32(&ctab, 0); /* Struct member info */
++        set_u32(&ctab, writer->inputs[i].info_offset + 3 * sizeof(uint32_t), offset);
++    }
++
++    for (i = 0; i < writer->input_count; ++i)
++    {
++        const char *name = writer->inputs[i].var->name;
++
++        set_u32(&ctab, writer->inputs[i].info_offset, bytecode_put_bytes_unaligned(&ctab, name, strlen(name) + 1));
++    }
++
++    set_u32(&ctab, creator_offset, bytecode_put_bytes_unaligned(&ctab, creator, sizeof(creator)));
++    set_u32(&ctab, target_offset, bytecode_put_bytes_unaligned(&ctab, target, sizeof(target)));
++
++    if (ctab.status)
++    {
++        writer->failed = true;
++    }
++    else
++    {
++        fxlc_put_comment_header(buffer, TAG_CTAB, ctab.size);
++        bytecode_put_bytes(buffer, ctab.data, ctab.size);
++        bytecode_align(buffer);
++    }
++    vkd3d_bytecode_buffer_cleanup(&ctab);
++}
++
++static uint32_t write_fx_2_expression_assignment(const struct hlsl_ir_var *var,
++        const struct hlsl_state_block_entry *entry, uint32_t *type, struct fx_write_context *fx)
++{
++    const struct hlsl_ir_node *value = entry->args->node, *instr;
++    struct vkd3d_bytecode_buffer *unstructured = &fx->unstructured;
++    struct fxlc_writer writer = {.fx = fx, .var = var};
++    struct vkd3d_bytecode_buffer blob = { 0 };
++    struct fxlc_operand output;
++    uint32_t offset;
++
++    if (entry->args_count != 1 || !hlsl_is_numeric_type(value->data_type)
++            || value->data_type->class > HLSL_CLASS_VECTOR)
++    {
++        hlsl_fixme(fx->ctx, &var->loc, "Unhandled expression for state %s.", entry->name);
++        return 0;
++    }
++
++    LIST_FOR_EACH_ENTRY(instr, &entry->instrs->instrs, struct hlsl_ir_node, entry)
++    {
++        switch (instr->type)
++        {
++            case HLSL_IR_CONSTANT:
++                fxlc_write_constant(&writer, hlsl_ir_constant(instr));
++                break;
++            case HLSL_IR_EXPR:
++                fxlc_write_expr(&writer, hlsl_ir_expr(instr));
++                break;
++            case HLSL_IR_LOAD:
++                fxlc_write_load(&writer, hlsl_ir_load(instr));
++                break;
++            case HLSL_IR_SWIZZLE:
++                fxlc_write_swizzle(&writer, hlsl_ir_swizzle(instr));
++                break;
++            default:
++                fxlc_fixme(&writer, "Unhandled node type %s in a state expression.",
++                        hlsl_node_type_to_string(instr->type));
++                break;
++        }
++        if (writer.failed)
++            break;
++    }
++
++    if (!writer.failed)
++    {
++        struct fxlc_operand src = fxlc_get_value(&writer, value);
++
++        output = (struct fxlc_operand){FX_FXLC_REG_OUTPUT, 0};
++        fxlc_write_instruction(&writer, FX_FXLC_OP_MOV, value->data_type->e.numeric.dimx, &output, &src, 1);
++    }
++
++    if (!writer.failed)
++    {
++        /* Literals are allocated in complete registers. */
++        writer.literal_count = align(writer.literal_count, 4);
++
++        put_u32(&blob, TAG_FX20);
++        fxlc_write_ctab(&writer, &blob);
++
++        /* Literals are stored as doubles. */
++        fxlc_put_comment_header(&blob, TAG_CLIT, sizeof(uint32_t) + writer.literal_count * sizeof(double));
++        put_u32(&blob, writer.literal_count);
++        bytecode_put_bytes(&blob, writer.literals, writer.literal_count * sizeof(*writer.literals));
++
++        fxlc_put_comment_header(&blob, TAG_FXLC, sizeof(uint32_t) + writer.code.size);
++        put_u32(&blob, writer.instr_count);
++        bytecode_put_bytes(&blob, writer.code.data, writer.code.size);
++
++        put_u32(&blob, 0x0000ffff); /* End token. */
++    }
++
++    *type = write_fx_2_state_numeric_type(value->data_type, fx);
++    offset = unstructured->size;
++    for (unsigned int i = 0; i < value->data_type->e.numeric.dimx; ++i)
++        put_u32(unstructured, 0);
++
++    if (blob.status || writer.code.status)
++        set_status(fx, VKD3D_ERROR_OUT_OF_MEMORY);
++    else if (!writer.failed)
++        write_fx_2_resource(FX_2_ASSIGNMENT_CODE_BLOB, blob.data, blob.size, fx);
++
++    vkd3d_bytecode_buffer_cleanup(&blob);
++    vkd3d_bytecode_buffer_cleanup(&writer.code);
++    vkd3d_free(writer.literals);
++    vkd3d_free(writer.inputs);
++    vkd3d_free(writer.values);
++
++    return offset;
++}
++
+ static void write_fx_2_state_assignment(const struct hlsl_ir_var *var,
+         struct hlsl_state_block_entry *entry, struct fx_write_context *fx)
+ {
+@@ -2452,6 +2945,10 @@ static void write_fx_2_state_assignment(const struct hlsl_ir_var *var,
+         case HLSL_IR_INDEX:
+             value = write_fx_2_index_assignment(var, hlsl_ir_index(value_node), &type, fx);
+             break;
++        case HLSL_IR_EXPR:
++        case HLSL_IR_SWIZZLE:
++            value = write_fx_2_expression_assignment(var, entry, &type, fx);
++            break;
+         default:
+             hlsl_fixme(ctx, &var->loc, "Unsupported assignment type for state %s.", entry->name);
+     }
+diff --git a/tests/hlsl/effect-assignments-fx_2.shader_test b/tests/hlsl/effect-assignments-fx_2.shader_test
+index f08d7e94..bc16173b 100644
+--- a/tests/hlsl/effect-assignments-fx_2.shader_test
++++ b/tests/hlsl/effect-assignments-fx_2.shader_test
+@@ -141,3 +141,41 @@ technique
+         CullMode = UNKNOWN;
+     }
+ }
++
++[effect]
++float density;
++float4 factor;
++
++technique
++{
++    pass
++    {
++        FogDensity = density * 2.0;
++        FogStart = density / 4.0 + 1.0;
++        FogEnd = max(-density, 0.25);
++        LightDiffuse[0] = factor * 0.5;
++        LightPosition[0] = factor.zyx;
++    }
++}
++
++[effect todo]
++float4x4 m;
++
++technique
++{
++    pass
++    {
++        WorldTransform[0] = m * 2.0;
++    }
++}
++
++[effect todo]
++float density;
++
++technique
++{
++    pass
++    {
++        AlphaRef = density * 255.0;
++    }
++}
+-- 
+2.43.0
+
