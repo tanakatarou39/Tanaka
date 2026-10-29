@@ -1,6 +1,17 @@
 # Mali の Vulkan で DXVK・VKD3D-Proton・zink を動かす回避策 (WinlatorMali の調査)
 
-WinlatorMali (https://github.com/GunaCharanTeja/WinlatorMali、`bionic-mali-1.2` の `428bd94`、2026-10-29) を調べました。Mali 向けの回避策のうち、Hangover (Wine 11.20 + DXVK 3・DXVK 1.10・VKD3D-Proton・Mesa zink) に取り込めるものをまとめます。端末では試していません。
+WinlatorMali (https://github.com/GunaCharanTeja/WinlatorMali、`bionic-mali-1.2` の `428bd94`、2026-10-29) を調べました。Mali 向けの回避策のうち、Hangover に取り込めるものをまとめます。端末では試していません。
+
+前提にした Hangover の構成 (いただいた補足による):
+
+| 部品 | 版・作り |
+|---|---|
+| Wine | 11.20。Vulkan の窓は wineandroid.drv から Android の `ANativeWindow` (`VK_KHR_android_surface`) に出す |
+| Mesa | 26.2.5 + Hangover の改変 7 本 (`mesa-26.2.5-7-g96a00b2`)。改変は zink と Android の EGL まわり |
+| zink | desktop OpenGL を Mesa の EGL (Android の surfaceless + kopper) で使う。Vulkan は Android の Vulkan ローダー経由か、`ZINK_VULKAN_LIBRARY` で同梱の Turnip |
+| Turnip | 同じ Mesa 26.2.5 から作り、adrenotools 風の shim (`app/turnip/vulkan_turnip.c`) で読む。Adreno 用なので、Mali には関係ない |
+| DXVK | 3.1.1 (+Hangover の改変、ARM64X・ARM64EC 版あり) と 1.10.3 |
+| VKD3D-Proton | `0802ee0` |
 
 ## 要点
 
@@ -14,14 +25,15 @@ WinlatorMali (https://github.com/GunaCharanTeja/WinlatorMali、`bionic-mali-1.2`
   - `BOX64_MMAP32=0` を設定する
   - Mali では `opengl32` を native にしない
 - **Hangover にとって一番大事なのは、wrapper の「機能の偽装」と「足りない機能のエミュレーション」です。** 最新の DXVK・VKD3D-Proton は Mali の公式ドライバーに足りない機能を必須にしているので、何もしなければアダプターとして選ばれません。
-- **ただし wrapper の ICD を、そのまま Hangover に入れるのは難しいです。** wrapper は表示 (WSI) を Mesa の WSI で行います。その WSI には、X11・Wayland・headless の面はありますが、Android の面 (`VK_KHR_android_surface`) の実装がありません。この拡張は名前だけ出しています (`wrapper_instance.c:41`)。Hangover の wineandroid.drv は Android の窓に Vulkan の面を作るので、この点を解決する必要があります。
-- 一番小さく取り込めるのは、**zink の 2 本のパッチ** (`zink-patches/`、上流の Mesa にそのまま当たります) と、**`dxvk.conf` の見直し**です。WinlatorMali が書く `dxvk.conf` の項目は、多くが今の DXVK には存在しません (後で詳しく)。
+- **ただし wrapper の ICD を、そのまま Hangover に入れるのは難しいです。** wrapper は表示 (WSI) を Mesa の WSI で行います。その WSI には、X11・Wayland・headless の面はありますが、Android の面 (`VK_KHR_android_surface`) の実装がありません。この拡張は名前だけ出しています (`wrapper_instance.c:41`)。Hangover の wineandroid.drv は `ANativeWindow` に Vulkan の面を作るので、そのままでは表示できません。
+- **Hangover に合うのは、Turnip の shim と同じ形の「Mali 用の shim」です** (3 章)。端末の `libvulkan.so` を包み、機能の偽装と SPIR-V の書き換えだけを行い、表示はそのまま Android に渡します。Wine と zink (`ZINK_VULKAN_LIBRARY`) の両方から使えます。
+- 一番小さく取り込めるのは、**zink の 3 本のパッチ** (`zink-patches/`、Mesa 26.2.5 と上流の main の両方に当たります) と、**`dxvk.conf` の見直し**です。WinlatorMali が書く `dxvk.conf` の項目は、多くが DXVK 3.1.1 にも 1.10.3 にも存在しません (後で詳しく)。
 
 ## 1. Mali で動かない原因
 
-### DXVK (最新、`0cfe089`、2026-10-28)
+### DXVK 3.1.1 (`b1a1c99`、2026-09-15)
 
-必須の条件は、`src/dxvk/dxvk_device_info.cpp` の `checkDeviceCompatibility()` と、`ENABLE_FEATURE(..., true)` の一覧で決まります。
+必須の条件は、`src/dxvk/dxvk_device_info.cpp` の `checkDeviceCompatibility()` と、`ENABLE_FEATURE(..., true)` の一覧で決まります。3.1.1 と最新の master (`0cfe089`、2026-10-28) で、この一覧が同じであることを確かめました。Hangover の改変で必須の条件が変わっていないかは、確かめていません。
 
 - Vulkan 1.3
 - 主な必須の機能: `textureCompressionBC`、`shaderClipDistance`、`shaderCullDistance`、`depthClamp`、`depthBiasClamp`、`fillModeNonSolid`、`dualSrcBlend`、`multiDrawIndirect`、`multiViewport`、`geometryShader`、`shaderInt64`、`shaderInt16`、`hostQueryReset`、`vulkanMemoryModel`
@@ -48,9 +60,9 @@ Vulkan 1.1 で動きます。`robustness2` も必須ではありません。
 
 それでも D3D9・D3D11 のデバイスを作るときに、`textureCompressionBC`、`shaderClipDistance`、`shaderCullDistance`、`depthClamp`、`fillModeNonSolid` などを必須にします (`d3d9_device.cpp:3895-3937`、`d3d11_device.cpp:1933-2008`)。そのため、BCn と clip distance の偽装が無いと、Mali ではデバイスを作れません。
 
-### VKD3D-Proton (最新、`4522cc1`、2026-10-28)
+### VKD3D-Proton (`v3.1` と最新の `4522cc1`、2026-10-28)
 
-`libs/vkd3d/device.c` で必須にしているもの:
+Hangover の `0802ee0` は、上流のリポジトリー (全ブランチ・タグ・PR) に見つかりませんでした。Hangover 側の fork のコミットだと思います。そこで、最新のリリース `v3.1` と master を比べました。`libs/vkd3d/device.c` で必須にしているものは、両者で同じです:
 
 - Vulkan 1.3
 - `VK_EXT_robustness2` (`nullDescriptor` を含む)
@@ -88,28 +100,28 @@ zink は DXVK ほど多くを必須にしません。WinlatorMali が直した�
 
 | 回避策 | 中身 | 効く Mali | Hangover のどこ | 手間 |
 |---|---|---|---|---|
-| A1 `textureCompressionBC` を常に有る扱いにする (`:344`) | BC の画像は B1 で作り直す | 全世代 (Mali には BC のハードウェアが無い) | Vulkan のレイヤー | B1 と組で大 |
-| A2 `shaderClipDistance`・`shaderCullDistance` を有る扱いにし、SPIR-V から ClipDistance を消す (`:346`、`spirv_patcher.cpp` の `remove_ClipDistance`) | clip plane は効かなくなる (描画が少し違うが、動く) | 全世代 (推定) | レイヤー | 中 |
-| A3 `fillModeNonSolid`・`depthClamp`・`depthBiasClamp`・`multiViewport` を有る扱いにする (`:327-331`) | 偽装だけ。使われると結果が違う | 古いドライバー (推定) | レイヤー | 小 |
-| A4 `VK_EXT_robustness2` (`robustBufferAccess2`・`nullDescriptor`) を有る扱いにする (`:488`、DXVK・vkd3d のときだけ) | 中身は偽装だけで、null descriptor の扱いはドライバーまかせ | robustness2 の無いドライバー | レイヤー | 小 (ただし危険) |
-| A5 `extendedDynamicState`・`extendedDynamicState2`・`dualSrcBlend`・`multiDrawIndirect` を有る扱いにする (`:496`) | EDS は `wrapper_core13.c` で、pipeline を作り直してエミュレーションする | 全世代 (ARM の公式ドライバー) | レイヤー | 大 |
-| A6 `VK_EXT_calibrated_timestamps` を隠す (`:519`) | ドライバーの不具合を避ける | ARM の公式ドライバー全般 | レイヤー、または `VK_EXT_calibrated_timestamps` を使う側 | 小 |
-| A7 DXVK・vkd3d 以外 (zink など) では EDS・EDS2 を隠す (`:522`) | ドライバーの EDS の不具合を避ける | ARM の公式ドライバー全般 | zink の側 (`zink_screen.c` のドライバーごとの回避策)、またはレイヤー | 小 |
-| A8 compute だけの queue family を隠す (DXVK のとき、`:553`) | DXVK が非同期の compute を使わないようにする | 全世代 (推定) | レイヤー | 小 |
+| A1 `textureCompressionBC` を常に有る扱いにする (`:344`) | BC の画像は B1 で作り直す | 全世代 (Mali には BC のハードウェアが無い) | shim (3 章の 1) | B1 と組で大 |
+| A2 `shaderClipDistance`・`shaderCullDistance` を有る扱いにし、SPIR-V から ClipDistance を消す (`:346`、`spirv_patcher.cpp` の `remove_ClipDistance`) | clip plane は効かなくなる (描画が少し違うが、動く) | 全世代 (推定) | shim | 中 |
+| A3 `fillModeNonSolid`・`depthClamp`・`depthBiasClamp`・`multiViewport` を有る扱いにする (`:327-331`) | 偽装だけ。使われると結果が違う | 古いドライバー (推定) | shim | 小 |
+| A4 `VK_EXT_robustness2` (`robustBufferAccess2`・`nullDescriptor`) を有る扱いにする (`:488`、DXVK・vkd3d のときだけ) | 中身は偽装だけで、null descriptor の扱いはドライバーまかせ | robustness2 の無いドライバー | shim | 小 (ただし危険) |
+| A5 `extendedDynamicState`・`extendedDynamicState2`・`dualSrcBlend`・`multiDrawIndirect` を有る扱いにする (`:496`) | EDS は `wrapper_core13.c` で、pipeline を作り直してエミュレーションする | 全世代 (ARM の公式ドライバー) | shim | 大 |
+| A6 `VK_EXT_calibrated_timestamps` を隠す (`:519`) | ドライバーの不具合を避ける | ARM の公式ドライバー全般 | shim | 小 |
+| A7 DXVK・vkd3d 以外 (zink など) では EDS・EDS2 を隠す (`:522`) | ドライバーの EDS の不具合を避ける | ARM の公式ドライバー全般 | zink (`zink-patches/0003`)。DXVK・vkd3d では有効のまま | 小 |
+| A8 compute だけの queue family を隠す (DXVK のとき、`:553`) | DXVK が非同期の compute を使わないようにする | 全世代 (推定) | shim | 小 |
 
 ### B. 足りない機能のエミュレーション
 
 | 回避策 | 中身 | 効く Mali | Hangover のどこ | 手間 |
 |---|---|---|---|---|
-| B1 BCn の変換 (`WRAPPER_EMULATE_BCN`、`wrapper_bcn_gpu.c` ほか) | BC1–7 を GPU の compute で ASTC か RGBA8 に変換する。変換したものはディスクに保存できる (`WRAPPER_USE_BCN_CACHE`)。WinlatorMali は、これとは別の leegao の BCn layer (`VK_LAYER_BCN_BCnLayer`) を既定で使う | 全世代 | レイヤー | 大 (ソースは MIT で、astcenc の Apache-2.0 も含む) |
-| B2 `VK_KHR_push_descriptor` (`wrapper_device.c:1269` 付近) | 普通の descriptor set に置き換える | r44 など、無いドライバー | レイヤー | 中 |
-| B3 vertex attribute divisor (`wrapper_divisor.c`) | 無いドライバーでは shader の中で計算する。0 の divisor も補う | r44 (どちらも無い)。r51 は KHR があり、0 の divisor だけ補う | レイヤー | 大 |
-| B4 `VK_KHR_maintenance5` (DXVK・vkd3d のとき、`:563`) | entrypoint を wrapper が実装する | 無いドライバー | レイヤー | 中 |
-| B5 `hostQueryReset` (`:454`) | command buffer で reset する | 無いドライバー | レイヤー | 小〜中 |
-| B6 Vulkan 1.3 に見せる (`wrapper_core13.c`、`WRAPPER_EMULATE_VULKAN_1_3`) | SPIR-V 1.6 を 1.3 に下げる。demote もここで下げる (`wrapper_spirv_lower.c`) | Vulkan 1.1 / 1.2 のドライバー (Bifrost と古い Valhall、推定) | レイヤー | 大 |
-| B7 descriptor set を 8 個に見せる (`wrapper_set_fold.c`、vkd3d のとき) | bindless の set をたたむ | `maxBoundDescriptorSets` が 8 未満のドライバー | レイヤー | 大 |
-| B8 `VK_EXT_map_memory_placed` (`wrapper_device_memory.c:537-840`) | host visible なメモリーを dma-buf heap か AHardwareBuffer から取り、ドライバーに import して、指定の番地に `mmap` する | placed map の無い全ドライバー | Wine (win32u) か、レイヤー | 大 |
-| B9 SPIR-V の `OpConstantComposite` を `OpSpecConstantComposite` に直す (`spirv_patcher.cpp`) | bool のベクトルで、成分が全部 spec constant のもの。ARM の公式ドライバーのときだけ (`wrapper_patches_spirv()`) | ARM の公式ドライバー全般 | レイヤー (A2 と同じ所) | 小 |
+| B1 BCn の変換 (`WRAPPER_EMULATE_BCN`、`wrapper_bcn_gpu.c` ほか) | BC1–7 を GPU の compute で ASTC か RGBA8 に変換する。変換したものはディスクに保存できる (`WRAPPER_USE_BCN_CACHE`)。WinlatorMali は、これとは別の leegao の BCn layer (`VK_LAYER_BCN_BCnLayer`) を既定で使う | 全世代 | shim | 大 (ソースは MIT で、astcenc の Apache-2.0 も含む) |
+| B2 `VK_KHR_push_descriptor` (`wrapper_device.c:1269` 付近) | 普通の descriptor set に置き換える | r44 など、無いドライバー | shim | 中 |
+| B3 vertex attribute divisor (`wrapper_divisor.c`) | 無いドライバーでは shader の中で計算する。0 の divisor も補う | r44 (どちらも無い)。r51 は KHR があり、0 の divisor だけ補う | shim | 大 |
+| B4 `VK_KHR_maintenance5` (DXVK・vkd3d のとき、`:563`) | entrypoint を wrapper が実装する | 無いドライバー | shim | 中 |
+| B5 `hostQueryReset` (`:454`) | command buffer で reset する | 無いドライバー | shim | 小〜中 |
+| B6 Vulkan 1.3 に見せる (`wrapper_core13.c`、`WRAPPER_EMULATE_VULKAN_1_3`) | SPIR-V 1.6 を 1.3 に下げる。demote もここで下げる (`wrapper_spirv_lower.c`) | Vulkan 1.1 / 1.2 のドライバー (Bifrost と古い Valhall、推定) | shim | 大 |
+| B7 descriptor set を 8 個に見せる (`wrapper_set_fold.c`、vkd3d のとき) | bindless の set をたたむ | `maxBoundDescriptorSets` が 8 未満のドライバー | shim | 大 |
+| B8 `VK_EXT_map_memory_placed` (`wrapper_device_memory.c:537-840`) | host visible なメモリーを dma-buf heap か AHardwareBuffer から取り、ドライバーに import して、指定の番地に `mmap` する | placed map の無い全ドライバー | shim か Wine (win32u) | 大 |
+| B9 SPIR-V の `OpConstantComposite` を `OpSpecConstantComposite` に直す (`spirv_patcher.cpp`) | bool のベクトルで、成分が全部 spec constant のもの。ARM の公式ドライバーのときだけ (`wrapper_patches_spirv()`) | ARM の公式ドライバー全般 | shim (A2 と同じ所) | 小 |
 
 B8 は、Hangover の **32 ビットのゲーム (WoW64)** に直接効きます。
 
@@ -126,9 +138,9 @@ B8 は、Hangover の **32 ビットのゲーム (WoW64)** に直接効きます
 | C3 `opengl32` を native にしない | `WineUtils.java:91` | Mali では、ARM64EC 向けの opengl32 (zink) を使わない | zink を Mali で使うかどうかの判断材料 | 小 |
 | C4 Mali の GPU 使用率と周波数 | `MaliGpuCounters.java`、`mali_counters.cpp` | `/sys/class/misc/mali0/device/utilization` などを読む | HUD を作るなら | 小 |
 
-**`dxvk.conf` の注意**: 今の DXVK (2026-10-28) と 1.10.3 の両方で、ソースに項目があるかを確かめました。
+**`dxvk.conf` の注意**: DXVK 3.1.1・最新の master・1.10.3 のソースに、項目があるかを確かめました。3.1.1 と master の結果は同じです。
 
-| 項目 | DXVK 1.10.3 | DXVK (最新) |
+| 項目 | DXVK 1.10.3 | DXVK 3.1.1 |
 |---|---|---|
 | `d3d11.relaxedBarriers` | ある | ある |
 | `d3d11.ignoreGraphicsBarriers` | ある | ない (今は `d3d11.relaxedGraphicsBarriers`) |
@@ -136,30 +148,41 @@ B8 は、Hangover の **32 ビットのゲーム (WoW64)** に直接効きます
 
 - 無い項目は、黙って無視されます。WinlatorMali が同梱する DXVK の fork (sarek・async) にあるのかもしれません。
 - `relaxedBarriers` は、描画が壊れることのある、ゲームごとの回避策です。既定にはしない方がよいです。
-- DXVK の最新は、ARM の公式ドライバーで `dxvk.tilerMode` を自動で有効にします (`dxvk_device.cpp:723-737`)。Mali 向けに足すものは、ほとんどありません。
+- DXVK 3.1.1 は、ARM の公式ドライバーで `dxvk.tilerMode` を自動で有効にします (master では `dxvk_device.cpp:723-737`)。Mali 向けに足すものは、ほとんどありません。
 
 ## 3. Hangover のどこに入れるか
 
-Hangover の Vulkan は、Wine の win32u が `dlopen(SONAME_LIBVULKAN)` で読む `libvulkan.so` (`dlls/win32u/vulkan.c:3133`) を通って、端末のドライバーに届きます。回避策を入れる所は、次の 3 つが考えられます。
+Hangover の Vulkan の経路は次のとおりです。
 
-1. **wrapper の ICD を、そのまま使う**
+- **Wine:** win32u が `dlopen(SONAME_LIBVULKAN)` (`dlls/win32u/vulkan.c:3133`) で `libvulkan.so` を読みます。それが Android の Vulkan ローダーで、端末のドライバーに届きます。
+- **zink:** Android のローダーを使うか、`ZINK_VULKAN_LIBRARY` で指定したライブラリーを使います。
+
+回避策を入れる所は、次の 3 つが考えられます。
+
+1. **Mali 用の shim を作る** (おすすめ)
+   - Turnip の shim (`app/turnip/vulkan_turnip.c`) と同じように、`vkGetInstanceProcAddr` などを出す 1 つの `.so` を作ります。
+   - shim は中で `/system/lib64/libvulkan.so` (Android のローダー) を `dlopen` します。必要な関数だけを横取りし、残りはそのまま渡します。作りは Vulkan のレイヤーと同じです。
+   - shim が行うこと:
+     - 機能と拡張の偽装 (A): `vkGetPhysicalDeviceFeatures2`、`vkEnumerateDeviceExtensionProperties`、`vkCreateDevice` (偽装した機能と拡張を、ドライバーに渡す前に外す)
+     - SPIR-V の書き換え (A2・B9): `vkCreateShaderModule`。pipeline の中に直接書かれた shader も
+   - 表示は Android のローダーとドライバーにそのまま渡すので、`VK_KHR_android_surface` の問題が起きません。
+   - **使う側:**
+     - Wine: Hangover の Wine の `SONAME_LIBVULKAN` を、この shim に向けます。または Mali のときだけ、shim を先に読むようにします。
+     - zink: `ZINK_VULKAN_LIBRARY` に shim を指定すれば、そのまま使えます。zink 向けには A6・A7 だけを有効にします。
+   - **Android のローダーの implicit layer は使えません。** Android のローダーがアプリの中のレイヤーを読むのは、アプリが debuggable のときか、開発者向けの設定 (`enable_gpu_debug_layers`) があるときだけです。wrapper は `libgraphicsenv.so` の非公開の関数でレイヤーの場所を書き換えています (`graphicsenv_hook.cpp`) が、壊れやすいやり方です。shim なら、どちらも要りません。
+   - 必要な回避策だけを、wrapper のソース (MIT) から移せます。
+   - 手間: 最初の版 (A2・A3・A4・A6・A8・B9) は中。B1 (BCn) と B2・B3 を足すと大です。
+2. **wrapper の ICD を、そのまま使う**
    - Khronos の Vulkan loader を bionic 向けに作って同梱します。win32u が読む `libvulkan.so` をその loader にし、`VK_DRIVER_FILES` で wrapper の ICD を指します。WinlatorMali と GameNative はこの形です。
    - 利点: A・B の回避策が全部、すぐに手に入ります。
-   - 欠点: 上に書いたとおり、wrapper の WSI には Android の面がありません。Hangover の wineandroid.drv が作る `VkAndroidSurfaceKHR` を表示するには、次のどちらかが要ります。
-     - wrapper に、表示をドライバーへそのまま渡す経路を足す
-     - Hangover の表示を、wrapper の扱える方式 (AHardwareBuffer を表示サーバーに渡す方式) に合わせる
-   - 手間: 大。NDK で Mesa の wrapper を作る手間も加わります (GameNative の `gamenative-ci` ブランチにビルドの手順があります)。
-2. **Mali 用の Vulkan のレイヤーを作る** (おすすめ)
-   - Khronos の loader と、Hangover 専用の implicit layer を同梱します。layer は機能の偽装 (A) と SPIR-V の書き換え (A2・B9) を行い、WSI はドライバーにそのまま渡します。
-   - leegao の BCn layer も同じ作りです (`VK_LAYER_BCN_BCnLayer`)。
-   - 利点: 表示の問題が起きません。必要な回避策だけを、wrapper のソース (MIT) から移せます。
-   - 手間: 最初の版 (A2・A3・A4・A6・A8・B9) は中。B1 (BCn) と B2・B3 を足すと大です。
+   - 欠点: wrapper の WSI に Android の面がありません。Hangover の `ANativeWindow` の面を表示するには、wrapper に表示をドライバーへそのまま渡す経路を足す必要があります。
+   - 手間: 大。NDK で Mesa の wrapper を作る手間も加わります (GameNative の `gamenative-ci` ブランチにビルドの手順があります)。Hangover の Mesa 26.2.5 とは別の Mesa (GameNative の fork) を、もう 1 つ持つことにもなります。
 3. **Wine (win32u) に入れる**
    - win32u は、すでに物理デバイスの拡張を選び直しています。偽装はここでもできます。
    - B8 (placed map) は、win32u の `vkMapMemory2KHR` と `vkAllocateMemory` に入れる手もあります。
-   - ただし、上流の Wine には入りません。Hangover の Wine にだけ持つパッチになります。手間は中〜大です。
+   - ただし、上流の Wine には入りません。Hangover の Wine にだけ持つパッチになります。zink には効きません。手間は中〜大です。
 
-**zink の修正 (A7 と `zink-patches/`)** は、Hangover が作る Mesa の zink に、直接当てます。
+**zink の修正 (`zink-patches/`)** は、Hangover の Mesa 26.2.5 に直接当てます。
 
 ## 4. ライセンス
 
@@ -179,22 +202,31 @@ Hangover の Vulkan は、Wine の win32u が `dlopen(SONAME_LIBVULKAN)` で読�
 
 ## 5. パッチの案: zink (`zink-patches/`)
 
-上流の Mesa main (`4b0d67e`、2026-10-29、27.0.0-devel) に向けた 2 本です。`git am` で当たります。Mesa 26.2.6 にも、`git apply --check` で当たることを確かめました。
+3 本あります。`git am` で、**Mesa 26.2.5** (`ddaf85e3`、Hangover の土台) と、**上流の main** (`4b0d67e`、2026-10-29、27.0.0-devel) の両方に当たります。Mesa 26.2.6 にも `git apply --check` で当たりました。
 
-| パッチ | 内容 | 効く Mali |
-|---|---|---|
-| 0001 `zink: only use the Vulkan memory model when the feature is supported` | Vulkan 1.3 より前は、`vulkanMemoryModel` は任意の機能です。拡張があるかではなく、機能があるかで、SPIR-V にメモリーモデルを書くかを決めます。`zink_device_info.py` に機能の構造体を足します。Vulkan 1.2 の core の場合は、生成されるコードが `feats12` から写します (生成された `zink_device_info.c:1208` で確かめました) | Vulkan 1.1 / 1.2 のドライバー、または機能を持たないドライバー |
-| 0002 `zink: don't use conditional rendering buffer usage without the extension` | `VK_EXT_conditional_rendering` が無いのに、query buffer に `VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT` を付けていたのをやめます。仕様違反です。ドライバーによってはバッファーを作れません | conditional rendering の無いドライバー (Mali の公式ドライバーには無いと思います) |
+| パッチ | 内容 | 効く Mali | 上流に出せるか |
+|---|---|---|---|
+| 0001 `zink: only use the Vulkan memory model when the feature is supported` | Vulkan 1.3 より前は、`vulkanMemoryModel` は任意の機能です。拡張があるかではなく、機能があるかで、SPIR-V にメモリーモデルを書くかを決めます。`zink_device_info.py` に機能の構造体を足します。Vulkan 1.2 の core の場合は、生成されるコードが `feats12` から写します (26.2.5 で生成された `zink_device_info.c:1160` で確かめました) | Vulkan 1.1 / 1.2 のドライバー、または機能を持たないドライバー | 出せます (仕様どおりにする修正) |
+| 0002 `zink: don't use conditional rendering buffer usage without the extension` | `VK_EXT_conditional_rendering` が無いのに、query buffer に `VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT` を付けていたのをやめます。仕様違反です。ドライバーによってはバッファーを作れません | conditional rendering の無いドライバー (Mali の公式ドライバーには無いと思います) | 出せます |
+| 0003 `zink: don't use extended dynamic state on the ARM proprietary driver` | A7 です。ARM の公式ドライバーでは EDS1 を使いません。EDS1 を止めると、zink の既存の処理で EDS2・EDS3・color write enable・vertex input dynamic state も止まります。AMD の公式ドライバーで EDS2 を止めているのと同じ所に入れました | ARM の公式ドライバー全般 (wrapper の判断) | 根拠が wrapper の判断だけなので、端末で効果を確かめるまでは Hangover だけに持つ方がよいです |
 
-確かめたこと:
+**Hangover の改変 7 本との重なり:** 改変の中身はいただいた説明でしか分からないので、当たりは確かめられていません。
 
-- PC (Linux) で、zink だけの Mesa を meson で作りました。2 本を当てた `libzink.a` が、警告 0 でコンパイルできました ([libzink-build.log](zink-patches/libzink-build.log))。
-- 確かめられなかったこと:
+- 0001 は、`zink_compiler.c` の `ntv_info` の設定 1 行と、`zink_device_info.py` の 1 行を変えます。Hangover の「欠けた入力の deref の読み込みを 0 に」と同じファイルですが、場所は違うはずです。
+- 0002 は、`zink_resource.c` の `create_bci()` だけです。
+- 0003 は、`zink_screen.c` の EDS の判定の所です。
+- `ZINK_VULKAN_LIBRARY` の改変が `zink_screen.c` のローダーの所を変えていても、0003 とは離れているはずです。
+
+**確かめたこと:**
+
+- PC (Linux) で、zink だけの Mesa 26.2.5 を meson で作りました。3 本を当てた `libzink.a` が、警告 0 でコンパイルできました ([libzink-build-26.2.5.log](zink-patches/libzink-build-26.2.5.log))。
+- 上流の main でも、0001・0002 を当てた `libzink.a` が警告 0 でコンパイルできました ([libzink-build.log](zink-patches/libzink-build.log))。
+- **確かめられなかったこと:**
   - Mesa 全体 (libGL まで) のビルドと、lavapipe での実行。この環境の自動の許可判定で止められました。
-  - ただし lavapipe は 2 つの機能を両方持っているので、動かせても、変えた分岐は通りません。
+  - ただし lavapipe は ARM のドライバーではなく、0001・0002 の 2 つの機能も持っています。動かせても、変えた分岐は通りません。
   - Mali の端末でも試していません。
 
-Pipetto-crypto の 3 つ目の修正 (Mali で、入出力をスカラーに分けない) は入れていません。上流の今の zink では、スカラーに分けるのは clip distance と tess level だけになっています (`zink_compiler.c:5802-5808`)。
+Pipetto-crypto の 3 つ目の修正 (Mali で、入出力をスカラーに分けない) は入れていません。26.2.5 の zink でも、スカラーに分けるのは clip distance と tess level だけになっています (`zink_compiler.c:5662-5668`)。Pipetto-crypto が直した Mesa 24.3 では、入出力を全部スカラーに分けていました。
 
 ## 6. おすすめの順
 
@@ -203,17 +235,18 @@ Pipetto-crypto の 3 つ目の修正 (Mali で、入出力をスカラーに分�
    - `VK_EXT_robustness2`、`VK_KHR_push_descriptor`、`VK_KHR_maintenance5`、`VK_KHR_maintenance6`
    - `VK_EXT_map_memory_placed`、`VK_EXT_external_memory_host`
    - `apiVersion`、`maxBoundDescriptorSets`、`maxPushConstantsSize`
-2. **zink のパッチ (5 章)** と A7 (Mali では EDS を使わない) を、Hangover の Mesa に入れる。手間は小です。
+2. **zink のパッチ (5 章)** を、Hangover の Mesa 26.2.5 に入れる。0001・0002 は上流にも出せます。手間は小です。
 3. **`dxvk.conf` を見直す。** 今ある項目だけにします。手間は小です。
-4. **Mali 用の Vulkan のレイヤーを作る (3 章の 2)。** まず A2・A3・A4・A6・A8・B9 を入れます。これで DXVK 1.10 は、BCn を使わないゲームなら動き始めるはずです。
-5. **B1 (BCn) をレイヤーに移す。** ほとんどの D3D のゲームに要ります。
+4. **Mali 用の shim を作る (3 章の 1)。** まず A2・A3・A4・A6・A8・B9 を入れます。これで DXVK 1.10 は、BCn を使わないゲームなら動き始めるはずです。
+5. **B1 (BCn) を shim に移す。** ほとんどの D3D のゲームに要ります。
 6. 最新の DXVK と VKD3D-Proton を使うなら、ドライバーの版によって、B2・B3・B4・B5・B6・B7 も要ります。32 ビットのゲームには B8 も要ります。手間は大です。
 
 ## 7. 確かめていないこと
 
 - 端末では、何も試していません。どの Mali が何を持たないかは、wrapper の注釈と私の知識からの推定です。
 - WinlatorMali 同梱の wrapper のバイナリーが、GameNative の Mesa のどのコミットから作られたかは分かりません。環境変数の一覧から見ると、最新より前の版です。
-- Hangover の Vulkan の読み込み方 (Android の loader を使っているか、自前で持っているか) は、Hangover のソースが手元に無いので、Wine の上流のコードから推定しました。
+- Hangover のソース (Mesa の改変 7 本、DXVK の改変、wineandroid.drv、`vulkan_turnip.c`) は手元に無いので、いただいた説明をもとに書きました。パッチが Hangover の改変と重ならないかは、Hangover の Mesa に当てて確かめてください。
+- VKD3D-Proton の `0802ee0` は見つからなかったので、`v3.1` と master で代えました。
 
 ## 調べたソース
 
@@ -223,7 +256,7 @@ Pipetto-crypto の 3 つ目の修正 (Mali で、入出力をスカラーに分�
 | GameNative/mesa の `wrapper-25` | `6bcfbaa` (2026-10-27)。`zink-kopper-mali-24.3` も |
 | leegao/bionic-vulkan-wrapper | `3abf487` |
 | xMeM/mesa の `wrapper` | `e65c7eb` (元祖。Mali 向けの回避策はありません) |
-| DXVK | `0cfe089` (2026-10-28) と `v1.10.3` |
-| VKD3D-Proton | `4522cc1` (2026-10-28) |
-| Mesa | `4b0d67e` (2026-10-29) |
+| DXVK | `v3.1.1` (`b1a1c99`、2026-09-15)、master `0cfe089` (2026-10-28)、`v1.10.3` |
+| VKD3D-Proton | `v3.1` と master `4522cc1` (2026-10-28)。`0802ee0` は見つからず |
+| Mesa | `mesa-26.2.5` (`ddaf85e3`)、main `4b0d67e` (2026-10-29)、`mesa-26.2.6` |
 | Wine | 11.20 (`dlls/win32u/vulkan.c`) |

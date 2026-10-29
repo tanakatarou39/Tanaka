@@ -1,0 +1,35 @@
+From 4f034f9f47921ee24760aad56307552a230c5794 Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Thu, 29 Oct 2026 12:35:33 +0000
+Subject: [PATCH] zink: don't use extended dynamic state on the ARM proprietary
+ driver
+
+The Vulkan wrapper used by Winlator and GameNative on Mali hides
+VK_EXT_extended_dynamic_state and VK_EXT_extended_dynamic_state2 from
+everything but DXVK and vkd3d-proton because of driver bugs. Do the same
+in zink. Disabling EDS1 also disables EDS2, EDS3, color write enable and
+vertex input dynamic state.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ src/gallium/drivers/zink/zink_screen.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/gallium/drivers/zink/zink_screen.c b/src/gallium/drivers/zink/zink_screen.c
+index 7efcbaa0..6d2cfb8e 100644
+--- a/src/gallium/drivers/zink/zink_screen.c
++++ b/src/gallium/drivers/zink/zink_screen.c
+@@ -2936,6 +2936,9 @@ init_driver_workarounds(struct zink_screen *screen)
+    if (screen->info.props.limits.maxBoundDescriptorSets < ZINK_DESCRIPTOR_ALL_TYPES ||
+        zink_debug & (ZINK_DEBUG_COMPACT | ZINK_DEBUG_NOSHOBJ))
+       screen->info.have_EXT_shader_object = false;
++   if (zink_driverid(screen) == VK_DRIVER_ID_ARM_PROPRIETARY)
++      /* dynamic state is unreliable on the ARM proprietary driver */
++      screen->info.have_EXT_extended_dynamic_state = false;
+    /* EDS2 is only used with EDS1 */
+    if (!screen->info.have_EXT_extended_dynamic_state) {
+       screen->info.have_EXT_extended_dynamic_state2 = false;
+-- 
+2.43.0
+
