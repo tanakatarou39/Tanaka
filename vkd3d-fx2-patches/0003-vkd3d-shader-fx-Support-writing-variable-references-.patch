@@ -1,7 +1,7 @@
-From 7f512e31ad729251b45bea0780d1839b3e254e22 Mon Sep 17 00:00:00 2001
+From f0d909b36e0c025d6fe2dfe7f26c11cb577bef7f Mon Sep 17 00:00:00 2001
 From: chatgptyukkuri <chatgptyukkuri@gmail.com>
 Date: Wed, 28 Oct 2026 03:20:08 +0000
-Subject: [PATCH 3/9] vkd3d-shader/fx: Support writing variable references in
+Subject: [PATCH 03/14] vkd3d-shader/fx: Support writing variable references in
  fx_2_0 state assignments.
 
 Referenced parameters are stored in the resources section by name, including

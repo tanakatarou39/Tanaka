@@ -1,7 +1,7 @@
-From 4cdc1e02b4764516aaec70dda783e423d05f4397 Mon Sep 17 00:00:00 2001
+From 4cb2ebf6d4e900626a3654374aa0143d6244cb92 Mon Sep 17 00:00:00 2001
 From: chatgptyukkuri <chatgptyukkuri@gmail.com>
 Date: Wed, 28 Oct 2026 03:32:57 +0000
-Subject: [PATCH 7/9] vkd3d-shader/fx: Add the "cmp" fxlc opcode name.
+Subject: [PATCH 07/14] vkd3d-shader/fx: Add the "cmp" fxlc opcode name.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z

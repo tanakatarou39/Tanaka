@@ -1,0 +1,371 @@
+From c38baf58fe22529a0e7856afea133a0da173b509 Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Thu, 29 Oct 2026 11:51:07 +0000
+Subject: [PATCH 11/14] vkd3d-shader/fx: Support temporary variables in fx_2_0
+ state expressions.
+
+Constructors and the lowering passes store the components of a value to
+temporary variables. Only the instructions which the value depends on are
+written, since the constant passes leave stores that are not used anymore.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ libs/vkd3d-shader/fx.c                        | 249 +++++++++++++++++-
+ .../hlsl/effect-assignments-fx_2.shader_test  |  13 +
+ 2 files changed, 251 insertions(+), 11 deletions(-)
+
+diff --git a/libs/vkd3d-shader/fx.c b/libs/vkd3d-shader/fx.c
+index d34917d5..a175095d 100644
+--- a/libs/vkd3d-shader/fx.c
++++ b/libs/vkd3d-shader/fx.c
+@@ -2434,6 +2434,13 @@ struct fxlc_value
+     struct fxlc_operand *components;
+ };
+ 
++/* The current value of a temporary variable. */
++struct fxlc_variable
++{
++    const struct hlsl_ir_var *var;
++    struct fxlc_operand *components;
++};
++
+ struct fxlc_input
+ {
+     const struct hlsl_ir_var *var;
+@@ -2463,6 +2470,18 @@ struct fxlc_writer
+     size_t values_capacity;
+     size_t value_count;
+ 
++    struct fxlc_variable *variables;
++    size_t variables_capacity;
++    size_t variable_count;
++
++    /* The instructions and variables which the value depends on. */
++    const struct hlsl_ir_node **live_instrs;
++    size_t live_instrs_capacity;
++    size_t live_instr_count;
++    const struct hlsl_ir_var **live_vars;
++    size_t live_vars_capacity;
++    size_t live_var_count;
++
+     uint32_t temp_count;
+     bool failed;
+ };
+@@ -2687,6 +2706,137 @@ static struct fxlc_operand fxlc_get_contiguous_operand(struct fxlc_writer *write
+     return tmp[0];
+ }
+ 
++static bool fxlc_is_live_instr(const struct fxlc_writer *writer, const struct hlsl_ir_node *instr)
++{
++    for (size_t i = 0; i < writer->live_instr_count; ++i)
++    {
++        if (writer->live_instrs[i] == instr)
++            return true;
++    }
++    return false;
++}
++
++static bool fxlc_is_live_var(const struct fxlc_writer *writer, const struct hlsl_ir_var *var)
++{
++    for (size_t i = 0; i < writer->live_var_count; ++i)
++    {
++        if (writer->live_vars[i] == var)
++            return true;
++    }
++    return false;
++}
++
++static void fxlc_mark_live_instr(struct fxlc_writer *writer, const struct hlsl_ir_node *instr)
++{
++    if (fxlc_is_live_instr(writer, instr))
++        return;
++
++    if (!hlsl_array_reserve(writer->fx->ctx, (void **)&writer->live_instrs, &writer->live_instrs_capacity,
++            writer->live_instr_count + 1, sizeof(*writer->live_instrs)))
++    {
++        writer->failed = true;
++        return;
++    }
++    writer->live_instrs[writer->live_instr_count++] = instr;
++}
++
++static void fxlc_mark_live_var(struct fxlc_writer *writer, const struct hlsl_ir_var *var)
++{
++    if (fxlc_is_live_var(writer, var))
++        return;
++
++    if (!hlsl_array_reserve(writer->fx->ctx, (void **)&writer->live_vars, &writer->live_vars_capacity,
++            writer->live_var_count + 1, sizeof(*writer->live_vars)))
++    {
++        writer->failed = true;
++        return;
++    }
++    writer->live_vars[writer->live_var_count++] = var;
++}
++
++/* Finds the instructions which the value depends on, so that unused results
++ * of the constant folding passes are not written. Stores to a variable are
++ * assumed to be used by any following load from it. */
++static void fxlc_compute_liveness(struct fxlc_writer *writer, const struct hlsl_block *block,
++        const struct hlsl_ir_node *value)
++{
++    const struct hlsl_ir_node *instr;
++    unsigned int i;
++
++    fxlc_mark_live_instr(writer, value);
++
++    LIST_FOR_EACH_ENTRY_REV(instr, &block->instrs, const struct hlsl_ir_node, entry)
++    {
++        if (instr->type == HLSL_IR_STORE)
++        {
++            const struct hlsl_ir_store *store = hlsl_ir_store(instr);
++
++            if (fxlc_is_live_var(writer, store->lhs.var))
++            {
++                fxlc_mark_live_instr(writer, instr);
++                fxlc_mark_live_instr(writer, store->rhs.node);
++            }
++            continue;
++        }
++
++        if (!fxlc_is_live_instr(writer, instr))
++            continue;
++
++        switch (instr->type)
++        {
++            case HLSL_IR_EXPR:
++            {
++                const struct hlsl_ir_expr *expr = hlsl_ir_expr(instr);
++
++                for (i = 0; i < ARRAY_SIZE(expr->operands) && expr->operands[i].node; ++i)
++                    fxlc_mark_live_instr(writer, expr->operands[i].node);
++                break;
++            }
++
++            case HLSL_IR_LOAD:
++                if (!hlsl_ir_load(instr)->src.var->is_uniform)
++                    fxlc_mark_live_var(writer, hlsl_ir_load(instr)->src.var);
++                break;
++
++            case HLSL_IR_SWIZZLE:
++                fxlc_mark_live_instr(writer, hlsl_ir_swizzle(instr)->val.node);
++                break;
++
++            default:
++                break;
++        }
++    }
++}
++
++static struct fxlc_operand *fxlc_get_variable(struct fxlc_writer *writer, const struct hlsl_ir_var *var)
++{
++    struct fxlc_variable *variable;
++
++    for (size_t i = 0; i < writer->variable_count; ++i)
++    {
++        if (writer->variables[i].var == var)
++            return writer->variables[i].components;
++    }
++
++    if (!hlsl_array_reserve(writer->fx->ctx, (void **)&writer->variables, &writer->variables_capacity,
++            writer->variable_count + 1, sizeof(*writer->variables)))
++    {
++        writer->failed = true;
++        return NULL;
++    }
++    variable = &writer->variables[writer->variable_count];
++    /* Components which were not written are marked with FX_FXLC_REG_UNUSED. */
++    if (!(variable->components = hlsl_calloc(writer->fx->ctx, hlsl_type_component_count(var->data_type),
++            sizeof(*variable->components))))
++    {
++        writer->failed = true;
++        return NULL;
++    }
++    variable->var = var;
++    ++writer->variable_count;
++    return variable->components;
++}
++
+ static void fxlc_write_constant(struct fxlc_writer *writer, const struct hlsl_ir_constant *constant)
+ {
+     const struct hlsl_type *type = constant->node.data_type;
+@@ -2726,21 +2876,78 @@ static void fxlc_write_constant(struct fxlc_writer *writer, const struct hlsl_ir
+ 
+ static void fxlc_write_load(struct fxlc_writer *writer, const struct hlsl_ir_load *load)
+ {
++    unsigned int i, start, count, comp_count = hlsl_type_component_count(load->node.data_type);
+     const struct hlsl_ir_var *var = load->src.var;
++    const struct fxlc_operand *variable;
+     const struct fxlc_input *input;
+     struct fxlc_operand *components;
+-    unsigned int i;
+ 
+-    if (!var->is_uniform || load->src.path_len || var->data_type->class > HLSL_CLASS_VECTOR)
++    if (!hlsl_is_numeric_type(load->node.data_type)
++            || !hlsl_component_index_range_from_deref(writer->fx->ctx, &load->src, &start, &count))
+     {
+         fxlc_fixme(writer, "Unhandled load of variable \"%s\" in a state expression.", var->name);
+         return;
+     }
++    VKD3D_ASSERT(count == comp_count);
++
++    if (var->is_uniform)
++    {
++        if (var->data_type->class > HLSL_CLASS_VECTOR)
++        {
++            fxlc_fixme(writer, "Unhandled load of variable \"%s\" in a state expression.", var->name);
++            return;
++        }
++
++        if (!(input = fxlc_get_input(writer, var)) || !(components = fxlc_add_value(writer, &load->node)))
++            return;
++        for (i = 0; i < comp_count; ++i)
++            components[i] = fxlc_get_input_component(input, start + i);
++        return;
++    }
++
++    if (!(variable = fxlc_get_variable(writer, var)))
++        return;
++    for (i = 0; i < comp_count; ++i)
++    {
++        if (variable[start + i].table == FX_FXLC_REG_UNUSED)
++        {
++            fxlc_fixme(writer, "Load of uninitialized variable \"%s\" in a state expression.", var->name);
++            return;
++        }
++    }
++
++    if ((components = fxlc_add_value(writer, &load->node)))
++        memcpy(components, &variable[start], comp_count * sizeof(*components));
++}
++
++static void fxlc_write_store(struct fxlc_writer *writer, const struct hlsl_ir_store *store)
++{
++    const struct hlsl_ir_var *var = store->lhs.var;
++    unsigned int i, j, start, count;
++    const struct fxlc_operand *src;
++    struct fxlc_operand *dst;
++
++    if (var->is_uniform || !hlsl_component_index_range_from_deref(writer->fx->ctx, &store->lhs, &start, &count))
++    {
++        fxlc_fixme(writer, "Unhandled store to variable \"%s\" in a state expression.", var->name);
++        return;
++    }
+ 
+-    if (!(input = fxlc_get_input(writer, var)) || !(components = fxlc_add_value(writer, &load->node)))
++    if (!(src = fxlc_get_value(writer, store->rhs.node)) || !(dst = fxlc_get_variable(writer, var)))
+         return;
+-    for (i = 0; i < var->data_type->e.numeric.dimx; ++i)
+-        components[i] = fxlc_get_input_component(input, i);
++
++    if (store->writemask)
++    {
++        for (i = 0, j = 0; i < count; ++i)
++        {
++            if (store->writemask & (1u << i))
++                dst[start + i] = src[j++];
++        }
++    }
++    else
++    {
++        memcpy(&dst[start], src, count * sizeof(*dst));
++    }
+ }
+ 
+ static void fxlc_write_swizzle(struct fxlc_writer *writer, const struct hlsl_ir_swizzle *swizzle)
+@@ -3041,6 +3248,11 @@ static void fxlc_writer_cleanup(struct fxlc_writer *writer)
+     for (size_t i = 0; i < writer->value_count; ++i)
+         vkd3d_free(writer->values[i].components);
+     vkd3d_free(writer->values);
++    for (size_t i = 0; i < writer->variable_count; ++i)
++        vkd3d_free(writer->variables[i].components);
++    vkd3d_free(writer->variables);
++    vkd3d_free(writer->live_instrs);
++    vkd3d_free(writer->live_vars);
+     vkd3d_bytecode_buffer_cleanup(&writer->code);
+     vkd3d_free(writer->literals);
+     vkd3d_free(writer->inputs);
+@@ -3065,8 +3277,13 @@ static uint32_t write_fx_2_expression_assignment(const struct hlsl_ir_var *var,
+     }
+     comp_count = hlsl_type_component_count(value->data_type);
+ 
++    fxlc_compute_liveness(&writer, entry->instrs, value);
++
+     LIST_FOR_EACH_ENTRY(instr, &entry->instrs->instrs, struct hlsl_ir_node, entry)
+     {
++        if (!fxlc_is_live_instr(&writer, instr))
++            continue;
++
+         switch (instr->type)
+         {
+             case HLSL_IR_CONSTANT:
+@@ -3078,6 +3295,9 @@ static uint32_t write_fx_2_expression_assignment(const struct hlsl_ir_var *var,
+             case HLSL_IR_LOAD:
+                 fxlc_write_load(&writer, hlsl_ir_load(instr));
+                 break;
++            case HLSL_IR_STORE:
++                fxlc_write_store(&writer, hlsl_ir_store(instr));
++                break;
+             case HLSL_IR_SWIZZLE:
+                 fxlc_write_swizzle(&writer, hlsl_ir_swizzle(instr));
+                 break;
+@@ -3174,18 +3394,25 @@ static void write_fx_2_state_assignment(const struct hlsl_ir_var *var,
+         {
+             struct hlsl_ir_load *load = hlsl_ir_load(value_node);
+ 
+-            if (load->src.path_len)
++            if (load->src.var->is_uniform && !load->src.path_len)
++            {
++                value = write_fx_2_reference_assignment(var, load->src.var->data_type,
++                        load->src.var->name, &type, fx);
++            }
++            else if (hlsl_is_numeric_type(value_node->data_type))
++            {
++                /* For example, a load of a temporary variable holding the
++                 * result of a constructor. */
++                value = write_fx_2_expression_assignment(var, entry, &type, fx);
++            }
++            else if (load->src.path_len)
+             {
+                 hlsl_fixme(ctx, &var->loc, "Indexed access in RHS values is not implemented.");
+-                break;
+             }
+-            if (!load->src.var->is_uniform)
++            else
+             {
+                 hlsl_fixme(ctx, &var->loc, "Unsupported value for state %s.", entry->name);
+-                break;
+             }
+-            value = write_fx_2_reference_assignment(var, load->src.var->data_type,
+-                    load->src.var->name, &type, fx);
+             break;
+         }
+         case HLSL_IR_INDEX:
+diff --git a/tests/hlsl/effect-assignments-fx_2.shader_test b/tests/hlsl/effect-assignments-fx_2.shader_test
+index a9334912..5485c026 100644
+--- a/tests/hlsl/effect-assignments-fx_2.shader_test
++++ b/tests/hlsl/effect-assignments-fx_2.shader_test
+@@ -177,6 +177,19 @@ technique
+     }
+ }
+ 
++[effect]
++float density;
++float4 factor;
++
++technique
++{
++    pass
++    {
++        LightDiffuse[0] = float4(density, 1.0, 0.0, density * 2.0);
++        LightPosition[0] = float3(factor.xy, density);
++    }
++}
++
+ [effect todo]
+ float4x4 m;
+ 
+-- 
+2.43.0
+

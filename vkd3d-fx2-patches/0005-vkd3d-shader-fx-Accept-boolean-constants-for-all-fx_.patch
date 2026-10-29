@@ -1,8 +1,8 @@
-From 01c5e4cc6d1050e5ebc36d5f62e5f224f22637cc Mon Sep 17 00:00:00 2001
+From 3e5cc6097090785b29d3f044a7899ddde070d5fa Mon Sep 17 00:00:00 2001
 From: chatgptyukkuri <chatgptyukkuri@gmail.com>
 Date: Wed, 28 Oct 2026 03:24:01 +0000
-Subject: [PATCH 5/9] vkd3d-shader/fx: Accept boolean constants for all fx_2_0
- states.
+Subject: [PATCH 05/14] vkd3d-shader/fx: Accept boolean constants for all
+ fx_2_0 states.
 
 States like AlphaBlendEnable don't have named values, and states like ZEnable
 only have values that are not boolean, but TRUE and FALSE are commonly used

@@ -1,0 +1,103 @@
+From e0738d9c8431e6b4b464c2165bfe1a16e1fae4ad Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Thu, 29 Oct 2026 12:01:28 +0000
+Subject: [PATCH 13/14] vkd3d-shader/fx: Support casts from float to integer in
+ fx_2_0 state expressions.
+
+The fxlvm doesn't have a conversion instruction, values are rounded towards
+zero with "frc".
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ libs/vkd3d-shader/fx.c                        | 44 ++++++++++++++++++-
+ .../hlsl/effect-assignments-fx_2.shader_test  |  5 ++-
+ 2 files changed, 47 insertions(+), 2 deletions(-)
+
+diff --git a/libs/vkd3d-shader/fx.c b/libs/vkd3d-shader/fx.c
+index 6b5331bf..7988e404 100644
+--- a/libs/vkd3d-shader/fx.c
++++ b/libs/vkd3d-shader/fx.c
+@@ -3110,6 +3110,48 @@ static void fxlc_write_swizzle(struct fxlc_writer *writer, const struct hlsl_ir_
+         dst[i] = src[hlsl_swizzle_get_component(swizzle->u.vector, i)];
+ }
+ 
++/* Rounds towards zero, there is no conversion instruction:
++ * x - frc(x) + ((x < 0.0) * (0.0 < frc(x))) */
++static void fxlc_write_truncation(struct fxlc_writer *writer, const struct hlsl_ir_node *node,
++        const struct fxlc_operand *src)
++{
++    struct fxlc_operand frc[FXLC_MAX_COMPONENTS], tmp[FXLC_MAX_COMPONENTS], zero[FXLC_MAX_COMPONENTS];
++    unsigned int comp_count = hlsl_type_component_count(node->data_type);
++    struct fxlc_operand floor[FXLC_MAX_COMPONENTS], neg[FXLC_MAX_COMPONENTS];
++    const struct fxlc_operand *srcs[2];
++    struct fxlc_operand *dst;
++
++    if (!(dst = fxlc_add_temp_value(writer, node)))
++        return;
++
++    fxlc_allocate_temps(writer, frc, comp_count);
++    fxlc_allocate_temps(writer, neg, comp_count);
++    fxlc_allocate_temps(writer, floor, comp_count);
++    fxlc_allocate_temps(writer, tmp, comp_count);
++    fxlc_broadcast_literal(writer, 0.0, zero, comp_count);
++
++    fxlc_write_componentwise(writer, FX_FXLC_OP_FRC, comp_count, frc, &src, 1);
++    srcs[0] = frc;
++    fxlc_write_componentwise(writer, FX_FXLC_OP_NEG, comp_count, neg, srcs, 1);
++    srcs[0] = src;
++    srcs[1] = neg;
++    fxlc_write_componentwise(writer, FX_FXLC_OP_ADD, comp_count, floor, srcs, 2);
++
++    srcs[0] = src;
++    srcs[1] = zero;
++    fxlc_write_componentwise(writer, FX_FXLC_OP_LT, comp_count, tmp, srcs, 2);
++    srcs[0] = zero;
++    srcs[1] = frc;
++    fxlc_write_componentwise(writer, FX_FXLC_OP_LT, comp_count, neg, srcs, 2);
++    srcs[0] = tmp;
++    srcs[1] = neg;
++    fxlc_write_componentwise(writer, FX_FXLC_OP_MUL, comp_count, tmp, srcs, 2);
++
++    srcs[0] = floor;
++    srcs[1] = tmp;
++    fxlc_write_componentwise(writer, FX_FXLC_OP_ADD, comp_count, dst, srcs, 2);
++}
++
+ static void fxlc_write_expr(struct fxlc_writer *writer, const struct hlsl_ir_expr *expr)
+ {
+     unsigned int i, comp_count = hlsl_type_component_count(expr->node.data_type);
+@@ -3147,7 +3189,7 @@ static void fxlc_write_expr(struct fxlc_writer *writer, const struct hlsl_ir_exp
+         if (!is_fx_2_float_type(expr->node.data_type->e.numeric.type)
+                 && is_fx_2_float_type(src_type->e.numeric.type))
+         {
+-            fxlc_fixme(writer, "Casts from float to integer are not implemented in state expressions.");
++            fxlc_write_truncation(writer, &expr->node, args[0]);
+             return;
+         }
+         if (!(dst = fxlc_add_value(writer, &expr->node)))
+diff --git a/tests/hlsl/effect-assignments-fx_2.shader_test b/tests/hlsl/effect-assignments-fx_2.shader_test
+index e32c95a5..679f50e5 100644
+--- a/tests/hlsl/effect-assignments-fx_2.shader_test
++++ b/tests/hlsl/effect-assignments-fx_2.shader_test
+@@ -211,13 +211,16 @@ technique
+     }
+ }
+ 
+-[effect todo]
++[effect]
+ float density;
++float2 v;
+ 
+ technique
+ {
+     pass
+     {
+         AlphaRef = density * 255.0;
++        StencilRef = (int)density + 10;
++        StencilMask = (uint)v.y;
+     }
+ }
+-- 
+2.43.0
+

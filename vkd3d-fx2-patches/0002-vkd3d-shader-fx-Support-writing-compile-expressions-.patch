@@ -1,7 +1,7 @@
-From b205743210247b0453ed4573e131084b6d793f48 Mon Sep 17 00:00:00 2001
+From fd4fdb12d552268bfbb540f9898897f43d72241b Mon Sep 17 00:00:00 2001
 From: chatgptyukkuri <chatgptyukkuri@gmail.com>
 Date: Wed, 28 Oct 2026 03:16:02 +0000
-Subject: [PATCH 2/9] vkd3d-shader/fx: Support writing compile expressions in
+Subject: [PATCH 02/14] vkd3d-shader/fx: Support writing compile expressions in
  fx_2_0 state assignments.
 
 Shader objects created with the "compile" keyword are assigned a new object
@@ -18,10 +18,10 @@ Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
  create mode 100644 tests/hlsl/effect-assignments-fx_2.shader_test
 
 diff --git a/Makefile.am b/Makefile.am
-index 7e9b2e44..16bc8739 100644
+index 86acddc6..d85b03da 100644
 --- a/Makefile.am
 +++ b/Makefile.am
-@@ -139,6 +139,7 @@ vkd3d_shader_tests = \
+@@ -140,6 +140,7 @@ vkd3d_shader_tests = \
  	tests/hlsl/early-depth-stencil.shader_test \
  	tests/hlsl/effect-annotations-fx_2.shader_test \
  	tests/hlsl/effect-annotations-fx_4.shader_test \

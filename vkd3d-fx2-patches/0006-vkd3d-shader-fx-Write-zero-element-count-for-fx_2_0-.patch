@@ -1,7 +1,7 @@
-From 62d64cef52b4cafbc9f620b208d168c7bcb0461c Mon Sep 17 00:00:00 2001
+From d4322e00c9d4af5b871be1b476d378e6766d53a9 Mon Sep 17 00:00:00 2001
 From: chatgptyukkuri <chatgptyukkuri@gmail.com>
 Date: Wed, 28 Oct 2026 03:24:53 +0000
-Subject: [PATCH 6/9] vkd3d-shader/fx: Write zero element count for fx_2_0
+Subject: [PATCH 06/14] vkd3d-shader/fx: Write zero element count for fx_2_0
  constant state values.
 
 The value is not an array, this matches what the native compiler produces.

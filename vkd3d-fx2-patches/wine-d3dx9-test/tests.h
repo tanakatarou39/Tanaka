@@ -381,10 +381,330 @@ static void test_expression_assignments(IDirect3DDevice9 *device)
     effect->lpVtbl->Release(effect);
 }
 
+static void test_constructor_assignments(IDirect3DDevice9 *device)
+{
+    static const char code[] =
+        "float density;\n"
+        "float4 factor;\n"
+        "technique T\n"
+        "{\n"
+        "    pass P0\n"
+        "    {\n"
+        "        LightType[0] = POINT;\n"
+        "        LightDiffuse[0] = float4(density, 1.0, 0.0, density * 2.0);\n"
+        "        LightPosition[0] = float3(factor.xy, density);\n"
+        "    }\n"
+        "}\n";
+    static const float factor[4] = {1.0f, 2.0f, 3.0f, 4.0f};
+    ID3DXEffect *effect;
+    D3DLIGHT9 light;
+    UINT passes;
+    HRESULT hr;
+
+    if (!(effect = create_effect(device, code)))
+        return;
+
+    hr = effect->lpVtbl->SetFloat(effect, "density", 0.5f);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    hr = effect->lpVtbl->SetVector(effect, "factor", (const D3DXVECTOR4 *)factor);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+
+    hr = effect->lpVtbl->Begin(effect, &passes, 0);
+    ok(hr == D3D_OK && passes == 1, "Got hr %#lx, passes %u.\n", hr, passes);
+    hr = effect->lpVtbl->BeginPass(effect, 0);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    hr = IDirect3DDevice9_GetLight(device, 0, &light);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    ok(light.Diffuse.r == 0.5f && light.Diffuse.g == 1.0f && light.Diffuse.b == 0.0f && light.Diffuse.a == 1.0f,
+            "Got diffuse {%.8e, %.8e, %.8e, %.8e}.\n", light.Diffuse.r, light.Diffuse.g, light.Diffuse.b, light.Diffuse.a);
+    ok(light.Position.x == 1.0f && light.Position.y == 2.0f && light.Position.z == 0.5f,
+            "Got position {%.8e, %.8e, %.8e}.\n", light.Position.x, light.Position.y, light.Position.z);
+    effect->lpVtbl->EndPass(effect);
+    effect->lpVtbl->End(effect);
+    effect->lpVtbl->Release(effect);
+}
+
+static void check_transform_(int line, IDirect3DDevice9 *device, D3DTRANSFORMSTATETYPE state, const float *expected)
+{
+    D3DMATRIX m;
+    HRESULT hr;
+    int i;
+
+    hr = IDirect3DDevice9_GetTransform(device, state, &m);
+    ok_(line, hr == D3D_OK, "Got hr %#lx.\n", hr);
+    for (i = 0; i < 16; ++i)
+    {
+        if (((const float *)&m)[i] != expected[i])
+        {
+            ok_(line, 0, "Transform %#x element %d: got %.8e, expected %.8e.\n", state, i,
+                    ((const float *)&m)[i], expected[i]);
+            return;
+        }
+    }
+    ok_(line, 1, "\n");
+}
+#define check_transform(a, b, c) check_transform_(__LINE__, a, b, c)
+
+static void test_matrix_assignments(IDirect3DDevice9 *device)
+{
+    static const char code[] =
+        "float4x4 m, n;\n"
+        "row_major float4x4 rm;\n"
+        "float3x3 m3;\n"
+        "float4 v;\n"
+        "float f;\n"
+        "technique T\n"
+        "{\n"
+        "    pass P0\n"
+        "    {\n"
+        "        WorldTransform[0] = m * 2.0;\n"
+        "        ViewTransform = mul(m, n);\n"
+        "        WorldTransform[1] = transpose(rm);\n"
+        "        WorldTransform[2] = float4x4(f, 0, 0, 0, 0, f, 0, 0, 0, 0, f, 0, v);\n"
+        "        ProjectionTransform = -rm + m;\n"
+        "        TextureTransform[0] = float4x4(m3[0], 0, m3[1], 0, m3[2], 0, 0, 0, 0, 1);\n"
+        "        LightType[1] = DIRECTIONAL;\n"
+        "        LightDirection[1] = m[2].xyz;\n"
+        "    }\n"
+        "}\n";
+    float a[16], b[16], c[16], expected[16], m3[9];
+    static const float v[4] = {5.0f, 6.0f, 7.0f, 8.0f};
+    ID3DXEffect *effect;
+    D3DLIGHT9 light;
+    unsigned int i, j, k;
+    UINT passes;
+    HRESULT hr;
+
+    for (i = 0; i < 16; ++i)
+    {
+        a[i] = i + 1.0f;
+        b[i] = (i % 5) - 2.0f;
+        c[i] = 0.5f * i - 3.0f;
+    }
+    for (i = 0; i < 9; ++i)
+        m3[i] = 10.0f + i;
+
+    if (!(effect = create_effect(device, code)))
+        return;
+
+    hr = effect->lpVtbl->SetMatrix(effect, "m", (const D3DXMATRIX *)a);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    hr = effect->lpVtbl->SetMatrix(effect, "n", (const D3DXMATRIX *)b);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    hr = effect->lpVtbl->SetMatrix(effect, "rm", (const D3DXMATRIX *)c);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    hr = effect->lpVtbl->SetValue(effect, "m3", m3, sizeof(m3));
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    hr = effect->lpVtbl->SetVector(effect, "v", (const D3DXVECTOR4 *)v);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    hr = effect->lpVtbl->SetFloat(effect, "f", 3.0f);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+
+    hr = effect->lpVtbl->Begin(effect, &passes, 0);
+    ok(hr == D3D_OK && passes == 1, "Got hr %#lx, passes %u.\n", hr, passes);
+    hr = effect->lpVtbl->BeginPass(effect, 0);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+
+    for (i = 0; i < 16; ++i)
+        expected[i] = a[i] * 2.0f;
+    check_transform(device, D3DTS_WORLD, expected);
+
+    for (i = 0; i < 4; ++i)
+    {
+        for (j = 0; j < 4; ++j)
+        {
+            expected[i * 4 + j] = 0.0f;
+            for (k = 0; k < 4; ++k)
+                expected[i * 4 + j] += a[i * 4 + k] * b[k * 4 + j];
+        }
+    }
+    check_transform(device, D3DTS_VIEW, expected);
+
+    for (i = 0; i < 4; ++i)
+        for (j = 0; j < 4; ++j)
+            expected[i * 4 + j] = c[j * 4 + i];
+    check_transform(device, D3DTS_WORLDMATRIX(1), expected);
+
+    memset(expected, 0, sizeof(expected));
+    expected[0] = expected[5] = expected[10] = 3.0f;
+    memcpy(&expected[12], v, sizeof(v));
+    check_transform(device, D3DTS_WORLDMATRIX(2), expected);
+
+    for (i = 0; i < 16; ++i)
+        expected[i] = a[i] - c[i];
+    check_transform(device, D3DTS_PROJECTION, expected);
+
+    memset(expected, 0, sizeof(expected));
+    for (i = 0; i < 3; ++i)
+        for (j = 0; j < 3; ++j)
+            expected[i * 4 + j] = m3[i * 3 + j];
+    expected[15] = 1.0f;
+    check_transform(device, D3DTS_TEXTURE0, expected);
+
+    hr = IDirect3DDevice9_GetLight(device, 1, &light);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    ok(light.Direction.x == a[8] && light.Direction.y == a[9] && light.Direction.z == a[10],
+            "Got direction {%.8e, %.8e, %.8e}.\n", light.Direction.x, light.Direction.y, light.Direction.z);
+
+    hr = effect->lpVtbl->SetFloat(effect, "f", -1.5f);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    hr = effect->lpVtbl->CommitChanges(effect);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    memset(expected, 0, sizeof(expected));
+    expected[0] = expected[5] = expected[10] = -1.5f;
+    memcpy(&expected[12], v, sizeof(v));
+    check_transform(device, D3DTS_WORLDMATRIX(2), expected);
+
+    effect->lpVtbl->EndPass(effect);
+    effect->lpVtbl->End(effect);
+    effect->lpVtbl->Release(effect);
+}
+
+static void test_float_to_int_casts(IDirect3DDevice9 *device)
+{
+    static const char code[] =
+        "float density;\n"
+        "float2 v;\n"
+        "technique T\n"
+        "{\n"
+        "    pass P0\n"
+        "    {\n"
+        "        AlphaRef = density * 255.0;\n"
+        "        StencilRef = (int)density + 10;\n"
+        "        StencilMask = (uint)v.y;\n"
+        "        StencilWriteMask = (int)(v.x * 2.0) + (int)v.y;\n"
+        "    }\n"
+        "}\n";
+    static const float v1[4] = {-2.75f, 7.5f}, v2[4] = {3.25f, 0.5f};
+    ID3DXEffect *effect;
+    UINT passes;
+    HRESULT hr;
+
+    if (!(effect = create_effect(device, code)))
+        return;
+
+    hr = effect->lpVtbl->SetFloat(effect, "density", 0.75f);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    hr = effect->lpVtbl->SetFloatArray(effect, "v", v1, 2);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    hr = effect->lpVtbl->Begin(effect, &passes, 0);
+    ok(hr == D3D_OK && passes == 1, "Got hr %#lx, passes %u.\n", hr, passes);
+    hr = effect->lpVtbl->BeginPass(effect, 0);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    check_render_state(device, D3DRS_ALPHAREF, 191);
+    check_render_state(device, D3DRS_STENCILREF, 10);
+    check_render_state(device, D3DRS_STENCILMASK, 7);
+    /* -5.5 is truncated to -5. */
+    check_render_state(device, D3DRS_STENCILWRITEMASK, 2);
+
+    hr = effect->lpVtbl->SetFloat(effect, "density", -1.5f);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    hr = effect->lpVtbl->SetFloatArray(effect, "v", v2, 2);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    hr = effect->lpVtbl->CommitChanges(effect);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    /* -1.5 is truncated to -1, not rounded down to -2. */
+    check_render_state(device, D3DRS_STENCILREF, 9);
+    check_render_state(device, D3DRS_STENCILMASK, 0);
+    check_render_state(device, D3DRS_STENCILWRITEMASK, 6);
+
+    effect->lpVtbl->EndPass(effect);
+    effect->lpVtbl->End(effect);
+    effect->lpVtbl->Release(effect);
+}
+
+static DWORD get_shader_version(IUnknown *shader, BOOL pixel)
+{
+    DWORD data[512];
+    UINT size = sizeof(data);
+    HRESULT hr;
+
+    if (!shader)
+        return 0;
+    if (pixel)
+        hr = IDirect3DPixelShader9_GetFunction((IDirect3DPixelShader9 *)shader, data, &size);
+    else
+        hr = IDirect3DVertexShader9_GetFunction((IDirect3DVertexShader9 *)shader, data, &size);
+    IUnknown_Release(shader);
+    return SUCCEEDED(hr) ? data[0] : 0;
+}
+
+static void test_array_selectors(IDirect3DDevice9 *device)
+{
+    static const char code[] =
+        "float4 vs_main(float4 pos : POSITION) : POSITION { return pos; }\n"
+        "float4 ps_main() : COLOR { return 1.0; }\n"
+        "vertexshader vs_arr[2] = { compile vs_2_0 vs_main(), compile vs_3_0 vs_main() };\n"
+        "pixelshader ps_arr[3] = { compile ps_2_0 ps_main(), compile ps_3_0 ps_main(), compile ps_2_0 ps_main() };\n"
+        "int index;\n"
+        "float f;\n"
+        "float densities[3] = { 0.25, 0.5, 0.75 };\n"
+        "technique T\n"
+        "{\n"
+        "    pass P0\n"
+        "    {\n"
+        "        VertexShader = vs_arr[index];\n"
+        "        PixelShader = ps_arr[f * 2.0];\n"
+        "        FogDensity = densities[index + 1];\n"
+        "    }\n"
+        "}\n";
+    IDirect3DVertexShader9 *vs;
+    IDirect3DPixelShader9 *ps;
+    D3DXPASS_DESC pass_desc;
+    ID3DXEffect *effect;
+    UINT passes;
+    HRESULT hr;
+
+    if (!(effect = create_effect(device, code)))
+        return;
+
+    hr = effect->lpVtbl->SetInt(effect, "index", 1);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    hr = effect->lpVtbl->SetFloat(effect, "f", 0.75f);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    hr = effect->lpVtbl->GetPassDesc(effect, effect->lpVtbl->GetPass(effect, "T", 0), &pass_desc);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    ok(pass_desc.pVertexShaderFunction && *pass_desc.pVertexShaderFunction == 0xfffe0300,
+            "Unexpected vertex shader %p.\n", pass_desc.pVertexShaderFunction);
+    ok(pass_desc.pPixelShaderFunction && *pass_desc.pPixelShaderFunction == 0xffff0300,
+            "Unexpected pixel shader %p.\n", pass_desc.pPixelShaderFunction);
+
+    hr = effect->lpVtbl->Begin(effect, &passes, 0);
+    ok(hr == D3D_OK && passes == 1, "Got hr %#lx, passes %u.\n", hr, passes);
+    hr = effect->lpVtbl->BeginPass(effect, 0);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    IDirect3DDevice9_GetVertexShader(device, &vs);
+    ok(get_shader_version((IUnknown *)vs, FALSE) == 0xfffe0300, "Unexpected vertex shader.\n");
+    IDirect3DDevice9_GetPixelShader(device, &ps);
+    ok(get_shader_version((IUnknown *)ps, TRUE) == 0xffff0300, "Unexpected pixel shader.\n");
+    check_render_state(device, D3DRS_FOGDENSITY, float_to_dword(0.75f));
+
+    hr = effect->lpVtbl->SetInt(effect, "index", 0);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    /* -0.5 is truncated to 0. */
+    hr = effect->lpVtbl->SetFloat(effect, "f", -0.25f);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    hr = effect->lpVtbl->CommitChanges(effect);
+    ok(hr == D3D_OK, "Got hr %#lx.\n", hr);
+    IDirect3DDevice9_GetVertexShader(device, &vs);
+    ok(get_shader_version((IUnknown *)vs, FALSE) == 0xfffe0200, "Unexpected vertex shader.\n");
+    IDirect3DDevice9_GetPixelShader(device, &ps);
+    ok(get_shader_version((IUnknown *)ps, TRUE) == 0xffff0200, "Unexpected pixel shader.\n");
+    check_render_state(device, D3DRS_FOGDENSITY, float_to_dword(0.5f));
+
+    effect->lpVtbl->EndPass(effect);
+    effect->lpVtbl->End(effect);
+    effect->lpVtbl->Release(effect);
+}
+
 static void run_tests(IDirect3DDevice9 *device)
 {
     test_compile_assignments(device);
     test_reference_assignments(device);
     test_sampler_states(device);
     test_expression_assignments(device);
+    test_constructor_assignments(device);
+    test_matrix_assignments(device);
+    test_float_to_int_casts(device);
+    test_array_selectors(device);
 }

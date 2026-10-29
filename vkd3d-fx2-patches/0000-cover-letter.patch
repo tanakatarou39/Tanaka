@@ -1,7 +1,7 @@
-From f8af3ace26dd157073109ae32f7f7bfafbb2996b Mon Sep 17 00:00:00 2001
+From 25c90bee590be44c6cdbc625cfb71ac5d83352db Mon Sep 17 00:00:00 2001
 From: chatgptyukkuri <chatgptyukkuri@gmail.com>
-Date: Wed, 28 Oct 2026 03:42:53 +0000
-Subject: [PATCH 0/9] vkd3d-shader/fx: Support more fx_2_0 state assignment types.
+Date: Thu, 29 Oct 2026 12:06:07 +0000
+Subject: [PATCH 00/14] vkd3d-shader/fx: Support more fx_2_0 state assignment types.
 
 Until now, fx_2_0 state assignments could only be constants. This series adds
 the remaining kinds of values that d3dx9 effects use:
@@ -13,18 +13,17 @@ the remaining kinds of values that d3dx9 effects use:
     "VertexShader = vs_arr[1];";
   - sampler_state initializers of sampler parameters;
   - TRUE/FALSE for every state;
-  - simple expressions over parameters, written as fxlvm code blobs (CTAB,
-    CLIT and FXLC sections).
+  - expressions over parameters, written as fxlvm code blobs (CTAB, CLIT
+    and FXLC sections), including constructors, matrix expressions and
+    casts from float to integer;
+  - array selectors, e.g. "VertexShader = vs_arr[i];", whose index is
+    computed by a fxlvm code blob.
 
 The output was checked by loading it with Wine's d3dx9 (D3DXCreateEffect),
-applying the passes, and checking the resulting device states, shaders,
-textures and sampler states.
+applying the passes, changing the parameters, and checking the resulting
+device states, transforms, lights, shaders, textures and sampler states.
 
-Array selectors (non-constant indices, e.g. "VertexShader = vs_arr[i];"),
-matrix expressions and casts from float to integer in expressions are not
-supported yet.
-
-chatgptyukkuri (9):
+chatgptyukkuri (14):
   vkd3d-shader/fx: Introduce a helper to write fx_2_0 data blobs.
   vkd3d-shader/fx: Support writing compile expressions in fx_2_0 state
     assignments.
@@ -39,11 +38,20 @@ chatgptyukkuri (9):
   vkd3d-shader/fx: Support writing simple expressions in fx_2_0 state
     assignments.
   vkd3d-shader/fx: Support more operations in fx_2_0 state expressions.
+  vkd3d-shader/fx: Track the location of each component of fx_2_0
+    expression values.
+  vkd3d-shader/fx: Support temporary variables in fx_2_0 state
+    expressions.
+  vkd3d-shader/fx: Support matrix expressions in fx_2_0 state
+    assignments.
+  vkd3d-shader/fx: Support casts from float to integer in fx_2_0 state
+    expressions.
+  vkd3d-shader/fx: Support array selectors in fx_2_0 state assignments.
 
- Makefile.am                                   |   1 +
- libs/vkd3d-shader/fx.c                        | 967 +++++++++++++++++-
- .../hlsl/effect-assignments-fx_2.shader_test  | 200 ++++
- 3 files changed, 1115 insertions(+), 53 deletions(-)
+ Makefile.am                                   |    1 +
+ libs/vkd3d-shader/fx.c                        | 1799 +++++++++++++++--
+ .../hlsl/effect-assignments-fx_2.shader_test  |  232 +++
+ 3 files changed, 1863 insertions(+), 169 deletions(-)
  create mode 100644 tests/hlsl/effect-assignments-fx_2.shader_test
 
 -- 

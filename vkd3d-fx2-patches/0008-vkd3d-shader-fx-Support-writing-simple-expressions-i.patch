@@ -1,7 +1,7 @@
-From 424be6da4efc86def08fb78cbafa6684fab52d1d Mon Sep 17 00:00:00 2001
+From 3a2584da253967d66c5950df9f5173ab60a6929d Mon Sep 17 00:00:00 2001
 From: chatgptyukkuri <chatgptyukkuri@gmail.com>
 Date: Wed, 28 Oct 2026 03:35:40 +0000
-Subject: [PATCH 8/9] vkd3d-shader/fx: Support writing simple expressions in
+Subject: [PATCH 08/14] vkd3d-shader/fx: Support writing simple expressions in
  fx_2_0 state assignments.
 
 Expressions are written as fxlvm code blobs, with the referenced parameters

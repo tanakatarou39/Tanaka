@@ -1,0 +1,418 @@
+From 83f09e2ca9cc09aac806bbbdb4fce76646ef105b Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Thu, 29 Oct 2026 11:59:25 +0000
+Subject: [PATCH 12/14] vkd3d-shader/fx: Support matrix expressions in fx_2_0
+ state assignments.
+
+Matrices are written in row-major order, which is the layout of the matrix
+values of the states. The rows or columns of matrix inputs use separate
+registers, depending on their majority.
+
+Constant indices of vectors and matrices are supported as well.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ libs/vkd3d-shader/fx.c                        | 240 ++++++++++++++----
+ .../hlsl/effect-assignments-fx_2.shader_test  |  14 +-
+ 2 files changed, 202 insertions(+), 52 deletions(-)
+
+diff --git a/libs/vkd3d-shader/fx.c b/libs/vkd3d-shader/fx.c
+index a175095d..6b5331bf 100644
+--- a/libs/vkd3d-shader/fx.c
++++ b/libs/vkd3d-shader/fx.c
+@@ -2420,6 +2420,9 @@ enum fxlc_opcode
+     FX_FXLC_OP_DOT = 0x500,
+ };
+ 
++/* The largest values are 4x4 matrices. */
++#define FXLC_MAX_COMPONENTS 16
++
+ struct fxlc_operand
+ {
+     uint32_t table;
+@@ -2629,14 +2632,39 @@ static const struct fxlc_input *fxlc_get_input(struct fxlc_writer *writer, const
+     input->var = var;
+     input->info_offset = 0;
+     input->register_index = writer->input_register_count;
+-    input->register_count = 1;
++    /* Each row or column of a matrix is stored in a separate register,
++     * depending on its majority. */
++    input->register_count = hlsl_type_major_size(var->data_type);
+     writer->input_register_count += input->register_count;
+     return input;
+ }
+ 
+ static struct fxlc_operand fxlc_get_input_component(const struct fxlc_input *input, unsigned int index)
+ {
+-    return (struct fxlc_operand){FX_FXLC_REG_CB, 4 * input->register_index + index};
++    const struct hlsl_type *type = input->var->data_type;
++    unsigned int row, column;
++
++    if (type->class != HLSL_CLASS_MATRIX)
++        return (struct fxlc_operand){FX_FXLC_REG_CB, 4 * input->register_index + index};
++
++    row = index / type->e.numeric.dimx;
++    column = index % type->e.numeric.dimx;
++    if (hlsl_type_is_row_major(type))
++        return (struct fxlc_operand){FX_FXLC_REG_CB, 4 * (input->register_index + row) + column};
++    return (struct fxlc_operand){FX_FXLC_REG_CB, 4 * (input->register_index + column) + row};
++}
++
++/* Allocates a literal for each component, the components of a register can
++ * be used for all the registers of the value. */
++static void fxlc_broadcast_literal(struct fxlc_writer *writer, double value,
++        struct fxlc_operand *components, unsigned int count)
++{
++    const double values[4] = {value, value, value, value};
++    struct fxlc_operand base;
++
++    base = fxlc_allocate_literals(writer, values, min(count, 4));
++    for (unsigned int i = 0; i < count; ++i)
++        components[i] = fxlc_offset_operand(&base, i % 4);
+ }
+ 
+ /* Returns the array of component locations of a new value. */
+@@ -2798,6 +2826,11 @@ static void fxlc_compute_liveness(struct fxlc_writer *writer, const struct hlsl_
+                     fxlc_mark_live_var(writer, hlsl_ir_load(instr)->src.var);
+                 break;
+ 
++            case HLSL_IR_INDEX:
++                fxlc_mark_live_instr(writer, hlsl_ir_index(instr)->val.node);
++                fxlc_mark_live_instr(writer, hlsl_ir_index(instr)->idx.node);
++                break;
++
+             case HLSL_IR_SWIZZLE:
+                 fxlc_mark_live_instr(writer, hlsl_ir_swizzle(instr)->val.node);
+                 break;
+@@ -2874,80 +2907,189 @@ static void fxlc_write_constant(struct fxlc_writer *writer, const struct hlsl_ir
+         fxlc_set_consecutive_components(components, &base, type->e.numeric.dimx);
+ }
+ 
++/* Returns the components of the variable which a dereference covers, in the
++ * order of the components of the dereferenced value. The components of a
++ * matrix are numbered in row-major order, whatever the majority of the matrix
++ * is, but the path index of a column-major matrix selects a column. */
++static unsigned int *fxlc_get_deref_components(struct fxlc_writer *writer,
++        const struct hlsl_deref *deref, unsigned int *count)
++{
++    struct hlsl_type *type = deref->var->data_type;
++    struct hlsl_ctx *ctx = writer->fx->ctx;
++    unsigned int i, j, idx, size, *list;
++
++    size = hlsl_type_component_count(type);
++    if (!(list = hlsl_calloc(ctx, size, sizeof(*list))))
++    {
++        writer->failed = true;
++        return NULL;
++    }
++    for (i = 0; i < size; ++i)
++        list[i] = i;
++
++    for (i = 0; i < deref->path_len; ++i)
++    {
++        struct hlsl_ir_node *path_node = deref->path[i].node;
++        unsigned int offset = 0;
++
++        if (path_node->type != HLSL_IR_CONSTANT)
++        {
++            fxlc_fixme(writer, "Non-constant indices are not implemented in state expressions.");
++            vkd3d_free(list);
++            return NULL;
++        }
++        idx = hlsl_ir_constant(path_node)->value.u[0].u;
++
++        switch (type->class)
++        {
++            case HLSL_CLASS_VECTOR:
++                offset = idx;
++                size = 1;
++                break;
++
++            case HLSL_CLASS_MATRIX:
++                if (hlsl_type_is_row_major(type))
++                {
++                    offset = idx * type->e.numeric.dimx;
++                    size = type->e.numeric.dimx;
++                }
++                else
++                {
++                    for (j = 0; j < type->e.numeric.dimy; ++j)
++                        list[j] = list[j * type->e.numeric.dimx + idx];
++                    size = type->e.numeric.dimy;
++                }
++                break;
++
++            case HLSL_CLASS_ARRAY:
++                size = hlsl_type_component_count(type->e.array.type);
++                offset = idx * size;
++                break;
++
++            case HLSL_CLASS_STRUCT:
++                for (j = 0; j < idx; ++j)
++                    offset += hlsl_type_component_count(type->e.record.fields[j].type);
++                size = hlsl_type_component_count(type->e.record.fields[idx].type);
++                break;
++
++            default:
++                vkd3d_unreachable();
++        }
++        memmove(list, &list[offset], size * sizeof(*list));
++
++        type = hlsl_get_element_type_from_path_index(ctx, type, path_node);
++    }
++
++    *count = size;
++    return list;
++}
++
+ static void fxlc_write_load(struct fxlc_writer *writer, const struct hlsl_ir_load *load)
+ {
+-    unsigned int i, start, count, comp_count = hlsl_type_component_count(load->node.data_type);
+     const struct hlsl_ir_var *var = load->src.var;
+     const struct fxlc_operand *variable;
+-    const struct fxlc_input *input;
+     struct fxlc_operand *components;
++    const struct fxlc_input *input;
++    unsigned int i, count, *list;
+ 
+-    if (!hlsl_is_numeric_type(load->node.data_type)
+-            || !hlsl_component_index_range_from_deref(writer->fx->ctx, &load->src, &start, &count))
++    if (!hlsl_is_numeric_type(load->node.data_type) || (var->is_uniform && var->data_type->class > HLSL_CLASS_MATRIX))
+     {
+         fxlc_fixme(writer, "Unhandled load of variable \"%s\" in a state expression.", var->name);
+         return;
+     }
+-    VKD3D_ASSERT(count == comp_count);
++
++    if (!(list = fxlc_get_deref_components(writer, &load->src, &count)))
++        return;
++    VKD3D_ASSERT(count == hlsl_type_component_count(load->node.data_type));
+ 
+     if (var->is_uniform)
+     {
+-        if (var->data_type->class > HLSL_CLASS_VECTOR)
++        if ((input = fxlc_get_input(writer, var)) && (components = fxlc_add_value(writer, &load->node)))
+         {
+-            fxlc_fixme(writer, "Unhandled load of variable \"%s\" in a state expression.", var->name);
+-            return;
++            for (i = 0; i < count; ++i)
++                components[i] = fxlc_get_input_component(input, list[i]);
+         }
+-
+-        if (!(input = fxlc_get_input(writer, var)) || !(components = fxlc_add_value(writer, &load->node)))
+-            return;
+-        for (i = 0; i < comp_count; ++i)
+-            components[i] = fxlc_get_input_component(input, start + i);
+-        return;
+     }
+-
+-    if (!(variable = fxlc_get_variable(writer, var)))
+-        return;
+-    for (i = 0; i < comp_count; ++i)
++    else if ((variable = fxlc_get_variable(writer, var)))
+     {
+-        if (variable[start + i].table == FX_FXLC_REG_UNUSED)
++        for (i = 0; i < count; ++i)
+         {
++            if (variable[list[i]].table == FX_FXLC_REG_UNUSED)
++                break;
++        }
++
++        if (i < count)
+             fxlc_fixme(writer, "Load of uninitialized variable \"%s\" in a state expression.", var->name);
+-            return;
++        else if ((components = fxlc_add_value(writer, &load->node)))
++        {
++            for (i = 0; i < count; ++i)
++                components[i] = variable[list[i]];
+         }
+     }
+ 
+-    if ((components = fxlc_add_value(writer, &load->node)))
+-        memcpy(components, &variable[start], comp_count * sizeof(*components));
++    vkd3d_free(list);
+ }
+ 
+ static void fxlc_write_store(struct fxlc_writer *writer, const struct hlsl_ir_store *store)
+ {
+     const struct hlsl_ir_var *var = store->lhs.var;
+-    unsigned int i, j, start, count;
++    unsigned int i, j, count, *list;
+     const struct fxlc_operand *src;
+     struct fxlc_operand *dst;
+ 
+-    if (var->is_uniform || !hlsl_component_index_range_from_deref(writer->fx->ctx, &store->lhs, &start, &count))
++    if (var->is_uniform)
+     {
+         fxlc_fixme(writer, "Unhandled store to variable \"%s\" in a state expression.", var->name);
+         return;
+     }
+ 
+-    if (!(src = fxlc_get_value(writer, store->rhs.node)) || !(dst = fxlc_get_variable(writer, var)))
++    if (!(src = fxlc_get_value(writer, store->rhs.node)) || !(dst = fxlc_get_variable(writer, var))
++            || !(list = fxlc_get_deref_components(writer, &store->lhs, &count)))
+         return;
+ 
+-    if (store->writemask)
++    for (i = 0, j = 0; i < count; ++i)
+     {
+-        for (i = 0, j = 0; i < count; ++i)
+-        {
+-            if (store->writemask & (1u << i))
+-                dst[start + i] = src[j++];
+-        }
++        if (!store->writemask)
++            dst[list[i]] = src[i];
++        else if (store->writemask & (1u << i))
++            dst[list[i]] = src[j++];
+     }
+-    else
++
++    vkd3d_free(list);
++}
++
++static void fxlc_write_index(struct fxlc_writer *writer, const struct hlsl_ir_index *index)
++{
++    const struct hlsl_ir_node *val = index->val.node, *idx = index->idx.node;
++    unsigned int i, element, comp_count = hlsl_type_component_count(index->node.data_type);
++    const struct fxlc_operand *src;
++    struct fxlc_operand *dst;
++
++    if (!hlsl_is_numeric_type(val->data_type) || val->data_type->class == HLSL_CLASS_SCALAR)
++    {
++        fxlc_fixme(writer, "Unhandled indexed value in a state expression.");
++        return;
++    }
++    if (idx->type != HLSL_IR_CONSTANT)
+     {
+-        memcpy(&dst[start], src, count * sizeof(*dst));
++        fxlc_fixme(writer, "Non-constant indices are not implemented in state expressions.");
++        return;
++    }
++
++    /* Vectors are indexed by component, and matrices by row. */
++    element = hlsl_ir_constant(idx)->value.u[0].u;
++    if (element >= val->data_type->e.numeric.dimy * val->data_type->e.numeric.dimx / comp_count)
++    {
++        hlsl_error(writer->fx->ctx, &index->node.loc, VKD3D_SHADER_ERROR_HLSL_OFFSET_OUT_OF_BOUNDS,
++                "Index %u is out of bounds.", element);
++        writer->failed = true;
++        return;
+     }
++
++    if (!(src = fxlc_get_value(writer, val)) || !(dst = fxlc_add_value(writer, &index->node)))
++        return;
++    for (i = 0; i < comp_count; ++i)
++        dst[i] = src[element * comp_count + i];
+ }
+ 
+ static void fxlc_write_swizzle(struct fxlc_writer *writer, const struct hlsl_ir_swizzle *swizzle)
+@@ -2971,23 +3113,16 @@ static void fxlc_write_swizzle(struct fxlc_writer *writer, const struct hlsl_ir_
+ static void fxlc_write_expr(struct fxlc_writer *writer, const struct hlsl_ir_expr *expr)
+ {
+     unsigned int i, comp_count = hlsl_type_component_count(expr->node.data_type);
++    struct fxlc_operand dot_args[2], tmp[FXLC_MAX_COMPONENTS], lit[FXLC_MAX_COMPONENTS];
+     const struct fxlc_operand *args[3], *srcs[3];
+-    static const double ones[4] = {1.0, 1.0, 1.0, 1.0};
+-    struct fxlc_operand base, dot_args[2], tmp[4], lit[4];
+     const struct hlsl_type *src_type;
+     struct fxlc_operand *dst;
+ 
+-    if (expr->node.data_type->class > HLSL_CLASS_VECTOR)
+-    {
+-        fxlc_fixme(writer, "Unhandled type for %s in a state expression.", debug_hlsl_expr_op(expr->op));
+-        return;
+-    }
+-
+     for (i = 0; i < ARRAY_SIZE(expr->operands) && expr->operands[i].node; ++i)
+     {
+         const struct hlsl_type *type = expr->operands[i].node->data_type;
+ 
+-        if (!hlsl_is_numeric_type(type) || type->class > HLSL_CLASS_VECTOR
++        if (!hlsl_is_numeric_type(type)
+                 || (hlsl_type_component_count(type) != comp_count && expr->op != HLSL_OP2_DOT))
+         {
+             fxlc_fixme(writer, "Unhandled operand type for %s in a state expression.",
+@@ -3053,8 +3188,7 @@ static void fxlc_write_expr(struct fxlc_writer *writer, const struct hlsl_ir_exp
+         case HLSL_OP1_LOGIC_NOT:
+             /* 1.0 - x */
+             fxlc_allocate_temps(writer, tmp, comp_count);
+-            base = fxlc_allocate_literals(writer, ones, comp_count);
+-            fxlc_set_consecutive_components(lit, &base, comp_count);
++            fxlc_broadcast_literal(writer, 1.0, lit, comp_count);
+             fxlc_write_componentwise(writer, FX_FXLC_OP_NEG, comp_count, tmp, args, 1);
+             srcs[0] = tmp;
+             srcs[1] = lit;
+@@ -3265,12 +3399,12 @@ static uint32_t write_fx_2_expression_assignment(const struct hlsl_ir_var *var,
+     struct vkd3d_bytecode_buffer *unstructured = &fx->unstructured;
+     struct fxlc_writer writer = {.fx = fx, .var = var};
+     struct vkd3d_bytecode_buffer blob = { 0 };
+-    struct fxlc_operand output[4], base;
++    struct fxlc_operand output[FXLC_MAX_COMPONENTS], base;
+     unsigned int comp_count;
+     uint32_t offset;
+ 
+-    if (entry->args_count != 1 || !hlsl_is_numeric_type(value->data_type)
+-            || value->data_type->class > HLSL_CLASS_VECTOR)
++    /* Matrices are written in row-major order. */
++    if (entry->args_count != 1 || !hlsl_is_numeric_type(value->data_type))
+     {
+         hlsl_fixme(fx->ctx, &var->loc, "Unhandled expression for state %s.", entry->name);
+         return 0;
+@@ -3292,6 +3426,9 @@ static uint32_t write_fx_2_expression_assignment(const struct hlsl_ir_var *var,
+             case HLSL_IR_EXPR:
+                 fxlc_write_expr(&writer, hlsl_ir_expr(instr));
+                 break;
++            case HLSL_IR_INDEX:
++                fxlc_write_index(&writer, hlsl_ir_index(instr));
++                break;
+             case HLSL_IR_LOAD:
+                 fxlc_write_load(&writer, hlsl_ir_load(instr));
+                 break;
+@@ -3416,7 +3553,10 @@ static void write_fx_2_state_assignment(const struct hlsl_ir_var *var,
+             break;
+         }
+         case HLSL_IR_INDEX:
+-            value = write_fx_2_index_assignment(var, hlsl_ir_index(value_node), &type, fx);
++            if (hlsl_is_numeric_type(value_node->data_type))
++                value = write_fx_2_expression_assignment(var, entry, &type, fx);
++            else
++                value = write_fx_2_index_assignment(var, hlsl_ir_index(value_node), &type, fx);
+             break;
+         case HLSL_IR_EXPR:
+         case HLSL_IR_SWIZZLE:
+diff --git a/tests/hlsl/effect-assignments-fx_2.shader_test b/tests/hlsl/effect-assignments-fx_2.shader_test
+index 5485c026..e32c95a5 100644
+--- a/tests/hlsl/effect-assignments-fx_2.shader_test
++++ b/tests/hlsl/effect-assignments-fx_2.shader_test
+@@ -190,14 +190,24 @@ technique
+     }
+ }
+ 
+-[effect todo]
+-float4x4 m;
++[effect]
++float4x4 m, n;
++row_major float4x4 rm;
++float3x3 m3;
++float4 v;
++float f;
+ 
+ technique
+ {
+     pass
+     {
+         WorldTransform[0] = m * 2.0;
++        ViewTransform = mul(m, n);
++        WorldTransform[1] = transpose(rm);
++        WorldTransform[2] = float4x4(f, 0, 0, 0, 0, f, 0, 0, 0, 0, f, 0, v);
++        ProjectionTransform = -rm + m;
++        TextureTransform[0] = float4x4(m3[0], 0, m3[1], 0, m3[2], 0, 0, 0, 0, 1);
++        LightDirection[0] = m[2].xyz;
+     }
+ }
+ 
+-- 
+2.43.0
+

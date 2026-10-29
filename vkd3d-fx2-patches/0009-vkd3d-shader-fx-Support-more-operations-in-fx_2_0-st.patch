@@ -1,8 +1,8 @@
-From f8af3ace26dd157073109ae32f7f7bfafbb2996b Mon Sep 17 00:00:00 2001
+From 69cce807d8014619d29f59c409b9ecc6179215eb Mon Sep 17 00:00:00 2001
 From: chatgptyukkuri <chatgptyukkuri@gmail.com>
 Date: Wed, 28 Oct 2026 03:35:56 +0000
-Subject: [PATCH 9/9] vkd3d-shader/fx: Support more operations in fx_2_0 state
- expressions.
+Subject: [PATCH 09/14] vkd3d-shader/fx: Support more operations in fx_2_0
+ state expressions.
 
 Comparison and logical operations produce 0.0 and 1.0 values, which allows
 implementing the ternary operator with "cmp".

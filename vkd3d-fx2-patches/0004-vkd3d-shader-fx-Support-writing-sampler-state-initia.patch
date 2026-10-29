@@ -1,7 +1,7 @@
-From 218f2ac67ca0b17e2b1a859979fd9bfc2c2f66a3 Mon Sep 17 00:00:00 2001
+From 5c990d287b43fda98d89008ea617f98177ecb2f5 Mon Sep 17 00:00:00 2001
 From: chatgptyukkuri <chatgptyukkuri@gmail.com>
 Date: Wed, 28 Oct 2026 03:22:42 +0000
-Subject: [PATCH 4/9] vkd3d-shader/fx: Support writing sampler state
+Subject: [PATCH 04/14] vkd3d-shader/fx: Support writing sampler state
  initializers for fx_2_0.
 
 Assignments of each element are stored contiguously in the unstructured

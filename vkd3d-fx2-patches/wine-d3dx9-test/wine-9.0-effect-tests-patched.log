@@ -24,7 +24,7 @@ effect.c:7838: filename include\include2.h.
 effect.c:7839: parent_data 0000000000000000: (null).
 effect.c:7860: Test marked todo: unexpected parent_data value.
 effect.c:7838: filename include1.h.
-effect.c:7839: parent_data 00007FFFFF3C5CB0: #include "include1.h"
+effect.c:7839: parent_data 00007FFFFF381A80: #include "include1.h"
 
 vs_output vs_main(const vs_input v)
 {
@@ -40,4 +40,3 @@ vs_output vs_main(const vs_input v)
 effect.c:8069: Test failed: D3DXInclude test failed with error 0.
 effect.c:8077: Test failed: Device has 2 references left.
 0020:effect: 233824 tests executed (18 marked as todo, 0 as flaky, 5 failures), 0 skipped.
-X connection to :99 broken (explicit kill or server shutdown).
