@@ -1,0 +1,5 @@
+CreateSwapChainForComposition 0
+DCompositionCreateDevice3 0
+Commit 0
+pt 110 110
+0,0: (0,65535,0)  #0000FFFF0000  lime

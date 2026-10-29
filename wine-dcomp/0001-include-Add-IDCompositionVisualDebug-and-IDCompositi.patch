@@ -1,0 +1,69 @@
+From 1c25fba9438fdeeb4d2d77e344b33f699ff77fa0 Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Thu, 29 Oct 2026 13:21:33 +0000
+Subject: [PATCH 1/5] include: Add IDCompositionVisualDebug and
+ IDCompositionVisual3.
+
+Also declare DCompositionCreateDevice3(). Chromium creates its device with
+it and casts its visuals to IDCompositionVisual3.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ include/dcomp.idl | 36 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 36 insertions(+)
+
+diff --git a/include/dcomp.idl b/include/dcomp.idl
+index 96c89d0..7d78daa 100644
+--- a/include/dcomp.idl
++++ b/include/dcomp.idl
+@@ -352,6 +352,41 @@ interface IDCompositionVisual2 : IDCompositionVisual
+     HRESULT SetBackFaceVisibility([in] enum DCOMPOSITION_BACKFACE_VISIBILITY visibility);
+ }
+ 
++[
++    object,
++    uuid(fed2b808-5eb4-43a0-aea3-35f65280f91b),
++    local,
++    pointer_default(unique)
++]
++interface IDCompositionVisualDebug : IDCompositionVisual2
++{
++    /* C++ method: HRESULT EnableHeatMap(const D2D1_COLOR_F &color); Use pointer instead of reference */
++    HRESULT EnableHeatMap([in] const D2D1_COLOR_F *color);
++    HRESULT DisableHeatMap();
++    HRESULT EnableRedrawRegions();
++    HRESULT DisableRedrawRegions();
++}
++
++[
++    object,
++    uuid(2775f462-b6c1-4015-b0be-b3e7d6a4976d),
++    local,
++    pointer_default(unique)
++]
++interface IDCompositionVisual3 : IDCompositionVisualDebug
++{
++    HRESULT SetDepthMode([in] enum DCOMPOSITION_DEPTH_MODE mode);
++    HRESULT SetOffsetZAnimation([in] IDCompositionAnimation *animation);
++    HRESULT SetOffsetZ([in] float offset_z);
++    HRESULT SetOpacityAnimation([in] IDCompositionAnimation *animation);
++    HRESULT SetOpacity([in] float opacity);
++    /* C++ method: HRESULT SetTransform(IDCompositionTransform3D *transform); */
++    HRESULT SetTransform3DObject([in] IDCompositionTransform3D *transform);
++    /* C++ method: HRESULT SetTransform(const D2D_MATRIX_4X4_F &matrix); Use pointer instead of reference */
++    HRESULT SetTransform3D([in] const D2D_MATRIX_4X4_F *matrix);
++    HRESULT SetVisible([in] BOOL visible);
++}
++
+ [
+     object,
+     uuid(eacdd04c-117e-4e17-88f4-d1b12b0e3d89),
+@@ -704,3 +739,4 @@ interface IDCompositionDesktopDevice : IDCompositionDevice2
+ 
+ cpp_quote("STDAPI DCompositionCreateDevice(IDXGIDevice *dxgi_device, REFIID iid, void **device);")
+ cpp_quote("STDAPI DCompositionCreateDevice2(IUnknown *rendering_device, REFIID iid, void **device);")
++cpp_quote("STDAPI DCompositionCreateDevice3(IUnknown *rendering_device, REFIID iid, void **device);")
+-- 
+2.43.0
+

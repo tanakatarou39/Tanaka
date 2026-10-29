@@ -1,0 +1,147 @@
+From ca372255275bb79b1cdc3a666adcc8def4637f5b Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Thu, 29 Oct 2026 13:22:10 +0000
+Subject: [PATCH 4/5] dcomp: Compose again after the target window is painted.
+
+Painting the window, or a parent without WS_CLIPCHILDREN, draws over the
+composed image, and Chromium only presents when its content changes.
+
+A sent WM_PAINT is caught after it is handled, with a WH_CALLWNDPROCRET
+hook. A WM_PAINT from the queue is only seen before it is dispatched, by a
+WH_GETMESSAGE hook, which posts a message to come back once it has been
+handled.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ dlls/dcomp/dcomp_private.h |  2 ++
+ dlls/dcomp/device.c        | 73 ++++++++++++++++++++++++++++++++++++--
+ 2 files changed, 73 insertions(+), 2 deletions(-)
+
+diff --git a/dlls/dcomp/dcomp_private.h b/dlls/dcomp/dcomp_private.h
+index 6c1c951..c9740db 100644
+--- a/dlls/dcomp/dcomp_private.h
++++ b/dlls/dcomp/dcomp_private.h
+@@ -58,8 +58,10 @@ struct composition_target
+     struct composition_device *device;
+     struct composition_visual *root;
+     HWND hwnd;
++    HHOOK hooks[2];
+     BOOL topmost;
+     bool committed;
++    bool compose_posted;
+     struct list entry;
+ };
+ 
+diff --git a/dlls/dcomp/device.c b/dlls/dcomp/device.c
+index 8089f0a..d60f88d 100644
+--- a/dlls/dcomp/device.c
++++ b/dlls/dcomp/device.c
+@@ -73,6 +73,10 @@ static ULONG STDMETHODCALLTYPE target_Release(IDCompositionTarget *iface)
+ 
+     if (!refcount)
+     {
++        if (target->hooks[0])
++            UnhookWindowsHookEx(target->hooks[0]);
++        if (target->hooks[1])
++            UnhookWindowsHookEx(target->hooks[1]);
+         EnterCriticalSection(&dcomp_cs);
+         list_remove(&target->entry);
+         if (target->root)
+@@ -133,11 +137,70 @@ static const struct IDCompositionTargetVtbl target_vtbl =
+     target_SetRoot,
+ };
+ 
++static UINT compose_message;
++
++static bool target_painted_by(const struct composition_target *target, HWND hwnd)
++{
++    return target->committed && (target->hwnd == hwnd || IsChild(hwnd, target->hwnd));
++}
++
++/* Painting the window, or a parent without WS_CLIPCHILDREN, draws over the
++ * composed image, so compose again after WM_PAINT. A sent WM_PAINT is seen
++ * here after it has been handled. */
++static LRESULT CALLBACK target_callwndprocret_hook(int code, WPARAM wparam, LPARAM lparam)
++{
++    const CWPRETSTRUCT *msg = (const CWPRETSTRUCT *)lparam;
++    struct composition_target *target;
++
++    if (code == HC_ACTION && msg->message == WM_PAINT)
++    {
++        EnterCriticalSection(&dcomp_cs);
++        LIST_FOR_EACH_ENTRY(target, &dcomp_targets, struct composition_target, entry)
++        {
++            if (target_painted_by(target, msg->hwnd))
++                compose_target(target);
++        }
++        LeaveCriticalSection(&dcomp_cs);
++    }
++
++    return CallNextHookEx(NULL, code, wparam, lparam);
++}
++
++/* A WM_PAINT from the queue is seen here before it is dispatched, so post a
++ * message that is retrieved after the painting is done, and compose then. */
++static LRESULT CALLBACK target_getmessage_hook(int code, WPARAM wparam, LPARAM lparam)
++{
++    const MSG *msg = (const MSG *)lparam;
++    struct composition_target *target;
++
++    if (code == HC_ACTION && wparam == PM_REMOVE
++            && (msg->message == WM_PAINT || msg->message == compose_message))
++    {
++        EnterCriticalSection(&dcomp_cs);
++        LIST_FOR_EACH_ENTRY(target, &dcomp_targets, struct composition_target, entry)
++        {
++            if (msg->message == compose_message && msg->hwnd == target->hwnd)
++            {
++                target->compose_posted = false;
++                if (target->committed)
++                    compose_target(target);
++            }
++            else if (msg->message == WM_PAINT && !target->compose_posted && target_painted_by(target, msg->hwnd))
++            {
++                target->compose_posted = PostMessageW(target->hwnd, compose_message, 0, 0);
++            }
++        }
++        LeaveCriticalSection(&dcomp_cs);
++    }
++
++    return CallNextHookEx(NULL, code, wparam, lparam);
++}
++
+ static HRESULT create_target(struct composition_device *device, HWND hwnd, BOOL topmost,
+         IDCompositionTarget **out)
+ {
+     struct composition_target *target;
+-    DWORD pid;
++    DWORD pid, tid;
+ 
+     if (!out)
+         return E_INVALIDARG;
+@@ -145,7 +208,7 @@ static HRESULT create_target(struct composition_device *device, HWND hwnd, BOOL
+ 
+     if (!IsWindow(hwnd))
+         return E_INVALIDARG;
+-    GetWindowThreadProcessId(hwnd, &pid);
++    tid = GetWindowThreadProcessId(hwnd, &pid);
+     if (pid != GetCurrentProcessId())
+     {
+         WARN("Window %p belongs to another process.\n", hwnd);
+@@ -178,6 +241,12 @@ static HRESULT create_target(struct composition_device *device, HWND hwnd, BOOL
+     IDCompositionDevice_AddRef(&device->IDCompositionDevice_iface);
+     LeaveCriticalSection(&dcomp_cs);
+ 
++    if (!compose_message)
++        compose_message = RegisterWindowMessageW(L"__wine_dcomp_compose");
++    if (!(target->hooks[0] = SetWindowsHookExW(WH_CALLWNDPROCRET, target_callwndprocret_hook, NULL, tid))
++            || !(target->hooks[1] = SetWindowsHookExW(WH_GETMESSAGE, target_getmessage_hook, NULL, tid)))
++        WARN("Failed to hook window %p, error %lu.\n", hwnd, GetLastError());
++
+     TRACE("Created target %p for window %p.\n", target, hwnd);
+     *out = &target->IDCompositionTarget_iface;
+     return S_OK;
+-- 
+2.43.0
+

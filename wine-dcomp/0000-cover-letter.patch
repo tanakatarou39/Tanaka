@@ -1,0 +1,61 @@
+From 3ac31398a6f7535bdb8f5a00195c2f3831e3049b Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Thu, 29 Oct 2026 13:24:41 +0000
+Subject: [PATCH 0/5] dcomp: Minimal DirectComposition for Chromium and WebView2
+
+WebView2 uses DirectComposition unless Wine reports Windows 8 or older,
+and dcomp returns E_NOTIMPL from every DCompositionCreateDevice*() today.
+Apps work around it by reporting Windows 8 for msedgewebview2.exe
+(bug 58921).
+
+This series implements what Chromium 156 calls to show its output, and
+composes in software: DCompositionCreateDevice3(), IDCompositionDesktopDevice
+and IDCompositionDevice3, CreateTargetForHwnd(), CreateVisual(), SetRoot(),
+SetContent() with a swapchain from CreateSwapChainForComposition(), offsets,
+clips, Commit(), and CreateSwapChainForComposition() in dxgi for Direct3D 10
+and 11 devices.
+
+dxgi and dcomp talk through a private interface, IWineDXGICompositionCallback,
+which dcomp attaches to the swapchain with SetPrivateDataInterface(). Another
+dxgi implementation, DXVK's for instance, can call it in the same way.
+
+Not implemented yet: IDCompositionSurface (Chromium uses it for solid colour
+overlays and delegated compositing), scales and rotations, opacity, effects,
+animations, and composition swapchains on Direct3D 12 queues.
+
+Tested on Linux with Xvfb and llvmpipe. The new tests haven't been run on
+Windows.
+
+chatgptyukkuri (5):
+  include: Add IDCompositionVisualDebug and IDCompositionVisual3.
+  dxgi: Implement CreateSwapChainForComposition() for Direct3D 10 and 11
+    devices.
+  dcomp: Implement devices, targets and visuals, and compose swapchains
+    in software.
+  dcomp: Compose again after the target window is painted.
+  dcomp/tests: Add tests.
+
+ configure                    |    1 +
+ configure.ac                 |    1 +
+ dlls/dcomp/Makefile.in       |    5 +-
+ dlls/dcomp/composition.c     |  452 +++++++++++++++
+ dlls/dcomp/dcomp_private.h   |  124 ++++
+ dlls/dcomp/device.c          | 1034 +++++++++++++++++++++++++++++++++-
+ dlls/dcomp/tests/Makefile.in |    5 +
+ dlls/dcomp/tests/dcomp.c     |  536 ++++++++++++++++++
+ dlls/dcomp/visual.c          |  742 ++++++++++++++++++++++++
+ dlls/dxgi/dxgi_private.h     |    5 +
+ dlls/dxgi/factory.c          |   53 +-
+ dlls/dxgi/swapchain.c        |   44 +-
+ include/dcomp.idl            |   36 ++
+ include/wine/winedxgi.idl    |   13 +
+ 14 files changed, 3034 insertions(+), 17 deletions(-)
+ create mode 100644 dlls/dcomp/composition.c
+ create mode 100644 dlls/dcomp/dcomp_private.h
+ create mode 100644 dlls/dcomp/tests/Makefile.in
+ create mode 100644 dlls/dcomp/tests/dcomp.c
+ create mode 100644 dlls/dcomp/visual.c
+
+-- 
+2.43.0
+

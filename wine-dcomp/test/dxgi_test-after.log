@@ -1,0 +1,60 @@
+dxgi.c:1683: Test failed: Got unexpected refresh rate 0 / 1.
+dxgi.c:2814: Test failed: d3d10: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2814: Test failed: d3d10: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2814: Test failed: d3d10: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2818: Test failed: d3d10: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2818: Test failed: d3d10: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2818: Test failed: d3d10: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2876: Test failed: d3d10: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2876: Test failed: d3d10: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2876: Test failed: d3d10: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2890: Test failed: d3d10: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2890: Test failed: d3d10: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2890: Test failed: d3d10: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2893: Test failed: d3d10: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2893: Test failed: d3d10: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2893: Test failed: d3d10: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3719: Test failed: d3d10: Adapter 0: output 0: test 2: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3719: Test failed: d3d10: Adapter 0: output 0: test 2: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3719: Test failed: d3d10: Adapter 0: output 0: test 2: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3723: Test failed: d3d10: Adapter 0: output 0: test 2: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3723: Test failed: d3d10: Adapter 0: output 0: test 2: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3723: Test failed: d3d10: Adapter 0: output 0: test 2: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3719: Test failed: d3d10: Adapter 0: output 0: test 3: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3719: Test failed: d3d10: Adapter 0: output 0: test 3: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3719: Test failed: d3d10: Adapter 0: output 0: test 3: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3723: Test failed: d3d10: Adapter 0: output 0: test 3: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3723: Test failed: d3d10: Adapter 0: output 0: test 3: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3723: Test failed: d3d10: Adapter 0: output 0: test 3: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:7616: Test failed: d3d10: Adapter 0: Output 0: Failed to find a different mode than 1024x768.
+dxgi.c:7694: Test failed: d3d10: Got unexpected refcount 2.
+dxgi.c:2814: Test failed: d3d12: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2814: Test failed: d3d12: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2814: Test failed: d3d12: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2818: Test failed: d3d12: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2818: Test failed: d3d12: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2818: Test failed: d3d12: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2876: Test failed: d3d12: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2876: Test failed: d3d12: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2876: Test failed: d3d12: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2890: Test failed: d3d12: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2890: Test failed: d3d12: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2890: Test failed: d3d12: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2893: Test failed: d3d12: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2893: Test failed: d3d12: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:2893: Test failed: d3d12: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3719: Test failed: d3d12: Adapter 0: output 0: test 2: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3719: Test failed: d3d12: Adapter 0: output 0: test 2: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3719: Test failed: d3d12: Adapter 0: output 0: test 2: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3723: Test failed: d3d12: Adapter 0: output 0: test 2: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3723: Test failed: d3d12: Adapter 0: output 0: test 2: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3723: Test failed: d3d12: Adapter 0: output 0: test 2: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3719: Test failed: d3d12: Adapter 0: output 0: test 3: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3719: Test failed: d3d12: Adapter 0: output 0: test 3: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3719: Test failed: d3d12: Adapter 0: output 0: test 3: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3723: Test failed: d3d12: Adapter 0: output 0: test 3: Got window rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3723: Test failed: d3d12: Adapter 0: output 0: test 3: Got client rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:3723: Test failed: d3d12: Adapter 0: output 0: test 3: Got monitor rect (0,0)-(1024,768), expected (0,0)-(800,600).
+dxgi.c:7616: Test failed: d3d12: Adapter 0: Output 0: Failed to find a different mode than 1024x768.
+dxgi.c:7694: Test failed: d3d12: Got unexpected refcount 1.
+dxgi: 14468 tests executed (295 marked as todo, 0 as flaky, 62 failures), 46 skipped.
