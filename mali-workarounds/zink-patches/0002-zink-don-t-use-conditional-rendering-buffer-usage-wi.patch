@@ -1,0 +1,36 @@
+From a55ae8e8ccbe8f5fef1d3362e0183edb54b07dd2 Mon Sep 17 00:00:00 2001
+From: chatgptyukkuri <chatgptyukkuri@gmail.com>
+Date: Thu, 29 Oct 2026 12:24:19 +0000
+Subject: [PATCH 2/2] zink: don't use conditional rendering buffer usage
+ without the extension
+
+VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT is only valid when
+VK_EXT_conditional_rendering is enabled. Drivers without the extension,
+such as the ARM proprietary driver, may reject the buffer creation, which
+breaks query buffer objects.
+
+The conditional rendering paths already check for the extension, so only
+add the usage bit when it is available.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01LkAyMz3ChWUcwV1bWoNa1Z
+---
+ src/gallium/drivers/zink/zink_resource.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/gallium/drivers/zink/zink_resource.c b/src/gallium/drivers/zink/zink_resource.c
+index dbb23b2..dd086d8 100644
+--- a/src/gallium/drivers/zink/zink_resource.c
++++ b/src/gallium/drivers/zink/zink_resource.c
+@@ -549,7 +549,7 @@ create_bci(struct zink_screen *screen, const struct pipe_resource *templ, unsign
+ 
+    bci.usage |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
+ 
+-   if (bind & PIPE_BIND_QUERY_BUFFER)
++   if (bind & PIPE_BIND_QUERY_BUFFER && screen->info.have_EXT_conditional_rendering)
+       bci.usage |= VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT;
+ 
+    if (templ->flags & PIPE_RESOURCE_FLAG_SPARSE)
+-- 
+2.43.0
+

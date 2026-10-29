@@ -1,0 +1,52 @@
+[1/45] Generating src/compiler/nir/nir_intrinsics.h with a custom command
+[2/45] Generating src/compiler/nir/nir_opcodes.h with a custom command (wrapped by meson to capture output)
+[3/45] Generating src/compiler/nir/nir_builder_opcodes.h with a custom command (wrapped by meson to capture output)
+[4/45] Generating src/compiler/ir_expression_operation.h with a custom command (wrapped by meson to capture output)
+[5/45] Generating src/util/shader_stats.h with a custom command (wrapped by meson to capture output)
+
+****
+lxml or rnc2rng missing, skipping validation
+If this script fails, install for diagnostics
+****
+
+
+[6/45] Generating src/compiler/nir/nir_intrinsics_indices.h with a custom command
+[7/45] Generating src/compiler/spirv/spirv_info with a custom command
+[8/45] Generating src/util/format/u_format_gen.h with a custom command (wrapped by meson to capture output)
+[9/45] Generating src/compiler/builtin_types.h with a custom command
+[10/45] Generating src/vulkan/util/vk_struct_type_cast with a custom command
+[11/45] Generating src/vulkan/util/vk_dispatch_table with a custom command
+[12/45] Generating src/vulkan/util/vk_extensions with a custom command
+[13/45] Generating src/vulkan/util/vk_enum_to_str with a custom command
+[14/45] Generating src/gallium/drivers/zink/zink_nir_algebraic.c with a custom command (wrapped by meson to capture output)
+[15/45] Generating src/gallium/drivers/zink/zink_instance.c with a custom command
+[16/45] Generating src/gallium/drivers/zink/zink_device_info.c with a custom command
+[17/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/meson-generated_.._zink_instance.c.o
+[18/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/meson-generated_.._zink_nir_algebraic.c.o
+[19/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_lower_cubemap_to_array.c.o
+[20/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_batch.c.o
+[21/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/meson-generated_.._.._.._.._vulkan_util_vk_dispatch_table.c.o
+[22/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_blit.c.o
+[23/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_clear.c.o
+[24/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_kopper.c.o
+[25/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_bo.c.o
+[26/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/meson-generated_.._zink_device_info.c.o
+[27/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_format.c.o
+[28/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_fence.c.o
+[29/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_descriptors.c.o
+[30/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_pipeline.c.o
+[31/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_render_pass.c.o
+[32/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_query.c.o
+[33/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_program.c.o
+[34/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_resource.c.o
+[35/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_state.c.o
+[36/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_screen.c.o
+[37/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_surface.c.o
+[38/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_video.c.o
+[39/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_context.c.o
+[40/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/nir_to_spirv_spirv_builder.c.o
+[41/45] Compiling C++ object src/gallium/drivers/zink/libzink.a.p/zink_synchronization.cpp.o
+[42/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/zink_compiler.c.o
+[43/45] Compiling C object src/gallium/drivers/zink/libzink.a.p/nir_to_spirv_nir_to_spirv.c.o
+[44/45] Compiling C++ object src/gallium/drivers/zink/libzink.a.p/zink_draw.cpp.o
+[45/45] Linking static target src/gallium/drivers/zink/libzink.a
